@@ -14,6 +14,11 @@
 		B0948C062F93252100BF901B /* ProjectPRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948C052F93252100BF901B /* ProjectPRTests.swift */; };
 		B0948C102F93252200BF901B /* ProjectPRUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948C0F2F93252200BF901B /* ProjectPRUITests.swift */; };
 		B0948C122F93252200BF901B /* ProjectPRUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948C112F93252200BF901B /* ProjectPRUITestsLaunchTests.swift */; };
+		B0948C1F2F93391B00BF901B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948C1E2F93391B00BF901B /* Models.swift */; };
+		B0948C212F93395400BF901B /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948C202F93395400BF901B /* MockData.swift */; };
+		B0948C232F93399500BF901B /* FitnessEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948C222F93399500BF901B /* FitnessEngine.swift */; };
+		B0948C252F9339FC00BF901B /* TrainingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948C242F9339FC00BF901B /* TrainingModels.swift */; };
+		B0948C272F933A2000BF901B /* HansonsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948C262F933A2000BF901B /* HansonsEngine.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +49,11 @@
 		B0948C0B2F93252200BF901B /* ProjectPRUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ProjectPRUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0948C0F2F93252200BF901B /* ProjectPRUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPRUITests.swift; sourceTree = "<group>"; };
 		B0948C112F93252200BF901B /* ProjectPRUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPRUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		B0948C1E2F93391B00BF901B /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		B0948C202F93395400BF901B /* MockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
+		B0948C222F93399500BF901B /* FitnessEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessEngine.swift; sourceTree = "<group>"; };
+		B0948C242F9339FC00BF901B /* TrainingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingModels.swift; sourceTree = "<group>"; };
+		B0948C262F933A2000BF901B /* HansonsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HansonsEngine.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,6 +107,11 @@
 				B0948BF42F93251D00BF901B /* ProjectPRApp.swift */,
 				B0948BF62F93251D00BF901B /* ContentView.swift */,
 				B0948BF82F93252100BF901B /* Assets.xcassets */,
+				B0948C1E2F93391B00BF901B /* Models.swift */,
+				B0948C202F93395400BF901B /* MockData.swift */,
+				B0948C222F93399500BF901B /* FitnessEngine.swift */,
+				B0948C242F9339FC00BF901B /* TrainingModels.swift */,
+				B0948C262F933A2000BF901B /* HansonsEngine.swift */,
 				B0948BFA2F93252100BF901B /* Preview Content */,
 			);
 			path = ProjectPR;
@@ -257,8 +272,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B0948C1F2F93391B00BF901B /* Models.swift in Sources */,
+				B0948C252F9339FC00BF901B /* TrainingModels.swift in Sources */,
+				B0948C272F933A2000BF901B /* HansonsEngine.swift in Sources */,
+				B0948C212F93395400BF901B /* MockData.swift in Sources */,
 				B0948BF72F93251D00BF901B /* ContentView.swift in Sources */,
 				B0948BF52F93251D00BF901B /* ProjectPRApp.swift in Sources */,
+				B0948C232F93399500BF901B /* FitnessEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
