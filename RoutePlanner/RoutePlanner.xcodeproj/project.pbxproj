@@ -1,0 +1,610 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B0948CA72F958EDA00BF901B /* RoutePlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948CA62F958EDA00BF901B /* RoutePlannerApp.swift */; };
+		B0948CA92F958EDA00BF901B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948CA82F958EDA00BF901B /* ContentView.swift */; };
+		B0948CAB2F958EDF00BF901B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0948CAA2F958EDF00BF901B /* Assets.xcassets */; };
+		B0948CAE2F958EDF00BF901B /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0948CAD2F958EDF00BF901B /* Preview Assets.xcassets */; };
+		B0948CB82F958EE000BF901B /* RoutePlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948CB72F958EE000BF901B /* RoutePlannerTests.swift */; };
+		B0948CC22F958EE000BF901B /* RoutePlannerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948CC12F958EE000BF901B /* RoutePlannerUITests.swift */; };
+		B0948CC42F958EE000BF901B /* RoutePlannerUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948CC32F958EE000BF901B /* RoutePlannerUITestsLaunchTests.swift */; };
+		B0948CD12F958F6A00BF901B /* RoutePoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948CD02F958F6A00BF901B /* RoutePoint.swift */; };
+		B0948CD32F958F8400BF901B /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948CD22F958F8400BF901B /* MapView.swift */; };
+		B0948CD62F958FA800BF901B /* MapCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948CD42F958FA100BF901B /* MapCoordinator.swift */; };
+		B0948CD82F958FBF00BF901B /* DistanceCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948CD72F958FBF00BF901B /* DistanceCalculator.swift */; };
+		B0948CDA2F958FD200BF901B /* GPXExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948CD92F958FD200BF901B /* GPXExporter.swift */; };
+		B0948CDC2F958FE300BF901B /* FileSharingExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948CDB2F958FE300BF901B /* FileSharingExporter.swift */; };
+		B0948CDE2F95916200BF901B /* RouteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0948CDD2F95916200BF901B /* RouteService.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B0948CB42F958EE000BF901B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B0948C9B2F958EDA00BF901B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B0948CA22F958EDA00BF901B;
+			remoteInfo = RoutePlanner;
+		};
+		B0948CBE2F958EE000BF901B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B0948C9B2F958EDA00BF901B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B0948CA22F958EDA00BF901B;
+			remoteInfo = RoutePlanner;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B0948CA32F958EDA00BF901B /* RoutePlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RoutePlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0948CA62F958EDA00BF901B /* RoutePlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlannerApp.swift; sourceTree = "<group>"; };
+		B0948CA82F958EDA00BF901B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B0948CAA2F958EDF00BF901B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B0948CAD2F958EDF00BF901B /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		B0948CB32F958EE000BF901B /* RoutePlannerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RoutePlannerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0948CB72F958EE000BF901B /* RoutePlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlannerTests.swift; sourceTree = "<group>"; };
+		B0948CBD2F958EE000BF901B /* RoutePlannerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RoutePlannerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0948CC12F958EE000BF901B /* RoutePlannerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlannerUITests.swift; sourceTree = "<group>"; };
+		B0948CC32F958EE000BF901B /* RoutePlannerUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlannerUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		B0948CD02F958F6A00BF901B /* RoutePoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePoint.swift; sourceTree = "<group>"; };
+		B0948CD22F958F8400BF901B /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
+		B0948CD42F958FA100BF901B /* MapCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapCoordinator.swift; sourceTree = "<group>"; };
+		B0948CD72F958FBF00BF901B /* DistanceCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceCalculator.swift; sourceTree = "<group>"; };
+		B0948CD92F958FD200BF901B /* GPXExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPXExporter.swift; sourceTree = "<group>"; };
+		B0948CDB2F958FE300BF901B /* FileSharingExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSharingExporter.swift; sourceTree = "<group>"; };
+		B0948CDD2F95916200BF901B /* RouteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteService.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B0948CA02F958EDA00BF901B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0948CB02F958EE000BF901B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0948CBA2F958EE000BF901B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B0948C9A2F958ED900BF901B = {
+			isa = PBXGroup;
+			children = (
+				B0948CA52F958EDA00BF901B /* RoutePlanner */,
+				B0948CB62F958EE000BF901B /* RoutePlannerTests */,
+				B0948CC02F958EE000BF901B /* RoutePlannerUITests */,
+				B0948CA42F958EDA00BF901B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B0948CA42F958EDA00BF901B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B0948CA32F958EDA00BF901B /* RoutePlanner.app */,
+				B0948CB32F958EE000BF901B /* RoutePlannerTests.xctest */,
+				B0948CBD2F958EE000BF901B /* RoutePlannerUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B0948CA52F958EDA00BF901B /* RoutePlanner */ = {
+			isa = PBXGroup;
+			children = (
+				B0948CA62F958EDA00BF901B /* RoutePlannerApp.swift */,
+				B0948CD02F958F6A00BF901B /* RoutePoint.swift */,
+				B0948CD22F958F8400BF901B /* MapView.swift */,
+				B0948CA82F958EDA00BF901B /* ContentView.swift */,
+				B0948CDD2F95916200BF901B /* RouteService.swift */,
+				B0948CD42F958FA100BF901B /* MapCoordinator.swift */,
+				B0948CD72F958FBF00BF901B /* DistanceCalculator.swift */,
+				B0948CD92F958FD200BF901B /* GPXExporter.swift */,
+				B0948CDB2F958FE300BF901B /* FileSharingExporter.swift */,
+				B0948CAA2F958EDF00BF901B /* Assets.xcassets */,
+				B0948CAC2F958EDF00BF901B /* Preview Content */,
+			);
+			path = RoutePlanner;
+			sourceTree = "<group>";
+		};
+		B0948CAC2F958EDF00BF901B /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				B0948CAD2F958EDF00BF901B /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		B0948CB62F958EE000BF901B /* RoutePlannerTests */ = {
+			isa = PBXGroup;
+			children = (
+				B0948CB72F958EE000BF901B /* RoutePlannerTests.swift */,
+			);
+			path = RoutePlannerTests;
+			sourceTree = "<group>";
+		};
+		B0948CC02F958EE000BF901B /* RoutePlannerUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B0948CC12F958EE000BF901B /* RoutePlannerUITests.swift */,
+				B0948CC32F958EE000BF901B /* RoutePlannerUITestsLaunchTests.swift */,
+			);
+			path = RoutePlannerUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B0948CA22F958EDA00BF901B /* RoutePlanner */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B0948CC72F958EE000BF901B /* Build configuration list for PBXNativeTarget "RoutePlanner" */;
+			buildPhases = (
+				B0948C9F2F958EDA00BF901B /* Sources */,
+				B0948CA02F958EDA00BF901B /* Frameworks */,
+				B0948CA12F958EDA00BF901B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RoutePlanner;
+			productName = RoutePlanner;
+			productReference = B0948CA32F958EDA00BF901B /* RoutePlanner.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B0948CB22F958EE000BF901B /* RoutePlannerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B0948CCA2F958EE000BF901B /* Build configuration list for PBXNativeTarget "RoutePlannerTests" */;
+			buildPhases = (
+				B0948CAF2F958EE000BF901B /* Sources */,
+				B0948CB02F958EE000BF901B /* Frameworks */,
+				B0948CB12F958EE000BF901B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B0948CB52F958EE000BF901B /* PBXTargetDependency */,
+			);
+			name = RoutePlannerTests;
+			productName = RoutePlannerTests;
+			productReference = B0948CB32F958EE000BF901B /* RoutePlannerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B0948CBC2F958EE000BF901B /* RoutePlannerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B0948CCD2F958EE000BF901B /* Build configuration list for PBXNativeTarget "RoutePlannerUITests" */;
+			buildPhases = (
+				B0948CB92F958EE000BF901B /* Sources */,
+				B0948CBA2F958EE000BF901B /* Frameworks */,
+				B0948CBB2F958EE000BF901B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B0948CBF2F958EE000BF901B /* PBXTargetDependency */,
+			);
+			name = RoutePlannerUITests;
+			productName = RoutePlannerUITests;
+			productReference = B0948CBD2F958EE000BF901B /* RoutePlannerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B0948C9B2F958EDA00BF901B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1430;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					B0948CA22F958EDA00BF901B = {
+						CreatedOnToolsVersion = 14.3.1;
+					};
+					B0948CB22F958EE000BF901B = {
+						CreatedOnToolsVersion = 14.3.1;
+						TestTargetID = B0948CA22F958EDA00BF901B;
+					};
+					B0948CBC2F958EE000BF901B = {
+						CreatedOnToolsVersion = 14.3.1;
+						TestTargetID = B0948CA22F958EDA00BF901B;
+					};
+				};
+			};
+			buildConfigurationList = B0948C9E2F958EDA00BF901B /* Build configuration list for PBXProject "RoutePlanner" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B0948C9A2F958ED900BF901B;
+			productRefGroup = B0948CA42F958EDA00BF901B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B0948CA22F958EDA00BF901B /* RoutePlanner */,
+				B0948CB22F958EE000BF901B /* RoutePlannerTests */,
+				B0948CBC2F958EE000BF901B /* RoutePlannerUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B0948CA12F958EDA00BF901B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0948CAE2F958EDF00BF901B /* Preview Assets.xcassets in Resources */,
+				B0948CAB2F958EDF00BF901B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0948CB12F958EE000BF901B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0948CBB2F958EE000BF901B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B0948C9F2F958EDA00BF901B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0948CD82F958FBF00BF901B /* DistanceCalculator.swift in Sources */,
+				B0948CDC2F958FE300BF901B /* FileSharingExporter.swift in Sources */,
+				B0948CDA2F958FD200BF901B /* GPXExporter.swift in Sources */,
+				B0948CA92F958EDA00BF901B /* ContentView.swift in Sources */,
+				B0948CD32F958F8400BF901B /* MapView.swift in Sources */,
+				B0948CDE2F95916200BF901B /* RouteService.swift in Sources */,
+				B0948CA72F958EDA00BF901B /* RoutePlannerApp.swift in Sources */,
+				B0948CD62F958FA800BF901B /* MapCoordinator.swift in Sources */,
+				B0948CD12F958F6A00BF901B /* RoutePoint.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0948CAF2F958EE000BF901B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0948CB82F958EE000BF901B /* RoutePlannerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0948CB92F958EE000BF901B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0948CC22F958EE000BF901B /* RoutePlannerUITests.swift in Sources */,
+				B0948CC42F958EE000BF901B /* RoutePlannerUITestsLaunchTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B0948CB52F958EE000BF901B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B0948CA22F958EDA00BF901B /* RoutePlanner */;
+			targetProxy = B0948CB42F958EE000BF901B /* PBXContainerItemProxy */;
+		};
+		B0948CBF2F958EE000BF901B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B0948CA22F958EDA00BF901B /* RoutePlanner */;
+			targetProxy = B0948CBE2F958EE000BF901B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		B0948CC52F958EE000BF901B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B0948CC62F958EE000BF901B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		B0948CC82F958EE000BF901B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"RoutePlanner/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = RunPlanner.RoutePlanner;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B0948CC92F958EE000BF901B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"RoutePlanner/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = RunPlanner.RoutePlanner;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B0948CCB2F958EE000BF901B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = RunPlanner.RoutePlannerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RoutePlanner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/RoutePlanner";
+			};
+			name = Debug;
+		};
+		B0948CCC2F958EE000BF901B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = RunPlanner.RoutePlannerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RoutePlanner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/RoutePlanner";
+			};
+			name = Release;
+		};
+		B0948CCE2F958EE000BF901B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = RunPlanner.RoutePlannerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = RoutePlanner;
+			};
+			name = Debug;
+		};
+		B0948CCF2F958EE000BF901B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = RunPlanner.RoutePlannerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = RoutePlanner;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B0948C9E2F958EDA00BF901B /* Build configuration list for PBXProject "RoutePlanner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0948CC52F958EE000BF901B /* Debug */,
+				B0948CC62F958EE000BF901B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B0948CC72F958EE000BF901B /* Build configuration list for PBXNativeTarget "RoutePlanner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0948CC82F958EE000BF901B /* Debug */,
+				B0948CC92F958EE000BF901B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B0948CCA2F958EE000BF901B /* Build configuration list for PBXNativeTarget "RoutePlannerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0948CCB2F958EE000BF901B /* Debug */,
+				B0948CCC2F958EE000BF901B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B0948CCD2F958EE000BF901B /* Build configuration list for PBXNativeTarget "RoutePlannerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0948CCE2F958EE000BF901B /* Debug */,
+				B0948CCF2F958EE000BF901B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B0948C9B2F958EDA00BF901B /* Project object */;
+}

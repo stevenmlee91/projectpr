@@ -1,0 +1,634 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B07526012F9B0C72008F9552 /* PlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526002F9B0C72008F9552 /* PlanStore.swift */; };
+		B07526032F9B0C89008F9552 /* PlanListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526022F9B0C89008F9552 /* PlanListView.swift */; };
+		B07526052F9B0C9F008F9552 /* CreatePlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526042F9B0C9F008F9552 /* CreatePlanView.swift */; };
+		B07526072F9B0CB4008F9552 /* SavedPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526062F9B0CB4008F9552 /* SavedPlanView.swift */; };
+		B07526092F9B0CD2008F9552 /* PDFExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526082F9B0CD2008F9552 /* PDFExporter.swift */; };
+		B075260B2F9B0CE6008F9552 /* ICSexporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B075260A2F9B0CE6008F9552 /* ICSexporter.swift */; };
+		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
+		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
+		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
+		B0A62D842F9861AB0093719D /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D832F9861AB0093719D /* Preview Assets.xcassets */; };
+		B0A62D8E2F9861AB0093719D /* MarathonPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D8D2F9861AB0093719D /* MarathonPlannerTests.swift */; };
+		B0A62D982F9861AB0093719D /* MarathonPlannerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D972F9861AB0093719D /* MarathonPlannerUITests.swift */; };
+		B0A62D9A2F9861AB0093719D /* MarathonPlannerUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D992F9861AB0093719D /* MarathonPlannerUITestsLaunchTests.swift */; };
+		B0A62DA72F9862170093719D /* TrainingPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62DA62F9862170093719D /* TrainingPlan.swift */; };
+		B0A62DA92F9862340093719D /* PlanGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62DA82F9862340093719D /* PlanGenerator.swift */; };
+		B0A62DAC2F98624D0093719D /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62DAA2F9862490093719D /* SetupView.swift */; };
+		B0A62DAE2F9862780093719D /* PacesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62DAD2F9862780093719D /* PacesView.swift */; };
+		B0A62DB02F9862890093719D /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62DAF2F9862890093719D /* PlanView.swift */; };
+		B0A62DB22F98629C0093719D /* WeekDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62DB12F98629C0093719D /* WeekDetailView.swift */; };
+		B0A62DB42F9862AD0093719D /* MinitabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62DB32F9862AD0093719D /* MinitabView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B0A62D8A2F9861AB0093719D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B0A62D712F9861A70093719D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B0A62D782F9861A70093719D;
+			remoteInfo = MarathonPlanner;
+		};
+		B0A62D942F9861AB0093719D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B0A62D712F9861A70093719D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B0A62D782F9861A70093719D;
+			remoteInfo = MarathonPlanner;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B07526002F9B0C72008F9552 /* PlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanStore.swift; sourceTree = "<group>"; };
+		B07526022F9B0C89008F9552 /* PlanListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanListView.swift; sourceTree = "<group>"; };
+		B07526042F9B0C9F008F9552 /* CreatePlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePlanView.swift; sourceTree = "<group>"; };
+		B07526062F9B0CB4008F9552 /* SavedPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedPlanView.swift; sourceTree = "<group>"; };
+		B07526082F9B0CD2008F9552 /* PDFExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFExporter.swift; sourceTree = "<group>"; };
+		B075260A2F9B0CE6008F9552 /* ICSexporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICSexporter.swift; sourceTree = "<group>"; };
+		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
+		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B0A62D802F9861AB0093719D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B0A62D832F9861AB0093719D /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		B0A62D892F9861AB0093719D /* MarathonPlannerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MarathonPlannerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0A62D8D2F9861AB0093719D /* MarathonPlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerTests.swift; sourceTree = "<group>"; };
+		B0A62D932F9861AB0093719D /* MarathonPlannerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MarathonPlannerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0A62D972F9861AB0093719D /* MarathonPlannerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerUITests.swift; sourceTree = "<group>"; };
+		B0A62D992F9861AB0093719D /* MarathonPlannerUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		B0A62DA62F9862170093719D /* TrainingPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlan.swift; sourceTree = "<group>"; };
+		B0A62DA82F9862340093719D /* PlanGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanGenerator.swift; sourceTree = "<group>"; };
+		B0A62DAA2F9862490093719D /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
+		B0A62DAD2F9862780093719D /* PacesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PacesView.swift; sourceTree = "<group>"; };
+		B0A62DAF2F9862890093719D /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
+		B0A62DB12F98629C0093719D /* WeekDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekDetailView.swift; sourceTree = "<group>"; };
+		B0A62DB32F9862AD0093719D /* MinitabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinitabView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B0A62D762F9861A70093719D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0A62D862F9861AB0093719D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0A62D902F9861AB0093719D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B0A62D702F9861A70093719D = {
+			isa = PBXGroup;
+			children = (
+				B0A62D7B2F9861A70093719D /* MarathonPlanner */,
+				B0A62D8C2F9861AB0093719D /* MarathonPlannerTests */,
+				B0A62D962F9861AB0093719D /* MarathonPlannerUITests */,
+				B0A62D7A2F9861A70093719D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B0A62D7A2F9861A70093719D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B0A62D792F9861A70093719D /* MarathonPlanner.app */,
+				B0A62D892F9861AB0093719D /* MarathonPlannerTests.xctest */,
+				B0A62D932F9861AB0093719D /* MarathonPlannerUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B0A62D7B2F9861A70093719D /* MarathonPlanner */ = {
+			isa = PBXGroup;
+			children = (
+				B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */,
+				B0A62D7E2F9861A70093719D /* ContentView.swift */,
+				B0A62DA62F9862170093719D /* TrainingPlan.swift */,
+				B0A62DA82F9862340093719D /* PlanGenerator.swift */,
+				B07526002F9B0C72008F9552 /* PlanStore.swift */,
+				B07526022F9B0C89008F9552 /* PlanListView.swift */,
+				B07526042F9B0C9F008F9552 /* CreatePlanView.swift */,
+				B07526062F9B0CB4008F9552 /* SavedPlanView.swift */,
+				B07526082F9B0CD2008F9552 /* PDFExporter.swift */,
+				B075260A2F9B0CE6008F9552 /* ICSexporter.swift */,
+				B0A62DAA2F9862490093719D /* SetupView.swift */,
+				B0A62DAD2F9862780093719D /* PacesView.swift */,
+				B0A62DAF2F9862890093719D /* PlanView.swift */,
+				B0A62DB12F98629C0093719D /* WeekDetailView.swift */,
+				B0A62DB32F9862AD0093719D /* MinitabView.swift */,
+				B0A62D802F9861AB0093719D /* Assets.xcassets */,
+				B0A62D822F9861AB0093719D /* Preview Content */,
+			);
+			path = MarathonPlanner;
+			sourceTree = "<group>";
+		};
+		B0A62D822F9861AB0093719D /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				B0A62D832F9861AB0093719D /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		B0A62D8C2F9861AB0093719D /* MarathonPlannerTests */ = {
+			isa = PBXGroup;
+			children = (
+				B0A62D8D2F9861AB0093719D /* MarathonPlannerTests.swift */,
+			);
+			path = MarathonPlannerTests;
+			sourceTree = "<group>";
+		};
+		B0A62D962F9861AB0093719D /* MarathonPlannerUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B0A62D972F9861AB0093719D /* MarathonPlannerUITests.swift */,
+				B0A62D992F9861AB0093719D /* MarathonPlannerUITestsLaunchTests.swift */,
+			);
+			path = MarathonPlannerUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B0A62D782F9861A70093719D /* MarathonPlanner */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B0A62D9D2F9861AB0093719D /* Build configuration list for PBXNativeTarget "MarathonPlanner" */;
+			buildPhases = (
+				B0A62D752F9861A70093719D /* Sources */,
+				B0A62D762F9861A70093719D /* Frameworks */,
+				B0A62D772F9861A70093719D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MarathonPlanner;
+			productName = MarathonPlanner;
+			productReference = B0A62D792F9861A70093719D /* MarathonPlanner.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B0A62D882F9861AB0093719D /* MarathonPlannerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B0A62DA02F9861AB0093719D /* Build configuration list for PBXNativeTarget "MarathonPlannerTests" */;
+			buildPhases = (
+				B0A62D852F9861AB0093719D /* Sources */,
+				B0A62D862F9861AB0093719D /* Frameworks */,
+				B0A62D872F9861AB0093719D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B0A62D8B2F9861AB0093719D /* PBXTargetDependency */,
+			);
+			name = MarathonPlannerTests;
+			productName = MarathonPlannerTests;
+			productReference = B0A62D892F9861AB0093719D /* MarathonPlannerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B0A62D922F9861AB0093719D /* MarathonPlannerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B0A62DA32F9861AB0093719D /* Build configuration list for PBXNativeTarget "MarathonPlannerUITests" */;
+			buildPhases = (
+				B0A62D8F2F9861AB0093719D /* Sources */,
+				B0A62D902F9861AB0093719D /* Frameworks */,
+				B0A62D912F9861AB0093719D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B0A62D952F9861AB0093719D /* PBXTargetDependency */,
+			);
+			name = MarathonPlannerUITests;
+			productName = MarathonPlannerUITests;
+			productReference = B0A62D932F9861AB0093719D /* MarathonPlannerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B0A62D712F9861A70093719D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1430;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					B0A62D782F9861A70093719D = {
+						CreatedOnToolsVersion = 14.3.1;
+					};
+					B0A62D882F9861AB0093719D = {
+						CreatedOnToolsVersion = 14.3.1;
+						TestTargetID = B0A62D782F9861A70093719D;
+					};
+					B0A62D922F9861AB0093719D = {
+						CreatedOnToolsVersion = 14.3.1;
+						TestTargetID = B0A62D782F9861A70093719D;
+					};
+				};
+			};
+			buildConfigurationList = B0A62D742F9861A70093719D /* Build configuration list for PBXProject "MarathonPlanner" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B0A62D702F9861A70093719D;
+			productRefGroup = B0A62D7A2F9861A70093719D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B0A62D782F9861A70093719D /* MarathonPlanner */,
+				B0A62D882F9861AB0093719D /* MarathonPlannerTests */,
+				B0A62D922F9861AB0093719D /* MarathonPlannerUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B0A62D772F9861A70093719D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0A62D842F9861AB0093719D /* Preview Assets.xcassets in Resources */,
+				B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0A62D872F9861AB0093719D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0A62D912F9861AB0093719D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B0A62D752F9861A70093719D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0A62DA92F9862340093719D /* PlanGenerator.swift in Sources */,
+				B0A62DB22F98629C0093719D /* WeekDetailView.swift in Sources */,
+				B0A62DAE2F9862780093719D /* PacesView.swift in Sources */,
+				B0A62DB42F9862AD0093719D /* MinitabView.swift in Sources */,
+				B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */,
+				B07526052F9B0C9F008F9552 /* CreatePlanView.swift in Sources */,
+				B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */,
+				B07526032F9B0C89008F9552 /* PlanListView.swift in Sources */,
+				B0A62DAC2F98624D0093719D /* SetupView.swift in Sources */,
+				B0A62DB02F9862890093719D /* PlanView.swift in Sources */,
+				B07526012F9B0C72008F9552 /* PlanStore.swift in Sources */,
+				B0A62DA72F9862170093719D /* TrainingPlan.swift in Sources */,
+				B075260B2F9B0CE6008F9552 /* ICSexporter.swift in Sources */,
+				B07526072F9B0CB4008F9552 /* SavedPlanView.swift in Sources */,
+				B07526092F9B0CD2008F9552 /* PDFExporter.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0A62D852F9861AB0093719D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0A62D8E2F9861AB0093719D /* MarathonPlannerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0A62D8F2F9861AB0093719D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0A62D982F9861AB0093719D /* MarathonPlannerUITests.swift in Sources */,
+				B0A62D9A2F9861AB0093719D /* MarathonPlannerUITestsLaunchTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B0A62D8B2F9861AB0093719D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B0A62D782F9861A70093719D /* MarathonPlanner */;
+			targetProxy = B0A62D8A2F9861AB0093719D /* PBXContainerItemProxy */;
+		};
+		B0A62D952F9861AB0093719D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B0A62D782F9861A70093719D /* MarathonPlanner */;
+			targetProxy = B0A62D942F9861AB0093719D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		B0A62D9B2F9861AB0093719D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B0A62D9C2F9861AB0093719D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		B0A62D9E2F9861AB0093719D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"MarathonPlanner/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = MarathonPlanner.MarathonPlanner;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B0A62D9F2F9861AB0093719D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"MarathonPlanner/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = MarathonPlanner.MarathonPlanner;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B0A62DA12F9861AB0093719D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = MarathonPlanner.MarathonPlannerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MarathonPlanner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MarathonPlanner";
+			};
+			name = Debug;
+		};
+		B0A62DA22F9861AB0093719D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = MarathonPlanner.MarathonPlannerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MarathonPlanner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MarathonPlanner";
+			};
+			name = Release;
+		};
+		B0A62DA42F9861AB0093719D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = MarathonPlanner.MarathonPlannerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = MarathonPlanner;
+			};
+			name = Debug;
+		};
+		B0A62DA52F9861AB0093719D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = MarathonPlanner.MarathonPlannerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = MarathonPlanner;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B0A62D742F9861A70093719D /* Build configuration list for PBXProject "MarathonPlanner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0A62D9B2F9861AB0093719D /* Debug */,
+				B0A62D9C2F9861AB0093719D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B0A62D9D2F9861AB0093719D /* Build configuration list for PBXNativeTarget "MarathonPlanner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0A62D9E2F9861AB0093719D /* Debug */,
+				B0A62D9F2F9861AB0093719D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B0A62DA02F9861AB0093719D /* Build configuration list for PBXNativeTarget "MarathonPlannerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0A62DA12F9861AB0093719D /* Debug */,
+				B0A62DA22F9861AB0093719D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B0A62DA32F9861AB0093719D /* Build configuration list for PBXNativeTarget "MarathonPlannerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0A62DA42F9861AB0093719D /* Debug */,
+				B0A62DA52F9861AB0093719D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B0A62D712F9861A70093719D /* Project object */;
+}
