@@ -44,36 +44,87 @@ struct WeekBlueprint {
 
 struct PlanGenerator {
 
-    // MARK: - Entry Point
-    //
-    // BUG #1 ROOT CAUSE AND FIX:
-    //
-    // The old validated() was resetting days to plan defaults any time
-    // there was even a minor inconsistency. This silently overwrote the
-    // user's choices before they ever reached assignDays().
-    //
-    // Fix: validated() now ONLY resolves hard collisions (e.g. long run
-    // day == workout day). It never resets a day the user explicitly chose
-    // unless that day physically conflicts with a higher-priority assignment.
-    //
-    // The user's longRunDay, workoutDay1, workoutDay2, restDays are
-    // treated as the source of truth. They survive unless impossible.
-
     static func generate(settings: UserSettings) -> [TrainingWeek] {
         let tier        = determineMileageTier(settings.baseMileage)
         let constraints = getMethodConstraints(for: settings.planType)
         let peaks       = calculatePeakTargets(method: settings.planType,
                                                planLength: settings.planLength.rawValue)
+        let schedule    = settings.schedule.validated(for: settings.planType)
 
-        // validated() preserves user choices — only fixes true conflicts
-        let schedule = settings.schedule.validated(for: settings.planType)
-
-        return buildBlueprints(settings: settings, tier: tier,
-                               constraints: constraints, peaks: peaks)
+        var weeks = buildBlueprints(settings: settings, tier: tier,
+                                    constraints: constraints, peaks: peaks)
             .map { enforceMethodConstraints($0, constraints: constraints) }
             .map { assignDays(blueprint: $0, planType: settings.planType,
                               schedule: schedule, goalMinutes: settings.goalTimeMinutes,
                               tier: tier, constraints: constraints) }
+
+        // Inject Race Day into the final week
+        weeks = injectRaceDay(into: weeks, schedule: schedule)
+
+        return weeks
+    }
+
+    // MARK: - Race Day Injection
+    //
+    // Finds the last day of the last week (Sunday in display order,
+    // or the user's long run day as a fallback) and replaces it with
+    // a Race Day entry worth 26.2 miles.
+    // All other taper runs in the final week are preserved.
+
+    static func injectRaceDay(into weeks: [TrainingWeek],
+                               schedule: UserSchedule) -> [TrainingWeek] {
+        guard !weeks.isEmpty else { return weeks }
+
+        var allWeeks  = weeks
+        let lastIndex = allWeeks.count - 1
+        var lastWeek  = allWeeks[lastIndex]
+
+        // Race Day is always Sunday — last day of Monday-first week
+        let raceDayWeekday    : Weekday = .sunday
+        // Shakeout is always the day before race day = Saturday
+        let shakeoutWeekday   : Weekday = .saturday
+
+        let newDays: [TrainingDay] = lastWeek.days.map { day in
+
+            if day.weekday == raceDayWeekday {
+                // Sunday → Race Day
+                return TrainingDay(
+                    weekday:     .sunday,
+                    workoutType: .raceDay,
+                    miles:       26.2,
+                    description: "Race Day. Everything you have trained for comes down to this. Run your own race, trust your pacing, and enjoy every mile.",
+                    paceNote:    "Goal marathon pace — trust your training"
+                )
+            }
+
+            if day.weekday == shakeoutWeekday {
+                // Saturday → Shakeout Run, no matter what was scheduled.
+                // This overrides long runs, rest days, and workout days
+                // in the final race week only.
+                return TrainingDay(
+                    weekday:     .saturday,
+                    workoutType: .shakeout,
+                    miles:       3.0,
+                    description: "Shakeout Run. Easy relaxed 3 miles with a few short strides at the end. The goal is to feel loose and fresh. Do not push the pace — save everything for tomorrow.",
+                    paceNote:    "Very easy — fully conversational"
+                )
+            }
+
+            return day
+        }
+
+        lastWeek = TrainingWeek(
+            weekNumber: lastWeek.weekNumber,
+            phase:      "Race Week 🏁",
+            days:       newDays
+        )
+        allWeeks[lastIndex] = lastWeek
+        return allWeeks
+    }
+
+    private static func goalPaceString(totalMiles: Double) -> String {
+        // Generic race day pace note — actual target comes from user's goal time
+        "Goal marathon pace"
     }
 
     // MARK: - Mileage Schedule
@@ -360,35 +411,19 @@ struct PlanGenerator {
     }
 
     // MARK: - Day Assignment
-    //
-    // BUG #1 FIX:
-    // Reads the validated schedule directly. The validated schedule
-    // preserved the user's choices — it only fixed hard conflicts.
-    // Every day assignment flows from what the user chose, not from defaults.
-    //
-    // Priority order (first match per weekday wins):
-    //   1. User's rest days
-    //   2. User's long run day
-    //   3. Midweek long run day (plan-specific, user-chosen)
-    //   4. Cross-train day (Higdon Intermediate, user-chosen)
-    //   5. User's primary workout day (Q1)
-    //   6. User's secondary workout day (Q2, if plan needs it)
-    //   7. Pfitz medium-long (auto on first free day)
-    //   8. Easy / recovery
 
     static func assignDays(blueprint: WeekBlueprint, planType: PlanType,
                             schedule: UserSchedule, goalMinutes: Int,
                             tier: MileageTier,
                             constraints: MethodConstraints) -> TrainingWeek {
         let paces  = PaceEngine(goalMinutes: goalMinutes)
-        let lrDay  = schedule.longRunDay      // user's chosen long run day
-        let q1Day  = schedule.workoutDay1     // user's chosen Q1 day
-        let q2Day  = schedule.workoutDay2     // user's chosen Q2 day
-        let rest   = schedule.restDays        // user's chosen rest days
-        let ctDay  = schedule.crossTrainDay   // user's chosen cross-train day
-        let mwDay  = schedule.midweekLongDay  // user's chosen midweek day
+        let lrDay  = schedule.longRunDay
+        let q1Day  = schedule.workoutDay1
+        let q2Day  = schedule.workoutDay2
+        let rest   = schedule.restDays
+        let ctDay  = schedule.crossTrainDay
+        let mwDay  = schedule.midweekLongDay
 
-        // Pfitz medium-long: first day not already claimed
         let pfitzMLDay: Weekday? = blueprint.includesMediumLong
             ? Weekday.allCases.first {
                 !([lrDay, q1Day, q2Day, mwDay] + rest).contains($0)
@@ -399,40 +434,30 @@ struct PlanGenerator {
                           (blueprint.longMiles * 0.55).rounded(toPlaces: 0))
         var days: [TrainingDay] = []
 
+        // Internal generation still uses allCases for identity matching —
+        // display order is handled in the UI layer via Weekday.displayOrder
         for day in Weekday.allCases {
             let td: TrainingDay
-
             if rest.contains(day) {
                 td = makeRest(day)
-
             } else if day == lrDay {
                 td = makeLongRun(day, blueprint, paces)
-
             } else if planType.usesMidweekLongRun && day == mwDay {
                 td = makeMidweekLong(day, miles: mwMiles, paces: paces)
-
             } else if planType.usesCrossTraining, let ct = ctDay, day == ct {
                 td = makeCrossTrain(day)
-
             } else if day == q1Day {
-                // Q1 always placed — even if primaryWorkout is .easy
-                // (plan philosophy determines what type .easy days are)
                 td = makeQuality(day, workoutType: blueprint.primaryWorkout,
                                  blueprint: blueprint, paces: paces, tier: tier)
-
-            } else if planType.requiresTwoWorkoutDays
-                        && day == q2Day
+            } else if planType.requiresTwoWorkoutDays && day == q2Day
                         && blueprint.secondaryWorkout != .easy {
                 td = makeQuality(day, workoutType: blueprint.secondaryWorkout,
                                  blueprint: blueprint, paces: paces, tier: tier)
-
             } else if let ml = pfitzMLDay, day == ml {
                 td = makeMediumLong(day, blueprint, paces)
-
             } else {
                 td = makeEasy(day, paces: paces, longRunDay: lrDay)
             }
-
             days.append(td)
         }
 
@@ -484,15 +509,12 @@ struct PlanGenerator {
     static func makeMediumLong(_ day: Weekday, _ bp: WeekBlueprint,
                                  _ paces: PaceEngine) -> TrainingDay {
         TrainingDay(weekday: day, workoutType: .mediumLong, miles: bp.mediumLongMiles,
-            description: "Medium-long run — a Pfitz signature. General aerobic effort. Not a jog, not a hard workout.",
+            description: "Medium-long run — a Pfitz signature. General aerobic effort. Not a jog, not a workout.",
             paceNote: paces.rangeString(paces.generalAero))
     }
 
     static func makeEasy(_ day: Weekday, paces: PaceEngine,
                            longRunDay: Weekday) -> TrainingDay {
-        // Post-long-run day gets a recovery label, not a rest label.
-        // This only runs on days that are NOT in restDays —
-        // rest days are handled before this function is ever called.
         if day == longRunDay.next {
             return TrainingDay(weekday: day, workoutType: .recovery, miles: 0,
                 description: "Recovery run. Go slower than feels necessary. Adaptation happens here.",
@@ -526,7 +548,7 @@ struct PlanGenerator {
             }
             return TrainingDay(weekday: day, workoutType: .strengthMP,
                 miles: Double(mp + 2),
-                description: "1 mi warm-up. \(mp) mi at exactly marathon pace. 1 mi cool-down. Arrive tired — that is the point.",
+                description: "1 mi warm-up. \(mp) mi at exactly marathon pace. 1 mi cool-down.",
                 paceNote: "MP: \(paces.rangeString(paces.hansonsStrength))")
 
         case .lactateThreshold:
@@ -613,9 +635,11 @@ struct PlanGenerator {
         }
         return result
     }
-}
 
-// MARK: - Extensions
+    static func firstFreeDay(excluding: [Weekday]) -> Weekday? {
+        Weekday.allCases.first { !excluding.contains($0) }
+    }
+}
 
 extension Double {
     func rounded(toPlaces places: Int) -> Double {

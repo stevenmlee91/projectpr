@@ -9,11 +9,18 @@ struct SavedPlan: Identifiable, Codable {
     var startDate : Date
     var planType  : String
     var weeks     : [SavedWeek]
+    var settings  : UserSettings
 
     init(id: UUID = UUID(), name: String, raceDate: Date,
-         startDate: Date, planType: String, weeks: [SavedWeek]) {
-        self.id = id; self.name = name; self.raceDate = raceDate
-        self.startDate = startDate; self.planType = planType; self.weeks = weeks
+         startDate: Date, planType: String,
+         weeks: [SavedWeek], settings: UserSettings) {
+        self.id        = id
+        self.name      = name
+        self.raceDate  = raceDate
+        self.startDate = startDate
+        self.planType  = planType
+        self.weeks     = weeks
+        self.settings  = settings
     }
 }
 
@@ -24,8 +31,10 @@ struct SavedWeek: Identifiable, Codable {
     var days       : [SavedDay]
 
     init(id: UUID = UUID(), weekNumber: Int, phase: String, days: [SavedDay]) {
-        self.id = id; self.weekNumber = weekNumber
-        self.phase = phase; self.days = days
+        self.id         = id
+        self.weekNumber = weekNumber
+        self.phase      = phase
+        self.days       = days
     }
 
     var totalMiles: Double { days.reduce(0) { $0 + $1.miles } }
@@ -43,58 +52,57 @@ struct SavedDay: Identifiable, Codable {
     init(id: UUID = UUID(), date: Date, weekday: String,
          workoutType: String, miles: Double,
          description: String, paceNote: String) {
-        self.id = id; self.date = date; self.weekday = weekday
-        self.workoutType = workoutType; self.miles = miles
-        self.description = description; self.paceNote = paceNote
+        self.id          = id
+        self.date        = date
+        self.weekday     = weekday
+        self.workoutType = workoutType
+        self.miles       = miles
+        self.description = description
+        self.paceNote    = paceNote
     }
 }
 
 // MARK: - Plan Creation
-//
-// THE FIX IS HERE.
-//
-// Root cause of "Wednesday rest becomes Thursday":
-//   Old code used day.weekday.rawValue as the day offset.
-//   Weekday.sunday = 1, so rawValue is 1-based.
-//   This shifted every day forward by one position.
-//   Wednesday (rawValue=4) got offset 4 → landed on Thursday.
-//
-// Fix: subtract 1 from rawValue to get a 0-based offset.
-//   Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4,
-//   Friday=5, Saturday=6.
-//   Wednesday (rawValue=4) now gets offset 3 → lands on Wednesday. ✓
 
 func createSavedPlan(
     name     : String,
     raceDate : Date,
     settings : UserSettings
 ) -> SavedPlan {
-    let cal = Calendar.current
-
+    let cal       = Calendar.current
     let weeksBack = settings.planLength.rawValue
+
     guard let startDate = cal.date(
         byAdding: .weekOfYear, value: -weeksBack, to: raceDate
-    ) else {
-        fatalError("Could not calculate plan start date")
-    }
+    ) else { fatalError("Could not calculate plan start date") }
 
-    // Generate the training weeks using the user's exact settings.
-    // PlanGenerator.generate() calls validated() internally, which only
-    // fixes hard conflicts — it does not replace user-chosen rest days.
     let trainingWeeks = PlanGenerator.generate(settings: settings)
+    let savedWeeks    = buildSavedWeeks(
+        from: trainingWeeks, startDate: startDate, cal: cal
+    )
 
-    let savedWeeks: [SavedWeek] = trainingWeeks.map { week in
+    return SavedPlan(
+        name:      name,
+        raceDate:  raceDate,
+        startDate: startDate,
+        planType:  settings.planType.rawValue,
+        weeks:     savedWeeks,
+        settings:  settings
+    )
+}
+
+// Shared helper used by both create and edit paths
+func buildSavedWeeks(
+    from trainingWeeks : [TrainingWeek],
+    startDate          : Date,
+    cal                : Calendar
+) -> [SavedWeek] {
+    trainingWeeks.map { week in
         let savedDays: [SavedDay] = week.days.map { day in
-
-            let weekOffset = week.weekNumber - 1
-
-            // CORRECTED: subtract 1 so Sunday=0, Monday=1 ... Saturday=6
-            // This is the single line that was causing Wednesday→Thursday shift.
-            let dayOffset  = day.weekday.rawValue - 1
-
+            let weekOffset  = week.weekNumber - 1
+            let dayOffset   = day.weekday.calendarOffset   // rawValue - 1, 0-based
             let totalOffset = weekOffset * 7 + dayOffset
-
-            let realDate = cal.date(
+            let realDate    = cal.date(
                 byAdding: .day, value: totalOffset, to: startDate
             ) ?? startDate
 
@@ -107,28 +115,18 @@ func createSavedPlan(
                 paceNote:    day.paceNote
             )
         }
-
         return SavedWeek(
             weekNumber: week.weekNumber,
             phase:      week.phase,
             days:       savedDays
         )
     }
-
-    return SavedPlan(
-        name:      name,
-        raceDate:  raceDate,
-        startDate: startDate,
-        planType:  settings.planType.rawValue,
-        weeks:     savedWeeks
-    )
 }
 
 // MARK: - Plan Store
 
 class PlanStore: ObservableObject {
     @Published var plans: [SavedPlan] = []
-
     private let key = "saved_training_plans"
 
     init() { loadPlans() }
@@ -148,6 +146,61 @@ class PlanStore: ObservableObject {
         plans.remove(atOffsets: offsets)
         persist()
     }
+
+    // MARK: - Edit: Schedule-only reflow
+    // Preserves mileage progression — just moves workouts
+    // onto newly selected weekdays. Fast, no recalculation.
+
+    func reflowSchedule(
+        _ plan        : SavedPlan,
+        newSchedule   : UserSchedule
+    ) -> SavedPlan {
+        var newSettings          = plan.settings
+        newSettings.schedule     = newSchedule
+
+        let cal           = Calendar.current
+        let trainingWeeks = PlanGenerator.generate(settings: newSettings)
+        let savedWeeks    = buildSavedWeeks(
+            from: trainingWeeks, startDate: plan.startDate, cal: cal
+        )
+
+        return SavedPlan(
+            id:        plan.id,
+            name:      plan.name,
+            raceDate:  plan.raceDate,
+            startDate: plan.startDate,
+            planType:  newSettings.planType.rawValue,
+            weeks:     savedWeeks,
+            settings:  newSettings
+        )
+    }
+
+    // MARK: - Edit: Full regeneration
+    // Used when goal time, base mileage, plan type, or
+    // plan length changes. Rebuilds everything from scratch.
+
+    func regeneratePlan(
+        _ plan       : SavedPlan,
+        newSettings  : UserSettings
+    ) -> SavedPlan {
+        let cal           = Calendar.current
+        let trainingWeeks = PlanGenerator.generate(settings: newSettings)
+        let savedWeeks    = buildSavedWeeks(
+            from: trainingWeeks, startDate: plan.startDate, cal: cal
+        )
+
+        return SavedPlan(
+            id:        plan.id,
+            name:      plan.name,
+            raceDate:  plan.raceDate,
+            startDate: plan.startDate,
+            planType:  newSettings.planType.rawValue,
+            weeks:     savedWeeks,
+            settings:  newSettings
+        )
+    }
+
+    // MARK: - Persistence
 
     private func persist() {
         if let data = try? JSONEncoder().encode(plans) {

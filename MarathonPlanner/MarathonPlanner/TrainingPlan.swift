@@ -70,15 +70,6 @@ enum PlanLength: Int, CaseIterable, Identifiable, Codable {
 }
 
 // MARK: - Weekday
-//
-// Raw values match Calendar.component(.weekday):
-//   Sunday=1, Monday=2, Tuesday=3, Wednesday=4,
-//   Thursday=5, Friday=6, Saturday=7
-//
-// When converting to a day offset from the plan start date,
-// ALWAYS use (rawValue - 1) to get 0-based offsets:
-//   Sunday=0, Monday=1, Tuesday=2, Wednesday=3,
-//   Thursday=4, Friday=5, Saturday=6
 
 enum Weekday: Int, CaseIterable, Identifiable, Codable, Hashable {
     case sunday    = 1
@@ -115,12 +106,16 @@ enum Weekday: Int, CaseIterable, Identifiable, Codable, Hashable {
         }
     }
 
-    // 0-based offset for calendar arithmetic.
-    // Use this instead of rawValue when calculating dates.
+    // Always use this for calendar date arithmetic — NOT rawValue
     var calendarOffset: Int { rawValue - 1 }
 
     var next: Weekday {
         Weekday(rawValue: (rawValue % 7) + 1) ?? .sunday
+    }
+    // Monday-first display order for all UI.
+    // Internal rawValues (Sun=1...Sat=7) are unchanged.
+    static var displayOrder: [Weekday] {
+        [.monday, .tuesday, .wednesday, .thursday, .friday, .saturday, .sunday]
     }
 }
 
@@ -145,28 +140,46 @@ enum WorkoutType: String, Codable {
     case tempoRun         = "Tempo Run"
     case strides          = "Easy + Strides"
     case crossTrain       = "Cross-Training"
+    case raceDay          = "Race Day 🏁"
+    case shakeout         = "Shakeout Run"
 
     var effortLevel: Int {
         switch self {
         case .rest:                                             return 0
         case .recovery:                                         return 1
-        case .easy, .strides, .crossTrain:                    return 2
+        case .easy, .strides, .crossTrain, .shakeout:         return 2
         case .generalAerobic, .mediumLong, .midweekLong:      return 3
         case .longRun, .marathonPace, .tempoRun, .strengthMP: return 4
         case .lactateThreshold, .cruiseIntervals, .speedWork,
              .intervalWork, .repetitionWork, .longRunWithMP:   return 5
+        case .raceDay:                                         return 5
         }
     }
 
     var colorName: String {
-        switch effortLevel {
-        case 0:  return "gray"
-        case 1:  return "mint"
-        case 2:  return "green"
-        case 3:  return "teal"
-        case 4:  return "orange"
-        case 5:  return "red"
-        default: return "gray"
+        switch self {
+        case .rest:                             return "gray"
+        case .recovery:                         return "mint"
+        case .easy, .strides, .crossTrain,
+             .shakeout:                         return "green"
+        case .generalAerobic, .mediumLong,
+             .midweekLong:                      return "teal"
+        case .longRun, .marathonPace,
+             .tempoRun, .strengthMP:            return "orange"
+        case .lactateThreshold, .cruiseIntervals,
+             .speedWork, .intervalWork,
+             .repetitionWork, .longRunWithMP:   return "red"
+        case .raceDay:                          return "yellow"
+        }
+    }
+
+    var isQualityWorkout: Bool {
+        switch self {
+        case .speedWork, .strengthMP, .lactateThreshold, .cruiseIntervals,
+             .intervalWork, .repetitionWork, .tempoRun, .longRunWithMP:
+            return true
+        default:
+            return false
         }
     }
 }
@@ -183,8 +196,9 @@ struct TrainingDay: Identifiable, Codable {
 
     init(id: UUID = UUID(), weekday: Weekday, workoutType: WorkoutType,
          miles: Double, description: String, paceNote: String) {
-        self.id = id; self.weekday = weekday; self.workoutType = workoutType
-        self.miles = miles; self.description = description; self.paceNote = paceNote
+        self.id = id; self.weekday = weekday
+        self.workoutType = workoutType; self.miles = miles
+        self.description = description; self.paceNote = paceNote
     }
 }
 
@@ -206,14 +220,6 @@ struct TrainingWeek: Identifiable, Codable {
 }
 
 // MARK: - User Schedule
-//
-// THE RULE: This struct stores exactly what the user chose.
-// validated() is a conflict resolver only — it does NOT reset
-// or replace days the user explicitly selected unless there is
-// a direct collision with a higher-priority assignment.
-//
-// Rest days in particular are preserved as-is unless they
-// directly conflict with the longRunDay.
 
 struct UserSchedule: Codable, Equatable {
     var longRunDay     : Weekday
@@ -248,84 +254,47 @@ struct UserSchedule: Codable, Equatable {
         }
     }
 
-    // MARK: Validation
-    //
-    // Called ONLY inside PlanGenerator.generate() — never during UI interaction.
-    //
-    // What it does:
-    //   - Resolves hard collisions between specific role assignments
-    //   - Removes rest days that directly conflict with running roles
-    //   - Does NOT add rest days the user didn't select
-    //   - Does NOT enforce minimums that override user intent
-    //   - Does NOT shift rest days to other weekdays
-    //
-    // Priority order for conflict resolution:
-    //   1. longRunDay (never moved)
-    //   2. workoutDay1
-    //   3. workoutDay2 (only if plan requires two workout days)
-    //   4. midweekLongDay (only if plan uses midweek long run)
-    //   5. crossTrainDay (only if plan uses cross-training)
-    //   6. restDays — remove only those that conflict with 1–5
-
     func validated(for planType: PlanType) -> UserSchedule {
         var s     = self
         var taken = Set<Weekday>()
 
-        // 1. Long run day — highest priority, never moved
         taken.insert(s.longRunDay)
 
-        // 2. Primary workout day
         if taken.contains(s.workoutDay1) {
             s.workoutDay1 = firstFree(taken)
         }
         taken.insert(s.workoutDay1)
 
-        // 3. Secondary workout day (only relevant plans)
         if planType.requiresTwoWorkoutDays {
-            if taken.contains(s.workoutDay2) {
-                s.workoutDay2 = firstFree(taken)
-            }
+            if taken.contains(s.workoutDay2) { s.workoutDay2 = firstFree(taken) }
             taken.insert(s.workoutDay2)
         }
 
-        // 4. Midweek long run day (only relevant plans)
         if planType.usesMidweekLongRun {
-            if taken.contains(s.midweekLongDay) {
-                s.midweekLongDay = firstFree(taken)
-            }
+            if taken.contains(s.midweekLongDay) { s.midweekLongDay = firstFree(taken) }
             taken.insert(s.midweekLongDay)
         }
 
-        // 5. Cross-train day (only relevant plans)
         if planType.usesCrossTraining {
             if let ct = s.crossTrainDay {
-                if taken.contains(ct) {
-                    s.crossTrainDay = firstFreeOptional(taken)
-                }
-                if let finalCT = s.crossTrainDay { taken.insert(finalCT) }
+                if taken.contains(ct) { s.crossTrainDay = firstFreeOptional(taken) }
+                if let c = s.crossTrainDay { taken.insert(c) }
             }
         } else {
             s.crossTrainDay = nil
         }
 
-        // 6. Rest days — ONLY remove those that conflict with running days.
-        //    Do NOT add new rest days. Do NOT shift rest days.
-        //    The user's rest day choices are preserved unless they
-        //    directly overlap with a higher-priority running day.
-        s.restDays = s.restDays.filter { !taken.contains($0) }
-
-        // Remove duplicate rest days (shouldn't happen but defensive)
-        s.restDays = Array(Set(s.restDays))
+        // Only remove rest days that truly conflict — never add new ones
+        s.restDays = Array(Set(s.restDays.filter { !taken.contains($0) }))
 
         return s
     }
 
     private func firstFree(_ taken: Set<Weekday>) -> Weekday {
-        Weekday.allCases.first { !taken.contains($0) } ?? .monday
+        Weekday.displayOrder.first { !taken.contains($0) } ?? .monday
     }
-
     private func firstFreeOptional(_ taken: Set<Weekday>) -> Weekday? {
-        Weekday.allCases.first { !taken.contains($0) }
+        Weekday.displayOrder.first { !taken.contains($0) }
     }
 }
 
@@ -346,6 +315,15 @@ struct UserSettings: Codable {
 
     mutating func resetScheduleForNewPlanType() {
         schedule = UserSchedule.defaultFor(planType)
+    }
+
+    // Two settings are "schedule-only" different if mileage/time/type/length are same
+    func onlyScheduleDiffers(from other: UserSettings) -> Bool {
+        return goalTimeMinutes == other.goalTimeMinutes
+            && baseMileage     == other.baseMileage
+            && planType        == other.planType
+            && planLength      == other.planLength
+            && schedule        != other.schedule
     }
 }
 
@@ -389,8 +367,8 @@ struct TrainingPaces {
     static func calculate(goalMinutes: Int) -> TrainingPaces {
         let e = PaceEngine(goalMinutes: goalMinutes)
         return TrainingPaces(
-            easy:     (e.easy.high, e.easy.low),
-            longRun:  (e.longRun.high, e.longRun.low),
+            easy: (e.easy.high, e.easy.low),
+            longRun: (e.longRun.high, e.longRun.low),
             marathon: e.MP, tempo: e.pfitzLT,
             interval: e.dInterval, recovery: e.recovery)
     }
@@ -483,5 +461,16 @@ func getMethodConstraints(for planType: PlanType) -> MethodConstraints {
             progressionStyle: .phasedQuality, requiresMediumLong: false,
             earliestQualityWeek: 1, allowsConsecutiveHard: false,
             absoluteMinWeekly: 25, absoluteMaxWeekly: 75)
+    }
+}
+// MARK: - UserSettings Equatable
+
+extension UserSettings: Equatable {
+    static func == (lhs: UserSettings, rhs: UserSettings) -> Bool {
+        lhs.goalTimeMinutes == rhs.goalTimeMinutes
+        && lhs.baseMileage  == rhs.baseMileage
+        && lhs.planType     == rhs.planType
+        && lhs.planLength   == rhs.planLength
+        && lhs.schedule     == rhs.schedule
     }
 }

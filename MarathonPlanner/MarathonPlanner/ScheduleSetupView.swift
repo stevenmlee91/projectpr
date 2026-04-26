@@ -1,10 +1,6 @@
 import SwiftUI
 
 // MARK: - Schedule Setup View
-//
-// Every picker and chip writes DIRECTLY into settings.schedule
-// using $settings.schedule.fieldName bindings.
-// There are no intermediate @State copies. No data loss possible.
 
 struct ScheduleSetupView: View {
     @Binding var settings: UserSettings
@@ -12,28 +8,7 @@ struct ScheduleSetupView: View {
     private var plan: PlanType { settings.planType }
 
     private var conflicts: [String] {
-        var issues: [String] = []
-        let s = settings.schedule
-
-        if s.restDays.contains(s.longRunDay) {
-            issues.append("\(s.longRunDay.fullName) is set as both a rest day and your long run day.")
-        }
-        if plan != .higdon && s.restDays.contains(s.workoutDay1) {
-            issues.append("\(s.workoutDay1.fullName) is set as both a rest day and Workout Day 1.")
-        }
-        if plan.requiresTwoWorkoutDays && s.restDays.contains(s.workoutDay2) {
-            issues.append("\(s.workoutDay2.fullName) is set as both a rest day and Workout Day 2.")
-        }
-        if plan.requiresTwoWorkoutDays && s.workoutDay1 == s.workoutDay2 {
-            issues.append("Workout Day 1 and Workout Day 2 are the same day (\(s.workoutDay1.fullName)).")
-        }
-        if plan.usesMidweekLongRun && s.midweekLongDay == s.longRunDay {
-            issues.append("Midweek longer run and long run are both on \(s.longRunDay.fullName).")
-        }
-        if let ct = s.crossTrainDay, s.restDays.contains(ct) {
-            issues.append("\(ct.fullName) is set as both a rest day and cross-training day.")
-        }
-        return issues
+        ScheduleValidator.conflicts(schedule: settings.schedule, planType: plan)
     }
 
     var body: some View {
@@ -42,15 +17,15 @@ struct ScheduleSetupView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     Group {
-                        headerView
-                        longRunSection
+                        headerSection
+                        longRunDaySection
                         workoutDaySection
                     }
                     Group {
                         restDaySection
                         advancedSection
-                        conflictView
-                        Spacer().frame(height: 50)
+                        conflictBanner
+                        Spacer().frame(height: 48)
                     }
                 }
             }
@@ -62,16 +37,16 @@ struct ScheduleSetupView: View {
 
     // MARK: Header
 
-    private var headerView: some View {
+    private var headerSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("WEEKLY SCHEDULE")
+            Text("WEEKLY STRUCTURE")
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
                 .foregroundColor(Color(hex: "5E5E5E"))
                 .kerning(3)
-            Text("Choose Your Days")
+            Text("Build Your Schedule")
                 .font(.system(size: 26, weight: .light, design: .serif))
                 .foregroundColor(.white)
-            Text(planNote)
+            Text(planDescription)
                 .font(.system(size: 12))
                 .foregroundColor(Color(hex: "5E5E5E"))
                 .fixedSize(horizontal: false, vertical: true)
@@ -82,27 +57,26 @@ struct ScheduleSetupView: View {
         .padding(.bottom, 28)
     }
 
-    private var planNote: String {
+    private var planDescription: String {
         switch plan {
         case .higdon:
-            return "Novice: Long run + midweek run + 2 rest days. Simple and consistent."
+            return "Novice: Long run + midweek run + 2 rest days."
         case .higdonIntermediate:
-            return "Intermediate: Long run + midweek run + tempo + optional cross-training + 1 rest day."
+            return "Intermediate: Long run + midweek run + tempo + cross-training + 1 rest day."
         case .hansons:
-            return "Six days running, one quality day per week. Speed first, then Strength/MP runs."
+            return "Six days running. One quality day per week."
         case .pfitz:
-            return "Six days running, two quality days + a medium-long run mid-week. High aerobic demand."
+            return "Six days running. Two quality days + medium-long run mid-week."
         case .jackDaniels:
-            return "Two anchor quality sessions (Q1 & Q2). All other days strictly easy."
+            return "Q1 and Q2 anchor the week. All other days strictly easy."
         }
     }
 
     // MARK: Long Run Day
 
-    private var longRunSection: some View {
+    private var longRunDaySection: some View {
         VStack(spacing: 0) {
             ScheduleLabel("LONG RUN DAY")
-            // Single-select — binding writes directly into schedule
             SingleDayPicker(
                 selected: $settings.schedule.longRunDay,
                 disabled: []
@@ -116,11 +90,12 @@ struct ScheduleSetupView: View {
 
     private var workoutDaySection: some View {
         VStack(spacing: 0) {
-            // Primary quality day (hidden for Higdon Novice — no quality work)
             if plan != .higdon {
-                ScheduleLabel(plan == .higdonIntermediate
-                    ? "TEMPO DAY"
-                    : "PRIMARY WORKOUT DAY (Q1)")
+                ScheduleLabel(
+                    plan == .higdonIntermediate
+                        ? "TEMPO DAY"
+                        : "PRIMARY WORKOUT DAY (Q1)"
+                )
                 SingleDayPicker(
                     selected: $settings.schedule.workoutDay1,
                     disabled: [settings.schedule.longRunDay]
@@ -129,13 +104,14 @@ struct ScheduleSetupView: View {
                 .padding(.bottom, 24)
             }
 
-            // Secondary quality day (Hansons, Pfitz, Daniels)
             if plan == .hansons || plan == .pfitz || plan == .jackDaniels {
                 ScheduleLabel("SECONDARY WORKOUT DAY (Q2)")
                 SingleDayPicker(
                     selected: $settings.schedule.workoutDay2,
-                    disabled: [settings.schedule.longRunDay,
-                               settings.schedule.workoutDay1]
+                    disabled: [
+                        settings.schedule.longRunDay,
+                        settings.schedule.workoutDay1
+                    ]
                 )
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
@@ -147,24 +123,28 @@ struct ScheduleSetupView: View {
 
     private var restDaySection: some View {
         VStack(spacing: 0) {
-            ScheduleLabel(restLabel)
+            ScheduleLabel(
+                plan == .higdonIntermediate
+                    ? "REST DAY (1 required)"
+                    : "REST DAYS (2 recommended)"
+            )
 
-            // Multi-select — binding writes array directly into schedule.restDays
+            let blocked = blockedFromRest()
+
             MultiDayPicker(
                 selected: $settings.schedule.restDays,
-                disabled: blockedFromRest()
+                disabled: blocked
             )
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
 
-            // Helper note
             HStack(spacing: 6) {
                 Image(systemName: "info.circle")
                     .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "3A3A3A"))
-                Text("Days already assigned to a run cannot be rest days.")
+                    .foregroundColor(Color(hex: "3E3E3E"))
+                Text("Active training days cannot be rest days.")
                     .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "3A3A3A"))
+                    .foregroundColor(Color(hex: "3E3E3E"))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
@@ -172,17 +152,10 @@ struct ScheduleSetupView: View {
         }
     }
 
-    private var restLabel: String {
-        if plan.allowsZeroRestDays { return "REST DAYS (OPTIONAL)" }
-        if plan == .higdon         { return "REST DAYS (2 RECOMMENDED)" }
-        return "REST DAYS (1 MINIMUM)"
-    }
-
     // MARK: Advanced
 
     private var advancedSection: some View {
         VStack(spacing: 0) {
-            // Midweek longer run day — Higdon + Pfitz
             if plan.usesMidweekLongRun {
                 ScheduleLabel("MIDWEEK LONGER RUN DAY")
                 SingleDayPicker(
@@ -193,12 +166,11 @@ struct ScheduleSetupView: View {
                 .padding(.bottom, 24)
             }
 
-            // Cross-training toggle — Higdon Intermediate only
             if plan.usesCrossTraining {
                 ScheduleLabel("CROSS-TRAINING DAY (OPTIONAL)")
-                CrossTrainToggle(
+                CrossTrainCard(
                     schedule: $settings.schedule,
-                    taken: allTaken()
+                    taken: takenDays()
                 )
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
@@ -208,7 +180,7 @@ struct ScheduleSetupView: View {
 
     // MARK: Conflict Banner
 
-    private var conflictView: some View {
+    private var conflictBanner: some View {
         Group {
             if !conflicts.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
@@ -217,7 +189,8 @@ struct ScheduleSetupView: View {
                             .foregroundColor(.orange)
                             .font(.system(size: 13))
                         Text("CONFLICTS DETECTED")
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .font(.system(size: 10, weight: .semibold,
+                                          design: .monospaced))
                             .foregroundColor(.orange)
                             .kerning(2)
                     }
@@ -230,10 +203,9 @@ struct ScheduleSetupView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    Text("These will be auto-resolved when you generate your plan.")
+                    Text("Auto-resolved when plan generates.")
                         .font(.system(size: 11))
                         .foregroundColor(Color(hex: "4A4A4A"))
-                        .padding(.top, 2)
                 }
                 .padding(16)
                 .background(Color(hex: "1A1A1A"))
@@ -246,7 +218,7 @@ struct ScheduleSetupView: View {
 
     // MARK: Helpers
 
-    private func blockedFromRest() -> [Weekday] {
+    func blockedFromRest() -> [Weekday] {
         var b = [settings.schedule.longRunDay,
                  settings.schedule.midweekLongDay]
         if plan != .higdon             { b.append(settings.schedule.workoutDay1) }
@@ -255,7 +227,7 @@ struct ScheduleSetupView: View {
         return b
     }
 
-    private func midweekDisabled() -> [Weekday] {
+    func midweekDisabled() -> [Weekday] {
         var d = [settings.schedule.longRunDay]
         d += settings.schedule.restDays
         if plan != .higdon             { d.append(settings.schedule.workoutDay1) }
@@ -263,7 +235,7 @@ struct ScheduleSetupView: View {
         return d
     }
 
-    private func allTaken() -> [Weekday] {
+    func takenDays() -> [Weekday] {
         var t = [settings.schedule.longRunDay,
                  settings.schedule.workoutDay1,
                  settings.schedule.workoutDay2,
@@ -274,9 +246,85 @@ struct ScheduleSetupView: View {
     }
 }
 
+// MARK: - Cross Train Card
+
+struct CrossTrainCard: View {
+    @Binding var schedule : UserSchedule
+    let taken             : [Weekday]
+
+    var body: some View {
+        ZStack {
+            Color(hex: "1A1A1A")
+            VStack(spacing: 0) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Include Cross-Training Day")
+                            .font(.system(size: 14))
+                            .foregroundColor(.white)
+                        Text("Cycling, swimming, elliptical, or yoga")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(hex: "5E5E5E"))
+                    }
+                    Spacer()
+                    Toggle("", isOn: Binding(
+                        get: { schedule.crossTrainDay != nil },
+                        set: { on in
+                            if on {
+                                let t = Set(taken)
+                                schedule.crossTrainDay =
+                                    Weekday.displayOrder.first { !t.contains($0) }
+                            } else {
+                                schedule.crossTrainDay = nil
+                            }
+                        }
+                    ))
+                    .labelsHidden()
+                    .tint(.white)
+                }
+                .padding(16)
+
+                if schedule.crossTrainDay != nil {
+                    Divider().background(Color(hex: "2A2A2A"))
+                    // Monday-first iteration
+                    HStack(spacing: 5) {
+                        ForEach(Weekday.displayOrder) { day in
+                            let isSel = schedule.crossTrainDay == day
+                            let isDis = taken.contains(day)
+                                && schedule.crossTrainDay != day
+                            Button {
+                                guard !isDis else { return }
+                                schedule.crossTrainDay = day
+                            } label: {
+                                Text(day.name)
+                                    .font(.system(size: 11,
+                                                  weight: isSel ? .semibold : .regular,
+                                                  design: .monospaced))
+                                    .foregroundColor(
+                                        isDis ? Color(hex: "2A2A2A") :
+                                        isSel ? Color(hex: "0F0F0F") :
+                                                Color(hex: "5E5E5E"))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        isDis ? Color(hex: "1C1C1C") :
+                                        isSel ? Color.white :
+                                                Color(hex: "242424"))
+                                    .cornerRadius(7)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isDis)
+                        }
+                    }
+                    .padding(10)
+                }
+            }
+        }
+        .cornerRadius(12)
+    }
+}
+
 // MARK: - Single Day Picker
-// Tapping a chip sets it as the selection.
-// Binding<Weekday> writes directly into the parent struct field.
+// Uses Weekday.displayOrder → Monday-first
 
 struct SingleDayPicker: View {
     @Binding var selected : Weekday
@@ -286,7 +334,7 @@ struct SingleDayPicker: View {
         ZStack {
             Color(hex: "1A1A1A")
             HStack(spacing: 5) {
-                ForEach(Weekday.allCases) { day in
+                ForEach(Weekday.displayOrder) { day in
                     let isSel = selected == day
                     let isDis = disabled.contains(day)
                     Button {
@@ -321,8 +369,7 @@ struct SingleDayPicker: View {
 }
 
 // MARK: - Multi Day Picker
-// Tapping a chip toggles it in/out of the selection array.
-// Binding<[Weekday]> writes directly into schedule.restDays.
+// Uses Weekday.displayOrder → Monday-first
 
 struct MultiDayPicker: View {
     @Binding var selected : [Weekday]
@@ -332,7 +379,7 @@ struct MultiDayPicker: View {
         ZStack {
             Color(hex: "1A1A1A")
             HStack(spacing: 5) {
-                ForEach(Weekday.allCases) { day in
+                ForEach(Weekday.displayOrder) { day in
                     let isSel = selected.contains(day)
                     let isDis = disabled.contains(day)
                     Button {
@@ -370,81 +417,7 @@ struct MultiDayPicker: View {
     }
 }
 
-// MARK: - Cross Train Toggle
-
-struct CrossTrainToggle: View {
-    @Binding var schedule : UserSchedule
-    let taken             : [Weekday]
-
-    var body: some View {
-        ZStack {
-            Color(hex: "1A1A1A")
-            VStack(spacing: 0) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Include Cross-Training Day")
-                            .font(.system(size: 14))
-                            .foregroundColor(.white)
-                        Text("Cycling, swimming, elliptical, yoga")
-                            .font(.system(size: 11))
-                            .foregroundColor(Color(hex: "5E5E5E"))
-                    }
-                    Spacer()
-                    Toggle("", isOn: Binding(
-                        get: { schedule.crossTrainDay != nil },
-                        set: { on in
-                            if on {
-                                let t = Set(taken)
-                                schedule.crossTrainDay = Weekday.allCases.first { !t.contains($0) }
-                            } else {
-                                schedule.crossTrainDay = nil
-                            }
-                        }
-                    ))
-                    .labelsHidden()
-                    .tint(.white)
-                }
-                .padding(16)
-
-                if schedule.crossTrainDay != nil {
-                    Divider().background(Color(hex: "2A2A2A"))
-                    HStack(spacing: 5) {
-                        ForEach(Weekday.allCases) { day in
-                            let isSel = schedule.crossTrainDay == day
-                            let isDis = taken.contains(day) && schedule.crossTrainDay != day
-                            Button {
-                                guard !isDis else { return }
-                                schedule.crossTrainDay = day
-                            } label: {
-                                Text(day.name)
-                                    .font(.system(size: 11,
-                                                  weight: isSel ? .semibold : .regular,
-                                                  design: .monospaced))
-                                    .foregroundColor(
-                                        isDis ? Color(hex: "2A2A2A") :
-                                        isSel ? Color(hex: "0F0F0F") :
-                                                Color(hex: "5E5E5E"))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 11)
-                                    .background(
-                                        isDis ? Color(hex: "1C1C1C") :
-                                        isSel ? Color.white :
-                                                Color(hex: "242424"))
-                                    .cornerRadius(7)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(isDis)
-                        }
-                    }
-                    .padding(10)
-                }
-            }
-        }
-        .cornerRadius(12)
-    }
-}
-
-// MARK: - Section Label
+// MARK: - Schedule Label
 
 struct ScheduleLabel: View {
     let text: String
@@ -457,5 +430,34 @@ struct ScheduleLabel: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 20)
             .padding(.bottom, 8)
+    }
+}
+
+// MARK: - Schedule Validator
+
+struct ScheduleValidator {
+    static func conflicts(schedule: UserSchedule, planType: PlanType) -> [String] {
+        var issues: [String] = []
+        let s = schedule
+
+        if s.restDays.contains(s.longRunDay) {
+            issues.append("\(s.longRunDay.fullName) is both a rest day and your long run day.")
+        }
+        if planType != .higdon && s.restDays.contains(s.workoutDay1) {
+            issues.append("\(s.workoutDay1.fullName) is both a rest day and a workout day.")
+        }
+        if planType.requiresTwoWorkoutDays && s.restDays.contains(s.workoutDay2) {
+            issues.append("\(s.workoutDay2.fullName) is both a rest day and a workout day.")
+        }
+        if planType.requiresTwoWorkoutDays && s.workoutDay1 == s.workoutDay2 {
+            issues.append("Workout Day 1 and Workout Day 2 are the same day.")
+        }
+        if planType.usesMidweekLongRun && s.midweekLongDay == s.longRunDay {
+            issues.append("Midweek longer run cannot be the same day as your long run.")
+        }
+        if let ct = s.crossTrainDay, s.restDays.contains(ct) {
+            issues.append("\(ct.fullName) is both a rest day and your cross-training day.")
+        }
+        return issues
     }
 }

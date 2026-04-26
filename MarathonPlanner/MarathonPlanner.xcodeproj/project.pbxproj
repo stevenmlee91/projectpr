@@ -14,6 +14,7 @@
 		B07526092F9B0CD2008F9552 /* PDFExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526082F9B0CD2008F9552 /* PDFExporter.swift */; };
 		B075260B2F9B0CE6008F9552 /* ICSexporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B075260A2F9B0CE6008F9552 /* ICSexporter.swift */; };
 		B075260D2F9B1317008F9552 /* ScheduleSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B075260C2F9B1317008F9552 /* ScheduleSetupView.swift */; };
+		B075260F2F9D9F2B008F9552 /* EditPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B075260E2F9D9F2B008F9552 /* EditPlanView.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -55,6 +56,7 @@
 		B07526082F9B0CD2008F9552 /* PDFExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFExporter.swift; sourceTree = "<group>"; };
 		B075260A2F9B0CE6008F9552 /* ICSexporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICSexporter.swift; sourceTree = "<group>"; };
 		B075260C2F9B1317008F9552 /* ScheduleSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleSetupView.swift; sourceTree = "<group>"; };
+		B075260E2F9D9F2B008F9552 /* EditPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditPlanView.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -128,6 +130,7 @@
 				B0A62DA82F9862340093719D /* PlanGenerator.swift */,
 				B075260C2F9B1317008F9552 /* ScheduleSetupView.swift */,
 				B07526002F9B0C72008F9552 /* PlanStore.swift */,
+				B075260E2F9D9F2B008F9552 /* EditPlanView.swift */,
 				B07526022F9B0C89008F9552 /* PlanListView.swift */,
 				B07526042F9B0C9F008F9552 /* CreatePlanView.swift */,
 				B07526062F9B0CB4008F9552 /* SavedPlanView.swift */,
@@ -308,6 +311,7 @@
 				B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */,
 				B07526032F9B0C89008F9552 /* PlanListView.swift in Sources */,
 				B0A62DAC2F98624D0093719D /* SetupView.swift in Sources */,
+				B075260F2F9D9F2B008F9552 /* EditPlanView.swift in Sources */,
 				B0A62DB02F9862890093719D /* PlanView.swift in Sources */,
 				B07526012F9B0C72008F9552 /* PlanStore.swift in Sources */,
 				B075260D2F9B1317008F9552 /* ScheduleSetupView.swift in Sources */,
