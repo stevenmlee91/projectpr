@@ -21,6 +21,10 @@ struct TodayView: View {
                                 .environmentObject(store)
                             WeekProgressCard(ctx: ctx)
                                 .environmentObject(store)
+                            WeeklyMileageChartView(
+                                plan:           ctx.plan,
+                                currentWeekNum: ctx.weekNumber
+                            )
                             RaceCountdownCard(ctx: ctx)
                         } else {
                             emptyState
@@ -101,10 +105,6 @@ struct TodayWorkoutCard: View {
     @State private var showingActualMiles = false
     @State private var actualMilesInput   = ""
 
-    // Always read live from the store.
-    // ctx.day is a frozen snapshot taken at render time.
-    // liveDay re-evaluates every time store publishes,
-    // so the UI always reflects the current completion state.
     private var liveDay: SavedDay {
         store.plans
             .first { $0.id == ctx.plan.id }?
@@ -113,9 +113,7 @@ struct TodayWorkoutCard: View {
         ?? ctx.day
     }
 
-    private var status: CompletionStatus {
-        liveDay.completionStatus
-    }
+    private var status: CompletionStatus { liveDay.completionStatus }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -163,18 +161,15 @@ struct TodayWorkoutCard: View {
             switch status {
             case .completed:
                 Label("DONE", systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 10, weight: .bold,
-                                  design: .monospaced))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundColor(Color(hex: "30D158"))
             case .skipped:
                 Label("SKIPPED", systemImage: "xmark.circle.fill")
-                    .font(.system(size: 10, weight: .bold,
-                                  design: .monospaced))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundColor(Color(hex: "FF453A"))
             case .modified:
                 Label("MODIFIED", systemImage: "pencil.circle.fill")
-                    .font(.system(size: 10, weight: .bold,
-                                  design: .monospaced))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundColor(Color(hex: "0A84FF"))
             case .notStarted:
                 if liveDay.workoutType == "Rest" {
@@ -237,9 +232,7 @@ struct TodayWorkoutCard: View {
                     }
                 }
             }
-
             Spacer()
-
             if let actual = liveDay.actualMiles, status == .modified {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(String(format: "%.1f", actual))
@@ -253,8 +246,6 @@ struct TodayWorkoutCard: View {
             }
         }
     }
-
-    // MARK: Description
 
     private var descriptionText: some View {
         Text(liveDay.description)
@@ -270,8 +261,7 @@ struct TodayWorkoutCard: View {
                 .font(.system(size: 12))
                 .foregroundColor(workoutColor)
             Text(liveDay.paceNote)
-                .font(.system(size: 12, weight: .medium,
-                              design: .monospaced))
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundColor(workoutColor)
         }
         .padding(.horizontal, 12)
@@ -289,7 +279,6 @@ struct TodayWorkoutCard: View {
                 EmptyView()
             } else {
                 HStack(spacing: 10) {
-                    // Mark complete / undo
                     Button {
                         let next: CompletionStatus =
                             status == .completed ? .notStarted : .completed
@@ -319,7 +308,6 @@ struct TodayWorkoutCard: View {
                     }
                     .buttonStyle(.plain)
 
-                    // Skip / undo
                     Button {
                         let next: CompletionStatus =
                             status == .skipped ? .notStarted : .skipped
@@ -343,7 +331,6 @@ struct TodayWorkoutCard: View {
                     }
                     .buttonStyle(.plain)
 
-                    // Edit actual miles
                     if liveDay.miles > 0 {
                         Button {
                             actualMilesInput = liveDay.actualMiles
@@ -364,8 +351,6 @@ struct TodayWorkoutCard: View {
             }
         }
     }
-
-    // MARK: Actual Miles Input
 
     private var actualMilesRow: some View {
         HStack(spacing: 12) {
@@ -428,9 +413,7 @@ struct TodayWorkoutCard: View {
         case .skipped:    return Color(hex: "1A0A0A")
         case .modified:   return Color(hex: "0A0F1A")
         case .notStarted:
-            if liveDay.workoutType == "Race Day 🏁" {
-                return Color(hex: "1A1500")
-            }
+            if liveDay.workoutType == "Race Day 🏁" { return Color(hex: "1A1500") }
             return Color(hex: "141414")
         }
     }
@@ -441,9 +424,7 @@ struct TodayWorkoutCard: View {
         case .skipped:    return Color(hex: "FF453A").opacity(0.3)
         case .modified:   return Color(hex: "0A84FF").opacity(0.4)
         case .notStarted:
-            if liveDay.workoutType == "Race Day 🏁" {
-                return Color.yellow.opacity(0.5)
-            }
+            if liveDay.workoutType == "Race Day 🏁" { return Color.yellow.opacity(0.5) }
             return Color(hex: "2A2A2A")
         }
     }
@@ -455,7 +436,6 @@ struct WeekProgressCard: View {
     let ctx: TodayContext
     @EnvironmentObject var store: PlanStore
 
-    // Always read live from store so completion % updates instantly
     private var liveWeek: SavedWeek {
         store.plans
             .first { $0.id == ctx.plan.id }?
@@ -497,17 +477,14 @@ struct WeekProgressCard: View {
                 .frame(width: 52, height: 52)
             }
 
-            // Day dots — Monday first
             HStack(spacing: 6) {
                 ForEach(sortedDays(liveWeek.days)) { day in
                     dayDot(day: day)
                 }
             }
 
-            // Miles summary
             HStack {
-                Text(String(format: "%.0f mi planned",
-                            liveWeek.totalMiles))
+                Text(String(format: "%.0f mi planned", liveWeek.totalMiles))
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(Color(hex: "4A4A4A"))
                 Spacer()
@@ -528,7 +505,6 @@ struct WeekProgressCard: View {
                 Circle()
                     .fill(dotBg(day))
                     .frame(width: 28, height: 28)
-                // Highlight today
                 if day.id == ctx.day.id {
                     Circle()
                         .stroke(Color.white, lineWidth: 2)
@@ -598,12 +574,12 @@ struct RaceCountdownCard: View {
 
     private var label: String {
         switch daysUntilRace {
-        case 0:      return "Race day is today. Go run your marathon."
-        case 1:      return "Race day is tomorrow. Trust your training."
-        case 2...6:  return "Race week. Protect your legs. Stay sharp."
-        case 7...14: return "Final stretch. The hay is in the barn."
+        case 0:       return "Race day is today. Go run your marathon."
+        case 1:       return "Race day is tomorrow. Trust your training."
+        case 2...6:   return "Race week. Protect your legs. Stay sharp."
+        case 7...14:  return "Final stretch. The hay is in the barn."
         case 15...21: return "Three weeks out. Taper is working."
-        default:     return "Keep building. Every session counts."
+        default:      return "Keep building. Every session counts."
         }
     }
 
@@ -623,8 +599,7 @@ struct RaceCountdownCard: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(daysUntilRace)")
-                    .font(.system(size: 36, weight: .thin,
-                                  design: .monospaced))
+                    .font(.system(size: 36, weight: .thin, design: .monospaced))
                     .foregroundColor(.white)
                 Text("days")
                     .font(.system(size: 10, design: .monospaced))
@@ -638,10 +613,6 @@ struct RaceCountdownCard: View {
 }
 
 // MARK: - Today Context
-//
-// Finds today's workout across all saved plans.
-// Picks the active plan whose date range includes today.
-// If multiple plans overlap, picks the one with the soonest race date.
 
 struct TodayContext {
     let plan       : SavedPlan

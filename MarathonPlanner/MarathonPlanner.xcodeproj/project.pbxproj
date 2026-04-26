@@ -17,6 +17,7 @@
 		B075260F2F9D9F2B008F9552 /* EditPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B075260E2F9D9F2B008F9552 /* EditPlanView.swift */; };
 		B07526112F9DD78F008F9552 /* WeekDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526102F9DD78F008F9552 /* WeekDetailViewModel.swift */; };
 		B07526152F9E6FF5008F9552 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526142F9E6FF4008F9552 /* TodayView.swift */; };
+		B07526172F9EB5CB008F9552 /* WeeklyMileageChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526162F9EB5CB008F9552 /* WeeklyMileageChart.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -61,6 +62,7 @@
 		B075260E2F9D9F2B008F9552 /* EditPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditPlanView.swift; sourceTree = "<group>"; };
 		B07526102F9DD78F008F9552 /* WeekDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekDetailViewModel.swift; sourceTree = "<group>"; };
 		B07526142F9E6FF4008F9552 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		B07526162F9EB5CB008F9552 /* WeeklyMileageChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyMileageChart.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -147,6 +149,7 @@
 				B0A62DAF2F9862890093719D /* PlanView.swift */,
 				B0A62DB12F98629C0093719D /* WeekDetailView.swift */,
 				B0A62DB32F9862AD0093719D /* MinitabView.swift */,
+				B07526162F9EB5CB008F9552 /* WeeklyMileageChart.swift */,
 				B0A62D802F9861AB0093719D /* Assets.xcassets */,
 				B0A62D822F9861AB0093719D /* Preview Content */,
 			);
@@ -310,6 +313,7 @@
 			files = (
 				B0A62DA92F9862340093719D /* PlanGenerator.swift in Sources */,
 				B0A62DB22F98629C0093719D /* WeekDetailView.swift in Sources */,
+				B07526172F9EB5CB008F9552 /* WeeklyMileageChart.swift in Sources */,
 				B0A62DAE2F9862780093719D /* PacesView.swift in Sources */,
 				B0A62DB42F9862AD0093719D /* MinitabView.swift in Sources */,
 				B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */,

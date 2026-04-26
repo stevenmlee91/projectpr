@@ -18,10 +18,8 @@ struct SavedPlanView: View {
     }()
 
     private var overallCompletion: Double {
-        // Read directly from store — not from the livePlan cached value
-        guard let current = store.plans.first(where: { $0.id == plan.id }) else {
-            return 0
-        }
+        guard let current = store.plans.first(where: { $0.id == plan.id })
+        else { return 0 }
         let trackable = current.weeks
             .flatMap { $0.days }
             .filter { $0.workoutType != "Rest" }
@@ -32,6 +30,15 @@ struct SavedPlanView: View {
         return Double(done) / Double(trackable.count)
     }
 
+    // Finds the week that contains today
+    private var currentWeekNumber: Int {
+        let cal   = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        return livePlan.weeks.first { week in
+            week.days.contains { cal.isDate($0.date, inSameDayAs: today) }
+        }?.weekNumber ?? 1
+    }
+
     var body: some View {
         ZStack {
             Color(hex: "0F0F0F").ignoresSafeArea()
@@ -40,12 +47,31 @@ struct SavedPlanView: View {
                     planHeader
                     completionBanner
                     exportButtons
+
+                    // Training arc chart
+                    WeeklyMileageChartView(
+                        plan:           livePlan,
+                        currentWeekNum: currentWeekNumber
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 20)
+
                     weeksList
                 }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
         .colorScheme(.dark)
+        .navigationDestination(for: WeekNavID.self) { nav in
+            let matchingPlan = store.plans.first { p in
+                p.weeks.contains { $0.id == nav.id }
+            }
+            let matchingWeek = matchingPlan?.weeks.first { $0.id == nav.id }
+            if let p = matchingPlan, let w = matchingWeek {
+                SPVWeekDetailView(planID: p.id, week: w)
+                    .environmentObject(store)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button { showingEdit = true } label: {
@@ -61,10 +87,13 @@ struct SavedPlanView: View {
         }
     }
 
+    // MARK: - Header
+
     private var planHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(livePlan.planType.uppercased())
-                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .font(.system(size: 10, weight: .semibold,
+                              design: .monospaced))
                 .foregroundColor(Color(hex: "5E5E5E"))
                 .kerning(3)
             Text(livePlan.name)
@@ -95,6 +124,8 @@ struct SavedPlanView: View {
         .padding(.bottom, 20)
     }
 
+    // MARK: - Completion Banner
+
     private var completionBanner: some View {
         let pct = overallCompletion
         return ZStack {
@@ -106,18 +137,21 @@ struct SavedPlanView: View {
                     Circle()
                         .trim(from: 0, to: pct)
                         .stroke(Color(hex: "30D158"),
-                                style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                                style: StrokeStyle(lineWidth: 4,
+                                                   lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .animation(.easeInOut(duration: 0.3), value: pct)
                     Text("\(Int(pct * 100))%")
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .font(.system(size: 11, weight: .semibold,
+                                      design: .monospaced))
                         .foregroundColor(.white)
                 }
                 .frame(width: 52, height: 52)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("TRAINING PROGRESS")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .font(.system(size: 10, weight: .semibold,
+                                      design: .monospaced))
                         .foregroundColor(Color(hex: "3E3E3E"))
                         .kerning(2)
                     Text(progressLabel(pct))
@@ -144,15 +178,22 @@ struct SavedPlanView: View {
         }
     }
 
+    // MARK: - Export
+
     private var exportButtons: some View {
         HStack(spacing: 10) {
-            SPVExportButton(label: "PDF", icon: "doc.richtext", action: exportPDF)
-            SPVExportButton(label: "CALENDAR", icon: "calendar.badge.plus",
+            SPVExportButton(label: "PDF",
+                            icon:  "doc.richtext",
+                            action: exportPDF)
+            SPVExportButton(label: "CALENDAR",
+                            icon:  "calendar.badge.plus",
                             action: exportCalendar)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 20)
     }
+
+    // MARK: - Weeks List
 
     private var weeksList: some View {
         VStack(spacing: 8) {
@@ -190,7 +231,8 @@ struct SPVExportButton: View {
             HStack(spacing: 8) {
                 Image(systemName: icon).font(.system(size: 13))
                 Text(label)
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 11, weight: .semibold,
+                                  design: .monospaced))
                     .kerning(1)
             }
             .foregroundColor(.white)
@@ -227,7 +269,8 @@ struct SPVWeekRow: View {
                         .foregroundColor(.white)
                     if isRaceWeek {
                         Text("RACE WEEK")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .font(.system(size: 9, weight: .bold,
+                                          design: .monospaced))
                             .foregroundColor(.black)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
@@ -359,35 +402,33 @@ struct DotView: View {
 }
 
 // MARK: - Week Detail View
-//
-// THE FIX:
-// No longer uses @State localWeek at all.
-// Reads directly from store every render via liveWeek computed property.
-// Because this view is inside a NavigationStack destination that was
-// pushed by value (WeekNavID), the NavigationStack owns the screen —
-// store publishing updates the view body in place without popping.
-// ForEach rows now always get fresh SavedDay values from the store.
 
 struct SPVWeekDetailView: View {
     let planID : UUID
     let week   : SavedWeek
     @EnvironmentObject var store: PlanStore
 
+    @State private var localWeek: SavedWeek
+
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "EEE, MMM d"; return f
     }()
 
-    // Always reads live data from the store.
-    // No @State copy that could go stale.
+    init(planID: UUID, week: SavedWeek) {
+        self.planID = planID
+        self.week   = week
+        _localWeek  = State(initialValue: week)
+    }
+
+    private var isRaceWeek: Bool {
+        localWeek.phase.contains("Race Week")
+    }
+
     private var liveWeek: SavedWeek {
         store.plans
             .first { $0.id == planID }?
             .weeks.first { $0.id == week.id }
         ?? week
-    }
-
-    private var isRaceWeek: Bool {
-        liveWeek.phase.contains("Race Week")
     }
 
     var body: some View {
@@ -427,14 +468,17 @@ struct SPVWeekDetailView: View {
                     HStack(spacing: 8) {
                         Text(liveWeek.phase)
                             .font(.system(size: 12, design: .monospaced))
-                            .foregroundColor(isRaceWeek ? .yellow : Color(hex: "5E5E5E"))
+                            .foregroundColor(isRaceWeek
+                                             ? .yellow
+                                             : Color(hex: "5E5E5E"))
                         if isRaceWeek {
                             Image(systemName: "flag.checkered")
                                 .foregroundColor(.yellow)
                                 .font(.system(size: 12))
                         }
                     }
-                    Text(String(format: "%.1f mi planned", liveWeek.totalMiles))
+                    Text(String(format: "%.1f mi planned",
+                                liveWeek.totalMiles))
                         .font(.system(size: 11))
                         .foregroundColor(Color(hex: "3E3E3E"))
                 }
@@ -445,12 +489,14 @@ struct SPVWeekDetailView: View {
                     Circle()
                         .trim(from: 0, to: liveWeek.completionPercentage)
                         .stroke(Color(hex: "30D158"),
-                                style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                                style: StrokeStyle(lineWidth: 3,
+                                                   lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .animation(.easeInOut(duration: 0.3),
                                    value: liveWeek.completionPercentage)
                     Text("\(Int(liveWeek.completionPercentage * 100))%")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .font(.system(size: 10, weight: .semibold,
+                                      design: .monospaced))
                         .foregroundColor(.white)
                 }
                 .frame(width: 44, height: 44)
@@ -557,7 +603,6 @@ struct SPVDayRow: View {
         .background(rowBackground)
         .cornerRadius(12)
         .contentShape(Rectangle())
-        // Row identity is the day's UUID — stable across renders
         .id(day.id)
     }
 
@@ -698,7 +743,8 @@ struct SPVRaceDayRow: View {
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.black)
                 Text("RACE DAY")
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .font(.system(size: 13, weight: .black,
+                                  design: .monospaced))
                     .foregroundColor(.black)
                     .kerning(3)
                 Spacer()
@@ -713,7 +759,8 @@ struct SPVRaceDayRow: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text("26.2 miles")
-                        .font(.system(size: 22, weight: .thin, design: .monospaced))
+                        .font(.system(size: 22, weight: .thin,
+                                      design: .monospaced))
                         .foregroundColor(.white)
                     Spacer()
                     Text("🏅 42.2 km")
@@ -759,7 +806,9 @@ struct SPVRaceDayRow: View {
 struct SPVShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
+        UIActivityViewController(activityItems: items,
+                                 applicationActivities: nil)
     }
-    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
+    func updateUIViewController(_ vc: UIActivityViewController,
+                                context: Context) {}
 }
