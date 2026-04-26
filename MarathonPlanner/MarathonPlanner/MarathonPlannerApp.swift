@@ -1,10 +1,3 @@
-//
-//  MarathonPlannerApp.swift
-//  MarathonPlanner
-//
-//  Created by Steven Lee on 4/21/26.
-//
-
 import SwiftUI
 
 @main
@@ -13,8 +6,25 @@ struct MarathonTrainerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            PlanListView()
+            RootTabView()
                 .environmentObject(store)
         }
+    }
+}
+
+struct RootTabView: View {
+    var body: some View {
+        TabView {
+            TodayView()
+                .tabItem {
+                    Label("Today", systemImage: "figure.run")
+                }
+            PlanListView()
+                .tabItem {
+                    Label("Plans", systemImage: "list.bullet.rectangle")
+                }
+        }
+        .colorScheme(.dark)
+        .tint(.white)
     }
 }

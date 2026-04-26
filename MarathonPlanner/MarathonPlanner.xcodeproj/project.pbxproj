@@ -16,6 +16,7 @@
 		B075260D2F9B1317008F9552 /* ScheduleSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B075260C2F9B1317008F9552 /* ScheduleSetupView.swift */; };
 		B075260F2F9D9F2B008F9552 /* EditPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B075260E2F9D9F2B008F9552 /* EditPlanView.swift */; };
 		B07526112F9DD78F008F9552 /* WeekDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526102F9DD78F008F9552 /* WeekDetailViewModel.swift */; };
+		B07526152F9E6FF5008F9552 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526142F9E6FF4008F9552 /* TodayView.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -59,6 +60,7 @@
 		B075260C2F9B1317008F9552 /* ScheduleSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleSetupView.swift; sourceTree = "<group>"; };
 		B075260E2F9D9F2B008F9552 /* EditPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditPlanView.swift; sourceTree = "<group>"; };
 		B07526102F9DD78F008F9552 /* WeekDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekDetailViewModel.swift; sourceTree = "<group>"; };
+		B07526142F9E6FF4008F9552 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 				B07526022F9B0C89008F9552 /* PlanListView.swift */,
 				B07526042F9B0C9F008F9552 /* CreatePlanView.swift */,
 				B07526062F9B0CB4008F9552 /* SavedPlanView.swift */,
+				B07526142F9E6FF4008F9552 /* TodayView.swift */,
 				B07526082F9B0CD2008F9552 /* PDFExporter.swift */,
 				B075260A2F9B0CE6008F9552 /* ICSexporter.swift */,
 				B0A62DAA2F9862490093719D /* SetupView.swift */,
@@ -313,6 +316,7 @@
 				B07526052F9B0C9F008F9552 /* CreatePlanView.swift in Sources */,
 				B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */,
 				B07526032F9B0C89008F9552 /* PlanListView.swift in Sources */,
+				B07526152F9E6FF5008F9552 /* TodayView.swift in Sources */,
 				B0A62DAC2F98624D0093719D /* SetupView.swift in Sources */,
 				B07526112F9DD78F008F9552 /* WeekDetailViewModel.swift in Sources */,
 				B075260F2F9D9F2B008F9552 /* EditPlanView.swift in Sources */,
