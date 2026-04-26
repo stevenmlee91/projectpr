@@ -1,22 +1,18 @@
 import SwiftUI
 
-// MARK: - Plan List (root screen showing all saved plans)
+// Two distinct types so NavigationStack can tell
+// plan navigation from week navigation apart.
+struct PlanNavID: Hashable { let id: UUID }
+struct WeekNavID: Hashable { let id: UUID }
 
 struct PlanListView: View {
     @EnvironmentObject var store: PlanStore
     @State private var showingCreate = false
 
-    private let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        return f
-    }()
-
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 Color(hex: "0F0F0F").ignoresSafeArea()
-
                 if store.plans.isEmpty {
                     emptyState
                 } else {
@@ -34,14 +30,29 @@ struct PlanListView: View {
                 }
             }
             .sheet(isPresented: $showingCreate) {
-                CreatePlanView()
-                    .environmentObject(store)
+                CreatePlanView().environmentObject(store)
+            }
+            // Plan destination — matched by PlanNavID
+            .navigationDestination(for: PlanNavID.self) { nav in
+                if let plan = store.plans.first(where: { $0.id == nav.id }) {
+                    SavedPlanView(plan: plan)
+                        .environmentObject(store)
+                }
+            }
+            // Week destination — matched by WeekNavID
+            .navigationDestination(for: WeekNavID.self) { nav in
+                let matchingPlan = store.plans.first { p in
+                    p.weeks.contains { $0.id == nav.id }
+                }
+                let matchingWeek = matchingPlan?.weeks.first { $0.id == nav.id }
+                if let p = matchingPlan, let w = matchingWeek {
+                    SPVWeekDetailView(planID: p.id, week: w)
+                        .environmentObject(store)
+                }
             }
         }
         .colorScheme(.dark)
     }
-
-    // MARK: Empty State
 
     var emptyState: some View {
         VStack(spacing: 16) {
@@ -53,7 +64,8 @@ struct PlanListView: View {
                 .foregroundColor(Color(hex: "5E5E5E"))
             Button(action: { showingCreate = true }) {
                 Text("CREATE YOUR FIRST PLAN")
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 12, weight: .semibold,
+                                  design: .monospaced))
                     .kerning(2)
                     .foregroundColor(.black)
                     .padding(.horizontal, 24)
@@ -64,13 +76,11 @@ struct PlanListView: View {
         }
     }
 
-    // MARK: Plan List
-
     var planList: some View {
         ScrollView {
             VStack(spacing: 12) {
                 ForEach(store.plans) { plan in
-                    NavigationLink(destination: SavedPlanView(plan: plan)) {
+                    NavigationLink(value: PlanNavID(id: plan.id)) {
                         PlanRowView(plan: plan)
                     }
                     .buttonStyle(.plain)
@@ -95,19 +105,17 @@ struct PlanRowView: View {
     let plan: SavedPlan
 
     private let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        return f
+        let f = DateFormatter(); f.dateStyle = .medium; return f
     }()
 
     var daysUntilRace: Int {
-        let comps = Calendar.current.dateComponents([.day], from: Date(), to: plan.raceDate)
+        let comps = Calendar.current.dateComponents(
+            [.day], from: Date(), to: plan.raceDate)
         return max(0, comps.day ?? 0)
     }
 
     var body: some View {
         HStack(spacing: 16) {
-            // Color accent bar
             RoundedRectangle(cornerRadius: 2)
                 .fill(Color.white)
                 .frame(width: 3, height: 50)
@@ -116,13 +124,12 @@ struct PlanRowView: View {
                 Text(plan.name)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white)
-
                 HStack(spacing: 12) {
                     Label(plan.planType, systemImage: "doc.text")
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(Color(hex: "5E5E5E"))
-
-                    Label(dateFormatter.string(from: plan.raceDate), systemImage: "flag.checkered")
+                    Label(dateFormatter.string(from: plan.raceDate),
+                          systemImage: "flag.checkered")
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(Color(hex: "5E5E5E"))
                 }
@@ -132,7 +139,8 @@ struct PlanRowView: View {
 
             VStack(alignment: .trailing, spacing: 4) {
                 Text("\(daysUntilRace)")
-                    .font(.system(size: 22, weight: .thin, design: .monospaced))
+                    .font(.system(size: 22, weight: .thin,
+                                  design: .monospaced))
                     .foregroundColor(.white)
                 Text("days")
                     .font(.system(size: 10, design: .monospaced))
