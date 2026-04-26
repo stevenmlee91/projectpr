@@ -50,8 +50,6 @@ struct TodayView: View {
         .colorScheme(.dark)
     }
 
-    // MARK: - Header
-
     private func todayHeader(ctx: TodayContext) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(formattedDate())
@@ -74,8 +72,6 @@ struct TodayView: View {
         f.dateFormat = "EEEE, MMMM d"
         return f.string(from: Date()).uppercased()
     }
-
-    // MARK: - Empty State
 
     private var emptyState: some View {
         VStack(spacing: 24) {
@@ -104,6 +100,7 @@ struct TodayWorkoutCard: View {
 
     @State private var showingActualMiles = false
     @State private var actualMilesInput   = ""
+    @State private var showingNoteSheet   = false
 
     private var liveDay: SavedDay {
         store.plans
@@ -124,6 +121,30 @@ struct TodayWorkoutCard: View {
                 if !liveDay.paceNote.isEmpty && liveDay.paceNote != "—" {
                     paceNote
                 }
+                if let note = liveDay.completionNote, !note.isEmpty {
+                    Button {
+                        showingNoteSheet = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "note.text")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color(hex: "5E5E5E"))
+                            Text(note)
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(hex: "6A6A6A"))
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Image(systemName: "pencil")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(hex: "3A3A3A"))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Color(hex: "1E1E1E"))
+                        .cornerRadius(10)
+                    }
+                    .buttonStyle(.plain)
+                }
                 completionControls
                 if showingActualMiles { actualMilesRow }
             }
@@ -135,6 +156,14 @@ struct TodayWorkoutCard: View {
                 .stroke(cardBorder, lineWidth: 1.5)
         )
         .cornerRadius(16)
+        .sheet(isPresented: $showingNoteSheet) {
+            NoteEditorSheet(
+                day:    liveDay,
+                planID: ctx.plan.id,
+                weekID: ctx.week.id
+            )
+            .environmentObject(store)
+        }
     }
 
     // MARK: Type Bar
@@ -261,7 +290,8 @@ struct TodayWorkoutCard: View {
                 .font(.system(size: 12))
                 .foregroundColor(workoutColor)
             Text(liveDay.paceNote)
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .font(.system(size: 12, weight: .medium,
+                              design: .monospaced))
                 .foregroundColor(workoutColor)
         }
         .padding(.horizontal, 12)
@@ -288,6 +318,12 @@ struct TodayWorkoutCard: View {
                             dayID:  liveDay.id,
                             status: next
                         )
+                        if next == .completed {
+                            DispatchQueue.main.asyncAfter(
+                                deadline: .now() + 0.4) {
+                                showingNoteSheet = true
+                            }
+                        }
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: status == .completed
@@ -351,6 +387,8 @@ struct TodayWorkoutCard: View {
             }
         }
     }
+
+    // MARK: Actual Miles Row
 
     private var actualMilesRow: some View {
         HStack(spacing: 12) {
@@ -424,7 +462,9 @@ struct TodayWorkoutCard: View {
         case .skipped:    return Color(hex: "FF453A").opacity(0.3)
         case .modified:   return Color(hex: "0A84FF").opacity(0.4)
         case .notStarted:
-            if liveDay.workoutType == "Race Day 🏁" { return Color.yellow.opacity(0.5) }
+            if liveDay.workoutType == "Race Day 🏁" {
+                return Color.yellow.opacity(0.5)
+            }
             return Color(hex: "2A2A2A")
         }
     }
@@ -599,7 +639,8 @@ struct RaceCountdownCard: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(daysUntilRace)")
-                    .font(.system(size: 36, weight: .thin, design: .monospaced))
+                    .font(.system(size: 36, weight: .thin,
+                                  design: .monospaced))
                     .foregroundColor(.white)
                 Text("days")
                     .font(.system(size: 10, design: .monospaced))

@@ -252,6 +252,22 @@ class PlanStore: ObservableObject {
         else { return }
         plans = saved
     }
+    func saveNote(planID: UUID, weekID: UUID, dayID: UUID, note: String) {
+        guard
+            let pi = plans.firstIndex(where: { $0.id == planID }),
+            let wi = plans[pi].weeks.firstIndex(where: { $0.id == weekID }),
+            let di = plans[pi].weeks[wi].days.firstIndex(where: { $0.id == dayID })
+        else { return }
+
+        plans[pi].weeks[wi].days[di].completionNote = note.isEmpty ? nil : note
+
+        let snapshot = plans
+        DispatchQueue.global(qos: .utility).async {
+            if let data = try? JSONEncoder().encode(snapshot) {
+                UserDefaults.standard.set(data, forKey: "saved_training_plans_v2")
+            }
+        }
+    }
 }
 
 // MARK: - Conformances

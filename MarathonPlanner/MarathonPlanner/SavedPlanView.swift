@@ -30,7 +30,6 @@ struct SavedPlanView: View {
         return Double(done) / Double(trackable.count)
     }
 
-    // Finds the week that contains today
     private var currentWeekNumber: Int {
         let cal   = Calendar.current
         let today = cal.startOfDay(for: Date())
@@ -47,31 +46,18 @@ struct SavedPlanView: View {
                     planHeader
                     completionBanner
                     exportButtons
-
-                    // Training arc chart
                     WeeklyMileageChartView(
                         plan:           livePlan,
                         currentWeekNum: currentWeekNumber
                     )
                     .padding(.horizontal, 16)
                     .padding(.bottom, 20)
-
                     weeksList
                 }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
         .colorScheme(.dark)
-        .navigationDestination(for: WeekNavID.self) { nav in
-            let matchingPlan = store.plans.first { p in
-                p.weeks.contains { $0.id == nav.id }
-            }
-            let matchingWeek = matchingPlan?.weeks.first { $0.id == nav.id }
-            if let p = matchingPlan, let w = matchingWeek {
-                SPVWeekDetailView(planID: p.id, week: w)
-                    .environmentObject(store)
-            }
-        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button { showingEdit = true } label: {
@@ -147,7 +133,6 @@ struct SavedPlanView: View {
                         .foregroundColor(.white)
                 }
                 .frame(width: 52, height: 52)
-
                 VStack(alignment: .leading, spacing: 4) {
                     Text("TRAINING PROGRESS")
                         .font(.system(size: 10, weight: .semibold,
@@ -420,15 +405,15 @@ struct SPVWeekDetailView: View {
         _localWeek  = State(initialValue: week)
     }
 
-    private var isRaceWeek: Bool {
-        localWeek.phase.contains("Race Week")
-    }
-
     private var liveWeek: SavedWeek {
         store.plans
             .first { $0.id == planID }?
             .weeks.first { $0.id == week.id }
         ?? week
+    }
+
+    private var isRaceWeek: Bool {
+        liveWeek.phase.contains("Race Week")
     }
 
     var body: some View {
@@ -469,8 +454,7 @@ struct SPVWeekDetailView: View {
                         Text(liveWeek.phase)
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundColor(isRaceWeek
-                                             ? .yellow
-                                             : Color(hex: "5E5E5E"))
+                                             ? .yellow : Color(hex: "5E5E5E"))
                         if isRaceWeek {
                             Image(systemName: "flag.checkered")
                                 .foregroundColor(.yellow)
@@ -528,6 +512,7 @@ struct SPVDayRow: View {
 
     @State private var showingActualMiles = false
     @State private var actualMilesInput   = ""
+    @State private var showingNoteSheet   = false
 
     var dotColor: Color {
         switch day.workoutType {
@@ -589,6 +574,30 @@ struct SPVDayRow: View {
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(Color(hex: "0A84FF"))
                     }
+
+                    // Note preview
+                    if let note = day.completionNote, !note.isEmpty {
+                        Button {
+                            showingNoteSheet = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "note.text")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(Color(hex: "5E5E5E"))
+                                Text(note)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color(hex: "6A6A6A"))
+                                    .lineLimit(2)
+                                    .frame(maxWidth: .infinity,
+                                           alignment: .leading)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(Color(hex: "232323"))
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
 
                 completionButtons
@@ -604,6 +613,14 @@ struct SPVDayRow: View {
         .cornerRadius(12)
         .contentShape(Rectangle())
         .id(day.id)
+        .sheet(isPresented: $showingNoteSheet) {
+            NoteEditorSheet(
+                day:    day,
+                planID: planID,
+                weekID: weekID
+            )
+            .environmentObject(store)
+        }
     }
 
     private var milesView: some View {
@@ -633,6 +650,11 @@ struct SPVDayRow: View {
                     day.completionStatus == .completed ? .notStarted : .completed
                 store.updateCompletion(planID: planID, weekID: weekID,
                                        dayID: day.id, status: next)
+                if next == .completed {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        showingNoteSheet = true
+                    }
+                }
             } label: {
                 Image(systemName: day.completionStatus == .completed
                       ? "checkmark.circle.fill" : "circle")
@@ -726,6 +748,129 @@ struct SPVDayRow: View {
         case .skipped:    return Color(hex: "FF453A")
         case .modified:   return Color(hex: "0A84FF")
         case .notStarted: return nil
+        }
+    }
+}
+
+// MARK: - Note Editor Sheet
+//
+// @FocusState lives here — only created when sheet is presented.
+// Never instantiated during list rendering, which was causing the freeze.
+
+struct NoteEditorSheet: View {
+    let day    : SavedDay
+    let planID : UUID
+    let weekID : UUID
+    @EnvironmentObject var store: PlanStore
+    @Environment(\.dismiss) var dismiss
+
+    @State private var noteInput = ""
+    @FocusState private var focused: Bool
+
+    private let limit = 250
+
+    var body: some View {
+        ZStack {
+            Color(hex: "0F0F0F").ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 20) {
+
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color(hex: "3A3A3A"))
+                    .frame(width: 36, height: 4)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 12)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("HOW DID IT FEEL?")
+                        .font(.system(size: 11, weight: .semibold,
+                                      design: .monospaced))
+                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .kerning(2)
+                    Text(day.workoutType)
+                        .font(.system(size: 18, weight: .light,
+                                      design: .serif))
+                        .foregroundColor(.white)
+                }
+                .padding(.horizontal, 24)
+
+                ZStack(alignment: .topLeading) {
+                    if noteInput.isEmpty {
+                        Text("Legs felt strong, negative split, shin a bit tight...")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(hex: "3A3A3A"))
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 14)
+                            .allowsHitTesting(false)
+                    }
+                    TextEditor(text: $noteInput)
+                        .focused($focused)
+                        .font(.system(size: 14))
+                        .foregroundColor(.white)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.clear)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .onChange(of: noteInput) { val in
+                            if val.count > limit {
+                                noteInput = String(val.prefix(limit))
+                            }
+                        }
+                }
+                .frame(minHeight: 140)
+                .background(Color(hex: "1A1A1A"))
+                .cornerRadius(14)
+                .padding(.horizontal, 16)
+
+                HStack {
+                    Text("\(noteInput.count)/\(limit)")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(noteInput.count > limit - 20
+                                         ? Color(hex: "FF453A")
+                                         : Color(hex: "3A3A3A"))
+                    Spacer()
+                }
+                .padding(.horizontal, 24)
+
+                HStack(spacing: 12) {
+                    Button("Skip") {
+                        dismiss()
+                    }
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(hex: "5E5E5E"))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color(hex: "1A1A1A"))
+                    .cornerRadius(12)
+                    .buttonStyle(.plain)
+
+                    Button {
+                        store.saveNote(planID: planID, weekID: weekID,
+                                       dayID: day.id, note: noteInput)
+                        dismiss()
+                    } label: {
+                        Text("Save Note")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color(hex: "30D158"))
+                            .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+
+                Spacer()
+            }
+        }
+        .colorScheme(.dark)
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.hidden)
+        .onAppear {
+            noteInput = day.completionNote ?? ""
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                focused = true
+            }
         }
     }
 }

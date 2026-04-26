@@ -1,7 +1,5 @@
 import SwiftUI
 
-// Two distinct types so NavigationStack can tell
-// plan navigation from week navigation apart.
 struct PlanNavID: Hashable { let id: UUID }
 struct WeekNavID: Hashable { let id: UUID }
 
@@ -32,14 +30,12 @@ struct PlanListView: View {
             .sheet(isPresented: $showingCreate) {
                 CreatePlanView().environmentObject(store)
             }
-            // Plan destination — matched by PlanNavID
             .navigationDestination(for: PlanNavID.self) { nav in
                 if let plan = store.plans.first(where: { $0.id == nav.id }) {
                     SavedPlanView(plan: plan)
                         .environmentObject(store)
                 }
             }
-            // Week destination — matched by WeekNavID
             .navigationDestination(for: WeekNavID.self) { nav in
                 let matchingPlan = store.plans.first { p in
                     p.weeks.contains { $0.id == nav.id }
