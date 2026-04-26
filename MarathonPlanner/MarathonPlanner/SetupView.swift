@@ -18,7 +18,7 @@ struct SetupView: View {
     var body: some View {
         NavigationView {
             ZStack(alignment: .bottom) {
-                Color(hex: "0F0F0F").ignoresSafeArea()
+                Color(.systemBackground).ignoresSafeArea()
 
                 ScrollView {
                     VStack(spacing: 0) {
@@ -28,12 +28,12 @@ struct SetupView: View {
                                 Text("MARATHON")
                                     .font(.system(size: 11, weight: .semibold,
                                                   design: .monospaced))
-                                    .foregroundColor(Color(hex: "5E5E5E"))
+                                    .foregroundColor(.secondary)
                                     .kerning(3)
                                 Text("Training Plan")
                                     .font(.system(size: 32, weight: .light,
                                                   design: .serif))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 24)
@@ -54,7 +54,7 @@ struct SetupView: View {
                                     )
                                 }
                             }
-                            .background(Color(hex: "1A1A1A"))
+                            .background(Color(.secondarySystemBackground))
                             .cornerRadius(12)
                             .padding(.horizontal, 16)
                             .padding(.bottom, 28)
@@ -76,7 +76,7 @@ struct SetupView: View {
                             // ── Goal Time ────────────────────────────
                             SetupSectionHeader("GOAL TIME")
                             ZStack {
-                                Color(hex: "1A1A1A")
+                                Color(.secondarySystemBackground)
                                 VStack(spacing: 0) {
                                     HStack(spacing: 0) {
                                         Picker("", selection: $goalHours) {
@@ -86,11 +86,11 @@ struct SetupView: View {
                                         }
                                         .pickerStyle(.wheel)
                                         .frame(maxWidth: .infinity)
-                                        .colorScheme(.dark)
+
 
                                         Text(":")
                                             .font(.system(size: 28, weight: .thin))
-                                            .foregroundColor(Color(hex: "5E5E5E"))
+                                            .foregroundColor(.secondary)
 
                                         Picker("", selection: $goalMinutes) {
                                             ForEach(
@@ -102,16 +102,16 @@ struct SetupView: View {
                                         }
                                         .pickerStyle(.wheel)
                                         .frame(maxWidth: .infinity)
-                                        .colorScheme(.dark)
+
 
                                         Text(":00")
                                             .font(.system(size: 20, weight: .thin))
-                                            .foregroundColor(Color(hex: "5E5E5E"))
+                                            .foregroundColor(.secondary)
                                             .padding(.trailing, 12)
                                     }
                                     .frame(height: 120)
 
-                                    Divider().background(Color(hex: "2A2A2A"))
+                                    Divider().background(Color(.tertiarySystemBackground))
 
                                     Text("h   :   mm   :   ss")
                                         .font(.system(size: 10, weight: .medium,
@@ -132,16 +132,16 @@ struct SetupView: View {
                             // ── Base Mileage ─────────────────────────
                             SetupSectionHeader("BASE MILEAGE")
                             ZStack {
-                                Color(hex: "1A1A1A")
+                                Color(.secondarySystemBackground)
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("\(Int(settings.baseMileage))")
                                             .font(.system(size: 40, weight: .thin,
                                                           design: .monospaced))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.primary)
                                         Text("miles / week currently")
                                             .font(.system(size: 11))
-                                            .foregroundColor(Color(hex: "5E5E5E"))
+                                            .foregroundColor(.secondary)
                                     }
                                     Spacer()
                                     VStack(spacing: 12) {
@@ -152,9 +152,9 @@ struct SetupView: View {
                                         } label: {
                                             Image(systemName: "plus")
                                                 .font(.system(size: 16, weight: .light))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.primary)
                                                 .frame(width: 40, height: 40)
-                                                .background(Color(hex: "2A2A2A"))
+                                                .background(Color(.tertiarySystemBackground))
                                                 .cornerRadius(8)
                                         }
                                         Button {
@@ -164,9 +164,9 @@ struct SetupView: View {
                                         } label: {
                                             Image(systemName: "minus")
                                                 .font(.system(size: 16, weight: .light))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.primary)
                                                 .frame(width: 40, height: 40)
-                                                .background(Color(hex: "2A2A2A"))
+                                                .background(Color(.tertiarySystemBackground))
                                                 .cornerRadius(8)
                                         }
                                     }
@@ -186,16 +186,16 @@ struct SetupView: View {
                                 destination: ScheduleSetupView(settings: $settings)
                             ) {
                                 ZStack {
-                                    Color(hex: "1A1A1A")
+                                    Color(.secondarySystemBackground)
                                     HStack(spacing: 12) {
                                         VStack(alignment: .leading, spacing: 6) {
                                             Text("Customize Schedule")
                                                 .font(.system(size: 14, weight: .medium))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.primary)
                                             Text(scheduleSummary)
                                                 .font(.system(size: 11,
                                                               design: .monospaced))
-                                                .foregroundColor(Color(hex: "5E5E5E"))
+                                                .foregroundColor(.secondary)
                                                 .lineLimit(2)
                                         }
                                         Spacer()
@@ -219,7 +219,7 @@ struct SetupView: View {
                 // ── Generate Button ───────────────────────────────
                 VStack(spacing: 0) {
                     LinearGradient(
-                        colors: [Color(hex: "0F0F0F").opacity(0), Color(hex: "0F0F0F")],
+                        colors: [Color(.systemBackground).opacity(0), Color(.systemBackground)],
                         startPoint: .top, endPoint: .bottom
                     )
                     .frame(height: 32)
@@ -236,7 +236,7 @@ struct SetupView: View {
                                               design: .monospaced))
                                 .kerning(2)
                         }
-                        .foregroundColor(Color(hex: "0F0F0F"))
+                        .foregroundColor(Color(.systemBackground))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
                         .background(Color.white)
@@ -244,12 +244,12 @@ struct SetupView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 32)
-                    .background(Color(hex: "0F0F0F"))
+                    .background(Color(.systemBackground))
                 }
             }
             .onAppear { syncPickersToSettings() }
         }
-        .colorScheme(.dark)
+
     }
 
     private func updateGoalTime() {
@@ -322,10 +322,10 @@ struct SetupDurationChip: View {
                 .font(.system(size: 13,
                               weight: isSelected ? .semibold : .regular,
                               design: .monospaced))
-                .foregroundColor(isSelected ? Color(hex: "0F0F0F") : Color(hex: "5E5E5E"))
+                .foregroundColor(isSelected ? Color(.systemBackground) : Color(hex: "5E5E5E"))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(isSelected ? Color.white : Color(hex: "1A1A1A"))
+                .background(isSelected ? Color.white : Color(.secondarySystemBackground))
                 .cornerRadius(8)
         }
         .buttonStyle(.plain)

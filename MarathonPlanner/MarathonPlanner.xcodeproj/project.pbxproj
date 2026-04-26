@@ -18,6 +18,8 @@
 		B07526112F9DD78F008F9552 /* WeekDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526102F9DD78F008F9552 /* WeekDetailViewModel.swift */; };
 		B07526152F9E6FF5008F9552 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526142F9E6FF4008F9552 /* TodayView.swift */; };
 		B07526172F9EB5CB008F9552 /* WeeklyMileageChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526162F9EB5CB008F9552 /* WeeklyMileageChart.swift */; };
+		B07526192F9EC44E008F9552 /* AppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526182F9EC44E008F9552 /* AppearanceManager.swift */; };
+		B075261B2F9EC478008F9552 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B075261A2F9EC478008F9552 /* SettingsView.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -63,6 +65,8 @@
 		B07526102F9DD78F008F9552 /* WeekDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekDetailViewModel.swift; sourceTree = "<group>"; };
 		B07526142F9E6FF4008F9552 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		B07526162F9EB5CB008F9552 /* WeeklyMileageChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyMileageChart.swift; sourceTree = "<group>"; };
+		B07526182F9EC44E008F9552 /* AppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
+		B075261A2F9EC478008F9552 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -131,6 +135,7 @@
 			isa = PBXGroup;
 			children = (
 				B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */,
+				B075261A2F9EC478008F9552 /* SettingsView.swift */,
 				B0A62D7E2F9861A70093719D /* ContentView.swift */,
 				B0A62DA62F9862170093719D /* TrainingPlan.swift */,
 				B0A62DA82F9862340093719D /* PlanGenerator.swift */,
@@ -141,6 +146,7 @@
 				B07526022F9B0C89008F9552 /* PlanListView.swift */,
 				B07526042F9B0C9F008F9552 /* CreatePlanView.swift */,
 				B07526062F9B0CB4008F9552 /* SavedPlanView.swift */,
+				B07526182F9EC44E008F9552 /* AppearanceManager.swift */,
 				B07526142F9E6FF4008F9552 /* TodayView.swift */,
 				B07526082F9B0CD2008F9552 /* PDFExporter.swift */,
 				B075260A2F9B0CE6008F9552 /* ICSexporter.swift */,
@@ -318,6 +324,7 @@
 				B0A62DB42F9862AD0093719D /* MinitabView.swift in Sources */,
 				B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */,
 				B07526052F9B0C9F008F9552 /* CreatePlanView.swift in Sources */,
+				B07526192F9EC44E008F9552 /* AppearanceManager.swift in Sources */,
 				B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */,
 				B07526032F9B0C89008F9552 /* PlanListView.swift in Sources */,
 				B07526152F9E6FF5008F9552 /* TodayView.swift in Sources */,
@@ -331,6 +338,7 @@
 				B075260B2F9B0CE6008F9552 /* ICSexporter.swift in Sources */,
 				B07526072F9B0CB4008F9552 /* SavedPlanView.swift in Sources */,
 				B07526092F9B0CD2008F9552 /* PDFExporter.swift in Sources */,
+				B075261B2F9EC478008F9552 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

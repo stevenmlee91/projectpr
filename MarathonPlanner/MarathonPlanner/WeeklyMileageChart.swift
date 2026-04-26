@@ -47,14 +47,14 @@ struct MileagePoint: Identifiable {
 
     var barColor: Color {
         // Selected always overrides
-        if isSelected { return Color.white.opacity(0.9) }
+        if isSelected { return Color.gray.opacity(0.9) }
 
         // Priority: race > peak > taper > current > past > future
         switch phase {
         case .race:    return Color.yellow
         case .peak:    return Color(hex: "FF453A")
         case .taper:   return Color(hex: "FF9F0A")
-        case .current: return Color.white
+        case .current: return Color.blue
         case .past:    return Color(hex: "2E7D52")
         case .future:  return Color(hex: "1E3A2A")
         }
@@ -160,7 +160,7 @@ struct WeeklyMileageChartView: View {
             }
         }
         .padding(18)
-        .background(Color(hex: "1A1A1A"))
+        .background(Color(.secondarySystemBackground))
         .cornerRadius(16)
         .animation(.easeInOut(duration: 0.2), value: selectedWeekNum)
         .onAppear {
@@ -177,15 +177,15 @@ struct WeeklyMileageChartView: View {
             Text("TRAINING ARC")
                 .font(.system(size: 10, weight: .semibold,
                               design: .monospaced))
-                .foregroundColor(Color(hex: "5E5E5E"))
+                .foregroundColor(.secondary)
                 .kerning(3)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("Week \(currentWeekNum)")
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 Text("of \(plan.weeks.count)")
                     .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "5E5E5E"))
+                    .foregroundColor(.secondary)
                 Spacer()
                 currentPhaseChip
             }
@@ -287,7 +287,7 @@ struct WeeklyMileageChartView: View {
                     Text("WEEK \(point.weekNumber)")
                         .font(.system(size: 11, weight: .bold,
                                       design: .monospaced))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
 
                     // Phase badges
                     if point.isCurrent {
@@ -313,7 +313,7 @@ struct WeeklyMileageChartView: View {
                 }
                 Text(point.phaseLabel)
                     .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "5E5E5E"))
+                    .foregroundColor(.secondary)
             }
 
             Spacer()
@@ -322,10 +322,10 @@ struct WeeklyMileageChartView: View {
                 Text(String(format: "%.0f", point.miles))
                     .font(.system(size: 28, weight: .thin,
                                   design: .monospaced))
-                    .foregroundColor(point.barColor)
+                    .foregroundColor(.primary)
                 Text("miles")
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundColor(Color(hex: "5E5E5E"))
+                    .foregroundColor(.secondary)
             }
 
             if onSelectWeek != nil {
@@ -334,14 +334,14 @@ struct WeeklyMileageChartView: View {
                 } label: {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .foregroundColor(.secondary)
                         .padding(.leading, 14)
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(12)
-        .background(Color(hex: "242424"))
+        .background(Color(.secondarySystemBackground))
         .cornerRadius(10)
     }
 
@@ -362,7 +362,7 @@ struct WeeklyMileageChartView: View {
             Group {
                 legendDot(color: Color(hex: "2E7D52"), label: "Done")
                 Spacer()
-                legendDot(color: Color.white, label: "Now")
+                legendDot(color: Color.blue, label: "Now")
                 Spacer()
                 legendDot(color: Color(hex: "FF453A"), label: "Peak")
             }
@@ -419,7 +419,7 @@ struct WeeklyMileageChartEmptyView: View {
         VStack(spacing: 10) {
             Image(systemName: "chart.bar.fill")
                 .font(.system(size: 28, weight: .ultraLight))
-                .foregroundColor(Color(hex: "2A2A2A"))
+                .foregroundColor(Color(.tertiarySystemBackground))
             Text("Generate a plan to see\nyour mileage progression.")
                 .font(.system(size: 12))
                 .foregroundColor(Color(hex: "3A3A3A"))
@@ -427,7 +427,7 @@ struct WeeklyMileageChartEmptyView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(28)
-        .background(Color(hex: "1A1A1A"))
+        .background(Color(.secondarySystemBackground))
         .cornerRadius(16)
     }
 }

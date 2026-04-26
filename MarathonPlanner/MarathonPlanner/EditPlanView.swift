@@ -39,7 +39,7 @@ struct EditPlanView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(hex: "0F0F0F").ignoresSafeArea()
+                Color(.systemBackground).ignoresSafeArea()
 
                 ScrollView {
                     VStack(spacing: 0) {
@@ -74,11 +74,10 @@ struct EditPlanView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
             }
         }
-        .colorScheme(.dark)
         .onChange(of: goalHours)   { _ in syncGoalTime() }
         .onChange(of: goalMinutes) { _ in syncGoalTime() }
     }
@@ -89,11 +88,11 @@ struct EditPlanView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("EDITING")
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .foregroundColor(Color(hex: "5E5E5E"))
+                .foregroundColor(.secondary)
                 .kerning(3)
             Text(plan.name)
                 .font(.system(size: 24, weight: .light, design: .serif))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
 
             if requiresFullRegen {
                 HStack(spacing: 6) {
@@ -140,7 +139,7 @@ struct EditPlanView: View {
                     )
                 }
             }
-            .background(Color(hex: "1A1A1A"))
+            .background(Color(.secondarySystemBackground))
             .cornerRadius(12)
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
@@ -153,7 +152,7 @@ struct EditPlanView: View {
         VStack(spacing: 0) {
             EditLabel("GOAL TIME")
             ZStack {
-                Color(hex: "1A1A1A")
+                Color(.secondarySystemBackground)
                 HStack(spacing: 0) {
                     Picker("", selection: $goalHours) {
                         ForEach(2...6, id: \.self) { h in
@@ -162,10 +161,9 @@ struct EditPlanView: View {
                     }
                     .pickerStyle(.wheel)
                     .frame(maxWidth: .infinity)
-                    .colorScheme(.dark)
 
                     Text(":")
-                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .foregroundColor(.secondary)
                         .font(.system(size: 22, weight: .thin))
 
                     Picker("", selection: $goalMinutes) {
@@ -178,7 +176,6 @@ struct EditPlanView: View {
                     }
                     .pickerStyle(.wheel)
                     .frame(maxWidth: .infinity)
-                    .colorScheme(.dark)
                 }
                 .frame(height: 100)
             }
@@ -194,16 +191,16 @@ struct EditPlanView: View {
         VStack(spacing: 0) {
             EditLabel("BASE MILEAGE")
             ZStack {
-                Color(hex: "1A1A1A")
+                Color(.secondarySystemBackground)
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(Int(editedSettings.baseMileage))")
                             .font(.system(size: 36, weight: .thin,
                                           design: .monospaced))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                         Text("miles / week")
                             .font(.system(size: 11))
-                            .foregroundColor(Color(hex: "5E5E5E"))
+                            .foregroundColor(.secondary)
                     }
                     Spacer()
                     VStack(spacing: 10) {
@@ -213,9 +210,9 @@ struct EditPlanView: View {
                             }
                         } label: {
                             Image(systemName: "plus")
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                                 .frame(width: 36, height: 36)
-                                .background(Color(hex: "2A2A2A"))
+                                .background(Color(.tertiarySystemBackground))
                                 .cornerRadius(8)
                         }
                         Button {
@@ -224,9 +221,9 @@ struct EditPlanView: View {
                             }
                         } label: {
                             Image(systemName: "minus")
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                                 .frame(width: 36, height: 36)
-                                .background(Color(hex: "2A2A2A"))
+                                .background(Color(.tertiarySystemBackground))
                                 .cornerRadius(8)
                         }
                     }
@@ -392,7 +389,7 @@ struct EditPlanView: View {
                     ForEach(issues, id: \.self) { msg in
                         HStack(alignment: .top, spacing: 6) {
                             Text("•")
-                                .foregroundColor(Color(hex: "5E5E5E"))
+                                .foregroundColor(.secondary)
                             Text(msg)
                                 .font(.system(size: 11))
                                 .foregroundColor(Color(hex: "9A9A9A"))
@@ -404,7 +401,7 @@ struct EditPlanView: View {
                         .foregroundColor(Color(hex: "4A4A4A"))
                 }
                 .padding(14)
-                .background(Color(hex: "1A1A1A"))
+                .background(Color(.secondarySystemBackground))
                 .cornerRadius(12)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
@@ -434,7 +431,7 @@ struct EditPlanView: View {
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "arrow.right")
                                 .font(.system(size: 10))
-                                .foregroundColor(Color(hex: "5E5E5E"))
+                                .foregroundColor(.secondary)
                                 .padding(.top, 2)
                             Text(note)
                                 .font(.system(size: 12))
@@ -445,7 +442,7 @@ struct EditPlanView: View {
                 }
             }
             .padding(16)
-            .background(Color(hex: "1A1A1A"))
+            .background(Color(.secondarySystemBackground))
             .cornerRadius(12)
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
@@ -470,7 +467,7 @@ struct EditPlanView: View {
                 .foregroundColor(Color(hex: "9A9A9A"))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(Color(hex: "1A1A1A"))
+                .background(Color(.secondarySystemBackground))
                 .cornerRadius(12)
             }
             .padding(.horizontal, 16)
@@ -502,7 +499,7 @@ struct EditPlanView: View {
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
-                .background(hasAnyChange ? Color.white : Color(hex: "2A2A2A"))
+                .background(hasAnyChange ? Color.white : Color(.tertiarySystemBackground))
                 .cornerRadius(14)
             }
             .disabled(!hasAnyChange || isSaving)
@@ -748,7 +745,7 @@ struct EditDurationChip: View {
                 .foregroundColor(isSelected ? .black : Color(hex: "5E5E5E"))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(isSelected ? Color.white : Color(hex: "1A1A1A"))
+                .background(isSelected ? Color.white : Color(.secondarySystemBackground))
                 .cornerRadius(8)
         }
         .buttonStyle(.plain)
@@ -761,16 +758,16 @@ struct EditCrossTrainToggle: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "1A1A1A")
+            Color(.secondarySystemBackground)
             VStack(spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Include Cross-Training Day")
                             .font(.system(size: 14))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                         Text("Cycling, swimming, elliptical, yoga")
                             .font(.system(size: 11))
-                            .foregroundColor(Color(hex: "5E5E5E"))
+                            .foregroundColor(.secondary)
                     }
                     Spacer()
                     Toggle("", isOn: Binding(
@@ -791,7 +788,7 @@ struct EditCrossTrainToggle: View {
                 .padding(16)
 
                 if schedule.crossTrainDay != nil {
-                    Divider().background(Color(hex: "2A2A2A"))
+                    Divider().background(Color(.tertiarySystemBackground))
                     HStack(spacing: 5) {
                         ForEach(Weekday.allCases) { day in
                             let isSel = schedule.crossTrainDay == day
@@ -806,8 +803,8 @@ struct EditCrossTrainToggle: View {
                                                   weight: isSel ? .semibold : .regular,
                                                   design: .monospaced))
                                     .foregroundColor(
-                                        isDis ? Color(hex: "2A2A2A") :
-                                        isSel ? Color(hex: "0F0F0F") :
+                                        isDis ? Color(.tertiarySystemBackground) :
+                                        isSel ? Color(.systemBackground) :
                                                 Color(hex: "5E5E5E"))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)

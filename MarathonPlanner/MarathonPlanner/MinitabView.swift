@@ -25,14 +25,14 @@ struct MainTabView: View {
                     PlanView(weeks: generatedWeeks, settings: settings)
                 } else {
                     ZStack {
-                        Color(hex: "0F0F0F").ignoresSafeArea()
+                        Color(.systemBackground).ignoresSafeArea()
                         VStack(spacing: 12) {
                             Image(systemName: "figure.run")
                                 .font(.system(size: 44, weight: .ultraLight))
                                 .foregroundColor(Color(hex: "3A3A3A"))
                             Text("No plan yet")
                                 .font(.system(size: 16, weight: .light))
-                                .foregroundColor(Color(hex: "5E5E5E"))
+                                .foregroundColor(.secondary)
                             Text("Go to Setup and tap Generate Plan")
                                 .font(.system(size: 12, design: .monospaced))
                                 .foregroundColor(Color(hex: "3A3A3A"))

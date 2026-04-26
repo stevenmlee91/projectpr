@@ -40,7 +40,7 @@ struct SavedPlanView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "0F0F0F").ignoresSafeArea()
+            Color(.systemBackground).ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 0) {
                     planHeader
@@ -57,11 +57,10 @@ struct SavedPlanView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .colorScheme(.dark)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button { showingEdit = true } label: {
-                    Image(systemName: "pencil").foregroundColor(.white)
+                    Image(systemName: "pencil").foregroundColor(.primary)
                 }
             }
         }
@@ -80,11 +79,11 @@ struct SavedPlanView: View {
             Text(livePlan.planType.uppercased())
                 .font(.system(size: 10, weight: .semibold,
                               design: .monospaced))
-                .foregroundColor(Color(hex: "5E5E5E"))
+                .foregroundColor(.secondary)
                 .kerning(3)
             Text(livePlan.name)
                 .font(.system(size: 28, weight: .light, design: .serif))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             HStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("STARTS")
@@ -100,7 +99,7 @@ struct SavedPlanView: View {
                         .foregroundColor(Color(hex: "3E3E3E")).kerning(2)
                     Text(dateFormatter.string(from: livePlan.raceDate))
                         .font(.system(size: 13))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
             }
         }
@@ -115,11 +114,11 @@ struct SavedPlanView: View {
     private var completionBanner: some View {
         let pct = overallCompletion
         return ZStack {
-            Color(hex: "1A1A1A")
+            Color(.secondarySystemBackground)
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .stroke(Color(hex: "2A2A2A"), lineWidth: 4)
+                        .stroke(Color(.tertiarySystemBackground), lineWidth: 4)
                     Circle()
                         .trim(from: 0, to: pct)
                         .stroke(Color(hex: "30D158"),
@@ -130,7 +129,7 @@ struct SavedPlanView: View {
                     Text("\(Int(pct * 100))%")
                         .font(.system(size: 11, weight: .semibold,
                                       design: .monospaced))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 .frame(width: 52, height: 52)
                 VStack(alignment: .leading, spacing: 4) {
@@ -141,7 +140,7 @@ struct SavedPlanView: View {
                         .kerning(2)
                     Text(progressLabel(pct))
                         .font(.system(size: 13))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 Spacer()
             }
@@ -220,12 +219,12 @@ struct SPVExportButton: View {
                                   design: .monospaced))
                     .kerning(1)
             }
-            .foregroundColor(.white)
+            .foregroundColor(.primary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
-            .background(Color(hex: "1A1A1A"))
+            .background(Color(.secondarySystemBackground))
             .overlay(RoundedRectangle(cornerRadius: 10)
-                .stroke(Color(hex: "2A2A2A"), lineWidth: 1))
+                .stroke(Color(.tertiarySystemBackground), lineWidth: 1))
             .cornerRadius(10)
         }
     }
@@ -251,7 +250,7 @@ struct SPVWeekRow: View {
                 HStack(spacing: 8) {
                     Text("Week \(week.weekNumber)")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     if isRaceWeek {
                         Text("RACE WEEK")
                             .font(.system(size: 9, weight: .bold,
@@ -265,7 +264,7 @@ struct SPVWeekRow: View {
                 }
                 Spacer()
                 Text(String(format: "%.1f mi", week.totalMiles))
-                    .foregroundColor(Color(hex: "5E5E5E"))
+                    .foregroundColor(.secondary)
                     .font(.system(size: 13))
             }
 
@@ -292,7 +291,7 @@ struct SPVWeekRow: View {
             completionBar
         }
         .padding(16)
-        .background(isRaceWeek ? Color(hex: "2A2500") : Color(hex: "1A1A1A"))
+        .background(isRaceWeek ? Color(hex: "2A2500") : Color(.secondarySystemBackground))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(isRaceWeek ? Color.yellow.opacity(0.4) : Color.clear,
@@ -309,7 +308,7 @@ struct SPVWeekRow: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color(hex: "2A2A2A"))
+                        .fill(Color(.tertiarySystemBackground))
                         .frame(height: 4)
                     RoundedRectangle(cornerRadius: 3)
                         .fill(barColor(pct))
@@ -368,7 +367,7 @@ struct DotView: View {
 
     var baseDotColor: Color {
         switch day.workoutType {
-        case "Rest":                                   return Color(hex: "2A2A2A")
+        case "Rest":                                   return Color(.tertiarySystemBackground)
         case "Recovery Run":                           return Color(hex: "34C759")
         case "Easy Run", "Easy + Strides",
              "Shakeout Run":                           return Color(hex: "30D158")
@@ -381,7 +380,7 @@ struct DotView: View {
              "Repetition Work":                       return Color(hex: "FF453A")
         case "Cross-Training":                        return Color(hex: "BF5AF2")
         case "Race Day 🏁":                           return Color.yellow
-        default:                                      return Color(hex: "3A3A3A")
+        default:                                      return Color(.systemFill)
         }
     }
 }
@@ -418,7 +417,7 @@ struct SPVWeekDetailView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "0F0F0F").ignoresSafeArea()
+            Color(.systemBackground).ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 8) {
                     weekSummaryCard
@@ -442,12 +441,12 @@ struct SPVWeekDetailView: View {
         }
         .navigationTitle("Week \(liveWeek.weekNumber)")
         .navigationBarTitleDisplayMode(.inline)
-        .colorScheme(.dark)
+
     }
 
     private var weekSummaryCard: some View {
         ZStack {
-            Color(hex: "1A1A1A")
+            Color(.secondarySystemBackground)
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
@@ -469,7 +468,7 @@ struct SPVWeekDetailView: View {
                 Spacer()
                 ZStack {
                     Circle()
-                        .stroke(Color(hex: "2A2A2A"), lineWidth: 3)
+                        .stroke(Color(.tertiarySystemBackground), lineWidth: 3)
                     Circle()
                         .trim(from: 0, to: liveWeek.completionPercentage)
                         .stroke(Color(hex: "30D158"),
@@ -481,7 +480,7 @@ struct SPVWeekDetailView: View {
                     Text("\(Int(liveWeek.completionPercentage * 100))%")
                         .font(.system(size: 10, weight: .semibold,
                                       design: .monospaced))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 .frame(width: 44, height: 44)
             }
@@ -545,7 +544,7 @@ struct SPVDayRow: View {
                         Text(dateFormatter.string(from: day.date))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(day.isToday
-                                             ? Color(hex: "0A84FF") : .white)
+                                             ? Color(hex: "0A84FF") : .primary)
                         if day.isToday {
                             Text("TODAY")
                                 .font(.system(size: 9, weight: .bold,
@@ -566,7 +565,7 @@ struct SPVDayRow: View {
 
                     Text(day.description)
                         .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if day.paceNote != "—" && !day.paceNote.isEmpty {
@@ -583,7 +582,7 @@ struct SPVDayRow: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "note.text")
                                     .font(.system(size: 10))
-                                    .foregroundColor(Color(hex: "5E5E5E"))
+                                    .foregroundColor(.secondary)
                                 Text(note)
                                     .font(.system(size: 11))
                                     .foregroundColor(Color(hex: "6A6A6A"))
@@ -593,7 +592,7 @@ struct SPVDayRow: View {
                             }
                             .padding(.horizontal, 10)
                             .padding(.vertical, 7)
-                            .background(Color(hex: "232323"))
+                            .background(Color(.tertiarySystemBackground))
                             .cornerRadius(8)
                         }
                         .buttonStyle(.plain)
@@ -632,12 +631,12 @@ struct SPVDayRow: View {
                         .foregroundColor(Color(hex: "30D158"))
                         .font(.system(size: 13, weight: .semibold))
                     Text("/ \(String(format: "%.1f", day.miles)) mi")
-                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .foregroundColor(.secondary)
                         .font(.system(size: 11))
                 }
             } else if day.miles > 0 {
                 Text(String(format: "%.1f mi", day.miles))
-                    .foregroundColor(Color(hex: "5E5E5E"))
+                    .foregroundColor(.secondary)
                     .font(.system(size: 13))
             }
         }
@@ -705,15 +704,15 @@ struct SPVDayRow: View {
         HStack(spacing: 12) {
             Text("Actual miles:")
                 .font(.system(size: 12))
-                .foregroundColor(Color(hex: "5E5E5E"))
+                .foregroundColor(.secondary)
             TextField("0.0", text: $actualMilesInput)
                 .keyboardType(.decimalPad)
                 .font(.system(size: 13, design: .monospaced))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
                 .frame(width: 60)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Color(hex: "2A2A2A"))
+                .background(Color(.tertiarySystemBackground))
                 .cornerRadius(6)
             Button("Save") {
                 if let miles = Double(actualMilesInput) {
@@ -734,11 +733,12 @@ struct SPVDayRow: View {
 
     private var rowBackground: Color {
         switch day.completionStatus {
-        case .completed:  return Color(hex: "0F1F10")
-        case .skipped:    return Color(hex: "1F0F0F")
-        case .modified:   return Color(hex: "0F1520")
+        case .completed:  return Color(.systemGreen).opacity(0.10)
+        case .skipped:    return Color(.systemRed).opacity(0.08)
+        case .modified:   return Color(.systemBlue).opacity(0.10)
         case .notStarted: return day.isToday
-            ? Color(hex: "0F1525") : Color(hex: "1A1A1A")
+            ? Color(.systemBlue).opacity(0.08)
+            : Color(.secondarySystemBackground)
         }
     }
 
@@ -771,7 +771,7 @@ struct NoteEditorSheet: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "0F0F0F").ignoresSafeArea()
+            Color(.systemBackground).ignoresSafeArea()
             VStack(alignment: .leading, spacing: 20) {
 
                 RoundedRectangle(cornerRadius: 2)
@@ -784,12 +784,12 @@ struct NoteEditorSheet: View {
                     Text("HOW DID IT FEEL?")
                         .font(.system(size: 11, weight: .semibold,
                                       design: .monospaced))
-                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .foregroundColor(.secondary)
                         .kerning(2)
                     Text(day.workoutType)
                         .font(.system(size: 18, weight: .light,
                                       design: .serif))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 .padding(.horizontal, 24)
 
@@ -797,7 +797,7 @@ struct NoteEditorSheet: View {
                     if noteInput.isEmpty {
                         Text("Legs felt strong, negative split, shin a bit tight...")
                             .font(.system(size: 14))
-                            .foregroundColor(Color(hex: "3A3A3A"))
+                            .foregroundColor(Color(.tertiaryLabel))
                             .padding(.horizontal, 20)
                             .padding(.vertical, 14)
                             .allowsHitTesting(false)
@@ -805,7 +805,7 @@ struct NoteEditorSheet: View {
                     TextEditor(text: $noteInput)
                         .focused($focused)
                         .font(.system(size: 14))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .scrollContentBackground(.hidden)
                         .background(Color.clear)
                         .padding(.horizontal, 16)
@@ -817,7 +817,7 @@ struct NoteEditorSheet: View {
                         }
                 }
                 .frame(minHeight: 140)
-                .background(Color(hex: "1A1A1A"))
+                .background(Color(.secondarySystemBackground))
                 .cornerRadius(14)
                 .padding(.horizontal, 16)
 
@@ -836,10 +836,10 @@ struct NoteEditorSheet: View {
                         dismiss()
                     }
                     .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "5E5E5E"))
+                    .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color(hex: "1A1A1A"))
+                    .background(Color(.secondarySystemBackground))
                     .cornerRadius(12)
                     .buttonStyle(.plain)
 
@@ -863,7 +863,7 @@ struct NoteEditorSheet: View {
                 Spacer()
             }
         }
-        .colorScheme(.dark)
+
         .presentationDetents([.medium])
         .presentationDragIndicator(.hidden)
         .onAppear {
@@ -906,11 +906,11 @@ struct SPVRaceDayRow: View {
                     Text("26.2 miles")
                         .font(.system(size: 22, weight: .thin,
                                       design: .monospaced))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     Spacer()
                     Text("🏅 42.2 km")
                         .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .foregroundColor(.secondary)
                 }
                 Text(day.description)
                     .font(.system(size: 12))

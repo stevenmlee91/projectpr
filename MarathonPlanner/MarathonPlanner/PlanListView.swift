@@ -10,7 +10,7 @@ struct PlanListView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "0F0F0F").ignoresSafeArea()
+                Color(.systemBackground).ignoresSafeArea()
                 if store.plans.isEmpty {
                     emptyState
                 } else {
@@ -23,7 +23,7 @@ struct PlanListView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingCreate = true }) {
                         Image(systemName: "plus")
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                     }
                 }
             }
@@ -47,7 +47,7 @@ struct PlanListView: View {
                 }
             }
         }
-        .colorScheme(.dark)
+
     }
 
     var emptyState: some View {
@@ -57,7 +57,7 @@ struct PlanListView: View {
                 .foregroundColor(Color(hex: "3A3A3A"))
             Text("No plans yet")
                 .font(.system(size: 18, weight: .light))
-                .foregroundColor(Color(hex: "5E5E5E"))
+                .foregroundColor(.secondary)
             Button(action: { showingCreate = true }) {
                 Text("CREATE YOUR FIRST PLAN")
                     .font(.system(size: 12, weight: .semibold,
@@ -119,15 +119,15 @@ struct PlanRowView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(plan.name)
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 HStack(spacing: 12) {
                     Label(plan.planType, systemImage: "doc.text")
                         .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .foregroundColor(.secondary)
                     Label(dateFormatter.string(from: plan.raceDate),
                           systemImage: "flag.checkered")
                         .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .foregroundColor(.secondary)
                 }
             }
 
@@ -137,14 +137,14 @@ struct PlanRowView: View {
                 Text("\(daysUntilRace)")
                     .font(.system(size: 22, weight: .thin,
                                   design: .monospaced))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 Text("days")
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundColor(Color(hex: "3E3E3E"))
             }
         }
         .padding(16)
-        .background(Color(hex: "1A1A1A"))
+        .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
     }
 }

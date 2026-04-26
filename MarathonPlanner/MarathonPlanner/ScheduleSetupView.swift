@@ -13,7 +13,7 @@ struct ScheduleSetupView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "0F0F0F").ignoresSafeArea()
+            Color(.systemBackground).ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 0) {
                     Group {
@@ -32,7 +32,6 @@ struct ScheduleSetupView: View {
         }
         .navigationTitle("Weekly Schedule")
         .navigationBarTitleDisplayMode(.inline)
-        .colorScheme(.dark)
     }
 
     // MARK: Header
@@ -41,14 +40,14 @@ struct ScheduleSetupView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("WEEKLY STRUCTURE")
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .foregroundColor(Color(hex: "5E5E5E"))
+                .foregroundColor(.secondary)
                 .kerning(3)
             Text("Build Your Schedule")
                 .font(.system(size: 26, weight: .light, design: .serif))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             Text(planDescription)
                 .font(.system(size: 12))
-                .foregroundColor(Color(hex: "5E5E5E"))
+                .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -196,7 +195,7 @@ struct ScheduleSetupView: View {
                     }
                     ForEach(conflicts, id: \.self) { msg in
                         HStack(alignment: .top, spacing: 6) {
-                            Text("•").foregroundColor(Color(hex: "5E5E5E"))
+                            Text("•").foregroundColor(.secondary)
                             Text(msg)
                                 .font(.system(size: 12))
                                 .foregroundColor(Color(hex: "9A9A9A"))
@@ -208,7 +207,7 @@ struct ScheduleSetupView: View {
                         .foregroundColor(Color(hex: "4A4A4A"))
                 }
                 .padding(16)
-                .background(Color(hex: "1A1A1A"))
+                .background(Color(.secondarySystemBackground))
                 .cornerRadius(12)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
@@ -254,16 +253,16 @@ struct CrossTrainCard: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "1A1A1A")
+            Color(.secondarySystemBackground)
             VStack(spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Include Cross-Training Day")
                             .font(.system(size: 14))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                         Text("Cycling, swimming, elliptical, or yoga")
                             .font(.system(size: 11))
-                            .foregroundColor(Color(hex: "5E5E5E"))
+                            .foregroundColor(.secondary)
                     }
                     Spacer()
                     Toggle("", isOn: Binding(
@@ -284,7 +283,7 @@ struct CrossTrainCard: View {
                 .padding(16)
 
                 if schedule.crossTrainDay != nil {
-                    Divider().background(Color(hex: "2A2A2A"))
+                    Divider().background(Color(.tertiarySystemBackground))
                     // Monday-first iteration
                     HStack(spacing: 5) {
                         ForEach(Weekday.displayOrder) { day in
@@ -300,8 +299,8 @@ struct CrossTrainCard: View {
                                                   weight: isSel ? .semibold : .regular,
                                                   design: .monospaced))
                                     .foregroundColor(
-                                        isDis ? Color(hex: "2A2A2A") :
-                                        isSel ? Color(hex: "0F0F0F") :
+                                        isDis ? Color(.tertiarySystemBackground) :
+                                        isSel ? Color(.systemBackground) :
                                                 Color(hex: "5E5E5E"))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
@@ -332,7 +331,7 @@ struct SingleDayPicker: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "1A1A1A")
+            Color(.secondarySystemBackground)
             HStack(spacing: 5) {
                 ForEach(Weekday.displayOrder) { day in
                     let isSel = selected == day
@@ -361,7 +360,7 @@ struct SingleDayPicker: View {
     }
 
     func chipText(_ sel: Bool, _ dis: Bool) -> Color {
-        dis ? Color(hex: "2A2A2A") : sel ? Color(hex: "0F0F0F") : Color(hex: "5E5E5E")
+        dis ? Color(.tertiarySystemBackground) : sel ? Color(.systemBackground) : Color(hex: "5E5E5E")
     }
     func chipBg(_ sel: Bool, _ dis: Bool) -> Color {
         dis ? Color(hex: "1C1C1C") : sel ? .white : Color(hex: "242424")
@@ -377,7 +376,7 @@ struct MultiDayPicker: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "1A1A1A")
+            Color(.secondarySystemBackground)
             HStack(spacing: 5) {
                 ForEach(Weekday.displayOrder) { day in
                     let isSel = selected.contains(day)
@@ -410,7 +409,7 @@ struct MultiDayPicker: View {
     }
 
     func chipText(_ sel: Bool, _ dis: Bool) -> Color {
-        dis ? Color(hex: "2A2A2A") : sel ? Color(hex: "0F0F0F") : Color(hex: "5E5E5E")
+        dis ? Color(.tertiarySystemBackground) : sel ? Color(.systemBackground) : Color(hex: "5E5E5E")
     }
     func chipBg(_ sel: Bool, _ dis: Bool) -> Color {
         dis ? Color(hex: "1C1C1C") : sel ? .white : Color(hex: "242424")

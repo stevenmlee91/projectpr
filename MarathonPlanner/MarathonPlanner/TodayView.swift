@@ -12,7 +12,7 @@ struct TodayView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "0F0F0F").ignoresSafeArea()
+                Color(.systemBackground).ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 20) {
                         if let ctx = todayContext {
@@ -36,29 +36,29 @@ struct TodayView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-            .colorScheme(.dark)
+
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("TODAY")
                         .font(.system(size: 12, weight: .semibold,
                                       design: .monospaced))
-                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .foregroundColor(.secondary)
                         .kerning(4)
                 }
             }
         }
-        .colorScheme(.dark)
+
     }
 
     private func todayHeader(ctx: TodayContext) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(formattedDate())
                 .font(.system(size: 11, design: .monospaced))
-                .foregroundColor(Color(hex: "5E5E5E"))
+                .foregroundColor(.secondary)
                 .kerning(2)
             Text(ctx.plan.name)
                 .font(.system(size: 24, weight: .light, design: .serif))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             Text("Week \(ctx.weekNumber) of \(ctx.totalWeeks)")
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundColor(Color(hex: "4A4A4A"))
@@ -78,11 +78,11 @@ struct TodayView: View {
             Spacer().frame(height: 60)
             Image(systemName: "figure.run")
                 .font(.system(size: 56, weight: .ultraLight))
-                .foregroundColor(Color(hex: "2A2A2A"))
+                .foregroundColor(Color(.tertiarySystemBackground))
             VStack(spacing: 8) {
                 Text("No active plan")
                     .font(.system(size: 20, weight: .light, design: .serif))
-                    .foregroundColor(Color(hex: "5E5E5E"))
+                    .foregroundColor(.secondary)
                 Text("Create a training plan to see\nyour daily workouts here.")
                     .font(.system(size: 13))
                     .foregroundColor(Color(hex: "3A3A3A"))
@@ -128,7 +128,7 @@ struct TodayWorkoutCard: View {
                         HStack(spacing: 8) {
                             Image(systemName: "note.text")
                                 .font(.system(size: 11))
-                                .foregroundColor(Color(hex: "5E5E5E"))
+                                .foregroundColor(.secondary)
                             Text(note)
                                 .font(.system(size: 12))
                                 .foregroundColor(Color(hex: "6A6A6A"))
@@ -140,7 +140,7 @@ struct TodayWorkoutCard: View {
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
-                        .background(Color(hex: "1E1E1E"))
+                        .background(Color(.tertiarySystemBackground))
                         .cornerRadius(10)
                     }
                     .buttonStyle(.plain)
@@ -182,7 +182,7 @@ struct TodayWorkoutCard: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
-        .background(Color(hex: "1A1A1A"))
+        .background(Color(.tertiarySystemBackground))
     }
 
     private var statusBadge: some View {
@@ -205,7 +205,7 @@ struct TodayWorkoutCard: View {
                     Label("REST DAY", systemImage: "moon.fill")
                         .font(.system(size: 10, weight: .bold,
                                       design: .monospaced))
-                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .foregroundColor(.secondary)
                 } else {
                     Text("NOT STARTED")
                         .font(.system(size: 10, weight: .bold,
@@ -226,10 +226,10 @@ struct TodayWorkoutCard: View {
                         Text(String(format: "%.1f", liveDay.miles))
                             .font(.system(size: 52, weight: .thin,
                                           design: .monospaced))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                         Text("miles")
                             .font(.system(size: 12, design: .monospaced))
-                            .foregroundColor(Color(hex: "5E5E5E"))
+                            .foregroundColor(.secondary)
                     }
                 } else if liveDay.workoutType == "Rest" {
                     VStack(alignment: .leading, spacing: 4) {
@@ -238,7 +238,7 @@ struct TodayWorkoutCard: View {
                             .foregroundColor(Color(hex: "3A3A3A"))
                         Text("Full rest day")
                             .font(.system(size: 14))
-                            .foregroundColor(Color(hex: "5E5E5E"))
+                            .foregroundColor(.secondary)
                     }
                 } else if liveDay.workoutType == "Cross-Training" {
                     VStack(alignment: .leading, spacing: 4) {
@@ -247,7 +247,7 @@ struct TodayWorkoutCard: View {
                             .foregroundColor(Color(hex: "BF5AF2"))
                         Text("45–60 minutes")
                             .font(.system(size: 14))
-                            .foregroundColor(Color(hex: "5E5E5E"))
+                            .foregroundColor(.secondary)
                     }
                 } else if liveDay.workoutType == "Race Day 🏁" {
                     VStack(alignment: .leading, spacing: 2) {
@@ -270,7 +270,7 @@ struct TodayWorkoutCard: View {
                         .foregroundColor(Color(hex: "0A84FF"))
                     Text("actual")
                         .font(.system(size: 10, design: .monospaced))
-                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .foregroundColor(.secondary)
                 }
             }
         }
@@ -338,7 +338,7 @@ struct TodayWorkoutCard: View {
                         .padding(.vertical, 14)
                         .background(status == .completed
                                     ? Color(hex: "30D158")
-                                    : Color(hex: "2A2A2A"))
+                                    : Color(.tertiarySystemBackground))
                         .cornerRadius(12)
                         .contentShape(Rectangle())
                     }
@@ -362,7 +362,7 @@ struct TodayWorkoutCard: View {
                                              : Color(hex: "3A3A3A"))
                             .frame(width: 48, height: 48)
                             .contentShape(Rectangle())
-                            .background(Color(hex: "1A1A1A"))
+                            .background(Color(.secondarySystemBackground))
                             .cornerRadius(12)
                     }
                     .buttonStyle(.plain)
@@ -378,7 +378,7 @@ struct TodayWorkoutCard: View {
                                 .foregroundColor(Color(hex: "3A3A3A"))
                                 .frame(width: 48, height: 48)
                                 .contentShape(Rectangle())
-                                .background(Color(hex: "1A1A1A"))
+                                .background(Color(.secondarySystemBackground))
                                 .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
@@ -394,15 +394,15 @@ struct TodayWorkoutCard: View {
         HStack(spacing: 12) {
             Text("Actual miles:")
                 .font(.system(size: 12))
-                .foregroundColor(Color(hex: "5E5E5E"))
+                .foregroundColor(.secondary)
             TextField("0.0", text: $actualMilesInput)
                 .keyboardType(.decimalPad)
                 .font(.system(size: 13, design: .monospaced))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
                 .frame(width: 60)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
-                .background(Color(hex: "2A2A2A"))
+                .background(Color(.tertiarySystemBackground))
                 .cornerRadius(8)
             Button("Save") {
                 if let miles = Double(actualMilesInput) {
@@ -447,25 +447,27 @@ struct TodayWorkoutCard: View {
 
     private var cardBackground: Color {
         switch status {
-        case .completed:  return Color(hex: "0A1A0A")
-        case .skipped:    return Color(hex: "1A0A0A")
-        case .modified:   return Color(hex: "0A0F1A")
+        case .completed:  return Color(.systemGreen).opacity(0.12)
+        case .skipped:    return Color(.systemRed).opacity(0.10)
+        case .modified:   return Color(.systemBlue).opacity(0.10)
         case .notStarted:
-            if liveDay.workoutType == "Race Day 🏁" { return Color(hex: "1A1500") }
-            return Color(hex: "141414")
+            if liveDay.workoutType == "Race Day 🏁" {
+                return Color(.systemYellow).opacity(0.10)
+            }
+            return Color(.secondarySystemBackground)
         }
     }
 
     private var cardBorder: Color {
         switch status {
-        case .completed:  return Color(hex: "30D158").opacity(0.4)
-        case .skipped:    return Color(hex: "FF453A").opacity(0.3)
-        case .modified:   return Color(hex: "0A84FF").opacity(0.4)
+        case .completed:  return Color(hex: "30D158").opacity(0.5)
+        case .skipped:    return Color(hex: "FF453A").opacity(0.5)
+        case .modified:   return Color(hex: "0A84FF").opacity(0.5)
         case .notStarted:
             if liveDay.workoutType == "Race Day 🏁" {
-                return Color.yellow.opacity(0.5)
+                return Color.yellow.opacity(0.6)
             }
-            return Color(hex: "2A2A2A")
+            return Color(.separator)
         }
     }
 }
@@ -492,16 +494,16 @@ struct WeekProgressCard: View {
                     Text("WEEK \(ctx.weekNumber)")
                         .font(.system(size: 10, weight: .semibold,
                                       design: .monospaced))
-                        .foregroundColor(Color(hex: "5E5E5E"))
+                        .foregroundColor(.secondary)
                         .kerning(3)
                     Text(liveWeek.phase)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 Spacer()
                 ZStack {
                     Circle()
-                        .stroke(Color(hex: "2A2A2A"), lineWidth: 3)
+                        .stroke(Color(.tertiarySystemBackground), lineWidth: 3)
                     Circle()
                         .trim(from: 0, to: pct)
                         .stroke(Color(hex: "30D158"),
@@ -512,7 +514,7 @@ struct WeekProgressCard: View {
                     Text("\(Int(pct * 100))%")
                         .font(.system(size: 11, weight: .semibold,
                                       design: .monospaced))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 .frame(width: 52, height: 52)
             }
@@ -535,7 +537,7 @@ struct WeekProgressCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "1A1A1A"))
+        .background(Color(.secondarySystemBackground))
         .cornerRadius(14)
     }
 
@@ -569,7 +571,7 @@ struct WeekProgressCard: View {
         case .skipped:
             Image(systemName: "xmark")
                 .font(.system(size: 10, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
         case .modified:
             Image(systemName: "pencil")
                 .font(.system(size: 9, weight: .bold))
@@ -586,8 +588,8 @@ struct WeekProgressCard: View {
         case .modified:  return Color(hex: "0A84FF")
         case .notStarted:
             return day.workoutType == "Rest"
-                ? Color(hex: "1E1E1E")
-                : Color(hex: "2A2A2A")
+                ? Color(.tertiarySystemFill)
+                : Color(.systemFill)
         }
     }
 
@@ -641,14 +643,14 @@ struct RaceCountdownCard: View {
                 Text("\(daysUntilRace)")
                     .font(.system(size: 36, weight: .thin,
                                   design: .monospaced))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 Text("days")
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundColor(Color(hex: "3E3E3E"))
             }
         }
         .padding(16)
-        .background(Color(hex: "1A1A1A"))
+        .background(Color(.secondarySystemBackground))
         .cornerRadius(14)
     }
 }

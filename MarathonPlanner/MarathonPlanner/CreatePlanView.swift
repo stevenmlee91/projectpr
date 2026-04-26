@@ -26,7 +26,7 @@ struct CreatePlanView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(hex: "0F0F0F").ignoresSafeArea()
+                Color(.systemBackground).ignoresSafeArea()
 
                 ScrollView {
                     VStack(spacing: 0) {
@@ -36,12 +36,12 @@ struct CreatePlanView: View {
                                 Text("NEW PLAN")
                                     .font(.system(size: 11, weight: .semibold,
                                                   design: .monospaced))
-                                    .foregroundColor(Color(hex: "5E5E5E"))
+                                    .foregroundColor(.secondary)
                                     .kerning(3)
                                 Text("Create Training Plan")
                                     .font(.system(size: 28, weight: .light,
                                                   design: .serif))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 24)
@@ -51,12 +51,12 @@ struct CreatePlanView: View {
                             // ── Plan Name ────────────────────────────
                             CreateLabel("PLAN NAME")
                             ZStack {
-                                Color(hex: "1A1A1A")
+                                Color(.secondarySystemBackground)
                                 TextField("e.g. Sydney Marathon 2026",
                                           text: $planName)
-                                    .foregroundColor(.white)
+                                .foregroundColor(.primary)
                                     .padding(16)
-                                    .colorScheme(.dark)
+
                             }
                             .cornerRadius(12)
                             .padding(.horizontal, 16)
@@ -65,25 +65,24 @@ struct CreatePlanView: View {
                             // ── Race Date ────────────────────────────
                             CreateLabel("RACE DATE")
                             ZStack {
-                                Color(hex: "1A1A1A")
+                                Color(.secondarySystemBackground)
                                 VStack(spacing: 0) {
                                     DatePicker("Race Date",
                                                selection: $raceDate,
                                                displayedComponents: .date)
                                         .datePickerStyle(.compact)
-                                        .colorScheme(.dark)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                         .padding(16)
-                                    Divider().background(Color(hex: "2A2A2A"))
+                                    Divider().background(Color(.tertiarySystemBackground))
                                     HStack {
                                         Text("Plan starts")
                                             .font(.system(size: 12))
-                                            .foregroundColor(Color(hex: "5E5E5E"))
+                                            .foregroundColor(.secondary)
                                         Spacer()
                                         Text(dateFmt.string(from: startDate))
                                             .font(.system(size: 12,
                                                           design: .monospaced))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.primary)
                                     }
                                     .padding(16)
                                 }
@@ -106,7 +105,7 @@ struct CreatePlanView: View {
                                     )
                                 }
                             }
-                            .background(Color(hex: "1A1A1A"))
+                            .background(Color(.secondarySystemBackground))
                             .cornerRadius(12)
                             .padding(.horizontal, 16)
                             .padding(.bottom, 24)
@@ -130,7 +129,7 @@ struct CreatePlanView: View {
                             // ── Goal Time ────────────────────────────
                             CreateLabel("GOAL TIME")
                             ZStack {
-                                Color(hex: "1A1A1A")
+                                Color(.secondarySystemBackground)
                                 HStack(spacing: 0) {
                                     Picker("", selection: $goalHours) {
                                         ForEach(2...6, id: \.self) { h in
@@ -139,10 +138,10 @@ struct CreatePlanView: View {
                                     }
                                     .pickerStyle(.wheel)
                                     .frame(maxWidth: .infinity)
-                                    .colorScheme(.dark)
+                                
 
                                     Text(":")
-                                        .foregroundColor(Color(hex: "5E5E5E"))
+                                        .foregroundColor(.secondary)
                                         .font(.system(size: 24, weight: .thin))
 
                                     Picker("", selection: $goalMinutes) {
@@ -155,7 +154,7 @@ struct CreatePlanView: View {
                                     }
                                     .pickerStyle(.wheel)
                                     .frame(maxWidth: .infinity)
-                                    .colorScheme(.dark)
+                                
                                 }
                                 .frame(height: 110)
                             }
@@ -166,16 +165,16 @@ struct CreatePlanView: View {
                             // ── Base Mileage ─────────────────────────
                             CreateLabel("BASE MILEAGE")
                             ZStack {
-                                Color(hex: "1A1A1A")
+                                Color(.secondarySystemBackground)
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("\(Int(settings.baseMileage))")
                                             .font(.system(size: 36, weight: .thin,
                                                           design: .monospaced))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.primary)
                                         Text("miles / week currently")
                                             .font(.system(size: 11))
-                                            .foregroundColor(Color(hex: "5E5E5E"))
+                                            .foregroundColor(.secondary)
                                     }
                                     Spacer()
                                     VStack(spacing: 10) {
@@ -185,9 +184,9 @@ struct CreatePlanView: View {
                                             }
                                         } label: {
                                             Image(systemName: "plus")
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.primary)
                                                 .frame(width: 38, height: 38)
-                                                .background(Color(hex: "2A2A2A"))
+                                                .background(Color(.tertiarySystemBackground))
                                                 .cornerRadius(8)
                                         }
                                         Button {
@@ -196,9 +195,9 @@ struct CreatePlanView: View {
                                             }
                                         } label: {
                                             Image(systemName: "minus")
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.primary)
                                                 .frame(width: 38, height: 38)
-                                                .background(Color(hex: "2A2A2A"))
+                                                .background(Color(.tertiarySystemBackground))
                                                 .cornerRadius(8)
                                         }
                                     }
@@ -216,14 +215,14 @@ struct CreatePlanView: View {
 
                             // Philosophy note
                             ZStack {
-                                Color(hex: "1A1A1A")
+                                Color(.secondarySystemBackground)
                                 HStack(spacing: 12) {
                                     Image(systemName: "info.circle")
-                                        .foregroundColor(Color(hex: "5E5E5E"))
+                                        .foregroundColor(.secondary)
                                         .font(.system(size: 14))
                                     Text(scheduleNote)
                                         .font(.system(size: 11))
-                                        .foregroundColor(Color(hex: "5E5E5E"))
+                                        .foregroundColor(.secondary)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                                 .padding(14)
@@ -335,7 +334,7 @@ struct CreatePlanView: View {
                                     ForEach(issues, id: \.self) { msg in
                                         HStack(alignment: .top, spacing: 6) {
                                             Text("•")
-                                                .foregroundColor(Color(hex: "5E5E5E"))
+                                                .foregroundColor(.secondary)
                                             Text(msg)
                                                 .font(.system(size: 11))
                                                 .foregroundColor(Color(hex: "9A9A9A"))
@@ -348,7 +347,7 @@ struct CreatePlanView: View {
                                         .foregroundColor(Color(hex: "4A4A4A"))
                                 }
                                 .padding(14)
-                                .background(Color(hex: "1A1A1A"))
+                                .background(Color(.secondarySystemBackground))
                                 .cornerRadius(12)
                                 .padding(.horizontal, 16)
                                 .padding(.bottom, 20)
@@ -362,8 +361,8 @@ struct CreatePlanView: View {
                 // ── Generate Button ───────────────────────────────────
                 VStack(spacing: 0) {
                     LinearGradient(
-                        colors: [Color(hex: "0F0F0F").opacity(0),
-                                 Color(hex: "0F0F0F")],
+                        colors: [Color(.systemBackground).opacity(0),
+                                 Color(.systemBackground)],
                         startPoint: .top, endPoint: .bottom
                     )
                     .frame(height: 30)
@@ -387,7 +386,7 @@ struct CreatePlanView: View {
                               planName.trimmingCharacters(in: .whitespaces).isEmpty)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 32)
-                    .background(Color(hex: "0F0F0F"))
+                    .background(Color(.systemBackground))
                 }
                 .frame(maxHeight: .infinity, alignment: .bottom)
             }
@@ -395,11 +394,10 @@ struct CreatePlanView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
             }
         }
-        .colorScheme(.dark)
         .onChange(of: goalHours)   { _ in updateGoalTime() }
         .onChange(of: goalMinutes) { _ in updateGoalTime() }
     }
@@ -644,7 +642,7 @@ struct CreateDurationChip: View {
                 .foregroundColor(isSelected ? .black : Color(hex: "5E5E5E"))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(isSelected ? Color.white : Color(hex: "1A1A1A"))
+                .background(isSelected ? Color.white : Color(.secondarySystemBackground))
                 .cornerRadius(8)
         }
         .buttonStyle(.plain)
@@ -656,16 +654,16 @@ struct CreateCrossTrainToggle: View {
     let taken             : [Weekday]
     var body: some View {
         ZStack {
-            Color(hex: "1A1A1A")
+            Color(.secondarySystemBackground)
             VStack(spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Include Cross-Training Day")
                             .font(.system(size: 14))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                         Text("Cycling, swimming, elliptical, yoga")
                             .font(.system(size: 11))
-                            .foregroundColor(Color(hex: "5E5E5E"))
+                            .foregroundColor(.secondary)
                     }
                     Spacer()
                     Toggle("", isOn: Binding(
@@ -686,7 +684,7 @@ struct CreateCrossTrainToggle: View {
                 .padding(16)
 
                 if schedule.crossTrainDay != nil {
-                    Divider().background(Color(hex: "2A2A2A"))
+                    Divider().background(Color(.tertiarySystemBackground))
                     HStack(spacing: 5) {
                         ForEach(Weekday.allCases) { day in
                             let isSel = schedule.crossTrainDay == day
@@ -701,8 +699,8 @@ struct CreateCrossTrainToggle: View {
                                                   weight: isSel ? .semibold : .regular,
                                                   design: .monospaced))
                                     .foregroundColor(
-                                        isDis ? Color(hex: "2A2A2A") :
-                                        isSel ? Color(hex: "0F0F0F") :
+                                        isDis ? Color(.tertiarySystemBackground) :
+                                        isSel ? Color(.systemBackground) :
                                                 Color(hex: "5E5E5E"))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 11)
