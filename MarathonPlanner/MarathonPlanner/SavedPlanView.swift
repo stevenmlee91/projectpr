@@ -272,13 +272,13 @@ struct SPVWeekRow: View {
                 Text(week.phase)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(isRaceWeek
-                                     ? Color.yellow.opacity(0.7)
-                                     : Color(hex: "4A4A4A"))
+                                     ? Color.orange
+                                     : .secondary)
                 Spacer()
                 if let s = weekStart, let e = weekEnd {
                     Text("\(shortDate.string(from: s)) – \(shortDate.string(from: e))")
                         .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(Color(hex: "4A4A4A"))
+                        .foregroundColor(Color(.secondaryLabel))
                 }
             }
 
@@ -291,11 +291,13 @@ struct SPVWeekRow: View {
             completionBar
         }
         .padding(16)
-        .background(isRaceWeek ? Color(hex: "2A2500") : Color(.secondarySystemBackground))
+        .background(isRaceWeek
+                    ? Color.yellow.opacity(0.08)
+                    : Color(.secondarySystemBackground))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(isRaceWeek ? Color.yellow.opacity(0.4) : Color.clear,
-                        lineWidth: 1)
+                .stroke(isRaceWeek ? Color.yellow.opacity(0.5) : Color.clear,
+                        lineWidth: 1.5)
         )
         .cornerRadius(12)
     }
@@ -319,7 +321,7 @@ struct SPVWeekRow: View {
             .frame(height: 4)
             Text("\(done) of \(total) workouts done")
                 .font(.system(size: 10, design: .monospaced))
-                .foregroundColor(Color(hex: "4A4A4A"))
+                .foregroundColor(Color(.secondaryLabel))
         }
     }
 
@@ -453,10 +455,10 @@ struct SPVWeekDetailView: View {
                         Text(liveWeek.phase)
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundColor(isRaceWeek
-                                             ? .yellow : Color(hex: "5E5E5E"))
+                                             ? .yellow : Color(.secondaryLabel))
                         if isRaceWeek {
                             Image(systemName: "flag.checkered")
-                                .foregroundColor(.yellow)
+                                .foregroundColor(.orange)
                                 .font(.system(size: 12))
                         }
                     }
@@ -914,7 +916,7 @@ struct SPVRaceDayRow: View {
                 }
                 Text(day.description)
                     .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "9A9A9A"))
+                    .foregroundColor(Color(.secondaryLabel))
                     .fixedSize(horizontal: false, vertical: true)
                 if !day.paceNote.isEmpty && day.paceNote != "—" {
                     HStack(spacing: 6) {
@@ -936,7 +938,7 @@ struct SPVRaceDayRow: View {
                 }
             }
             .padding(16)
-            .background(Color(hex: "1A1200"))
+            .background(Color.yellow.opacity(0.06))
         }
         .overlay(
             RoundedRectangle(cornerRadius: 12)

@@ -140,10 +140,10 @@ struct ScheduleSetupView: View {
             HStack(spacing: 6) {
                 Image(systemName: "info.circle")
                     .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "3E3E3E"))
+                    .foregroundColor(.secondary)
                 Text("Active training days cannot be rest days.")
                     .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "3E3E3E"))
+                    .foregroundColor(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
@@ -198,13 +198,13 @@ struct ScheduleSetupView: View {
                             Text("•").foregroundColor(.secondary)
                             Text(msg)
                                 .font(.system(size: 12))
-                                .foregroundColor(Color(hex: "9A9A9A"))
+                                .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     Text("Auto-resolved when plan generates.")
                         .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "4A4A4A"))
+                        .foregroundColor(.secondary)
                 }
                 .padding(16)
                 .background(Color(.secondarySystemBackground))
@@ -278,13 +278,11 @@ struct CrossTrainCard: View {
                         }
                     ))
                     .labelsHidden()
-                    .tint(.white)
                 }
                 .padding(16)
 
                 if schedule.crossTrainDay != nil {
-                    Divider().background(Color(.tertiarySystemBackground))
-                    // Monday-first iteration
+                    Divider()
                     HStack(spacing: 5) {
                         ForEach(Weekday.displayOrder) { day in
                             let isSel = schedule.crossTrainDay == day
@@ -298,16 +296,10 @@ struct CrossTrainCard: View {
                                     .font(.system(size: 11,
                                                   weight: isSel ? .semibold : .regular,
                                                   design: .monospaced))
-                                    .foregroundColor(
-                                        isDis ? Color(.tertiarySystemBackground) :
-                                        isSel ? Color(.systemBackground) :
-                                                Color(hex: "5E5E5E"))
+                                    .foregroundColor(chipText(isSel, isDis))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
-                                    .background(
-                                        isDis ? Color(hex: "1C1C1C") :
-                                        isSel ? Color.white :
-                                                Color(hex: "242424"))
+                                    .background(chipBg(isSel, isDis))
                                     .cornerRadius(7)
                             }
                             .buttonStyle(.plain)
@@ -320,10 +312,21 @@ struct CrossTrainCard: View {
         }
         .cornerRadius(12)
     }
+
+    func chipText(_ sel: Bool, _ dis: Bool) -> Color {
+        if dis { return Color(.tertiaryLabel) }
+        if sel { return Color(.systemBackground) }
+        return .secondary
+    }
+
+    func chipBg(_ sel: Bool, _ dis: Bool) -> Color {
+        if dis { return Color(.tertiarySystemFill) }
+        if sel { return Color(.label) }
+        return Color(.tertiarySystemBackground)
+    }
 }
 
 // MARK: - Single Day Picker
-// Uses Weekday.displayOrder → Monday-first
 
 struct SingleDayPicker: View {
     @Binding var selected : Weekday
@@ -360,15 +363,19 @@ struct SingleDayPicker: View {
     }
 
     func chipText(_ sel: Bool, _ dis: Bool) -> Color {
-        dis ? Color(.tertiarySystemBackground) : sel ? Color(.systemBackground) : Color(hex: "5E5E5E")
+        if dis { return Color(.tertiaryLabel) }
+        if sel { return Color(.systemBackground) }
+        return .primary
     }
+
     func chipBg(_ sel: Bool, _ dis: Bool) -> Color {
-        dis ? Color(hex: "1C1C1C") : sel ? .white : Color(hex: "242424")
+        if dis { return Color(.tertiarySystemFill) }
+        if sel { return Color(.label) }
+        return Color(.tertiarySystemBackground)
     }
 }
 
 // MARK: - Multi Day Picker
-// Uses Weekday.displayOrder → Monday-first
 
 struct MultiDayPicker: View {
     @Binding var selected : [Weekday]
@@ -409,10 +416,15 @@ struct MultiDayPicker: View {
     }
 
     func chipText(_ sel: Bool, _ dis: Bool) -> Color {
-        dis ? Color(.tertiarySystemBackground) : sel ? Color(.systemBackground) : Color(hex: "5E5E5E")
+        if dis { return Color(.tertiaryLabel) }
+        if sel { return Color(.systemBackground) }
+        return .primary
     }
+
     func chipBg(_ sel: Bool, _ dis: Bool) -> Color {
-        dis ? Color(hex: "1C1C1C") : sel ? .white : Color(hex: "242424")
+        if dis { return Color(.tertiarySystemFill) }
+        if sel { return Color(.label) }
+        return Color(.tertiarySystemBackground)
     }
 }
 
@@ -424,7 +436,7 @@ struct ScheduleLabel: View {
     var body: some View {
         Text(text)
             .font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .foregroundColor(Color(hex: "3E3E3E"))
+            .foregroundColor(.secondary)
             .kerning(3)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 20)

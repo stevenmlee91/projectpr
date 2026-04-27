@@ -54,9 +54,8 @@ struct CreatePlanView: View {
                                 Color(.secondarySystemBackground)
                                 TextField("e.g. Sydney Marathon 2026",
                                           text: $planName)
-                                .foregroundColor(.primary)
+                                    .foregroundColor(.primary)
                                     .padding(16)
-
                             }
                             .cornerRadius(12)
                             .padding(.horizontal, 16)
@@ -73,7 +72,7 @@ struct CreatePlanView: View {
                                         .datePickerStyle(.compact)
                                         .foregroundColor(.primary)
                                         .padding(16)
-                                    Divider().background(Color(.tertiarySystemBackground))
+                                    Divider()
                                     HStack {
                                         Text("Plan starts")
                                             .font(.system(size: 12))
@@ -138,7 +137,6 @@ struct CreatePlanView: View {
                                     }
                                     .pickerStyle(.wheel)
                                     .frame(maxWidth: .infinity)
-                                
 
                                     Text(":")
                                         .foregroundColor(.secondary)
@@ -154,7 +152,6 @@ struct CreatePlanView: View {
                                     }
                                     .pickerStyle(.wheel)
                                     .frame(maxWidth: .infinity)
-                                
                                 }
                                 .frame(height: 110)
                             }
@@ -307,10 +304,10 @@ struct CreatePlanView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "info.circle")
                                     .font(.system(size: 10))
-                                    .foregroundColor(Color(hex: "3A3A3A"))
+                                    .foregroundColor(.secondary)
                                 Text(restGuidance)
                                     .font(.system(size: 11))
-                                    .foregroundColor(Color(hex: "3A3A3A"))
+                                    .foregroundColor(.secondary)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 20)
@@ -337,14 +334,14 @@ struct CreatePlanView: View {
                                                 .foregroundColor(.secondary)
                                             Text(msg)
                                                 .font(.system(size: 11))
-                                                .foregroundColor(Color(hex: "9A9A9A"))
+                                                .foregroundColor(.secondary)
                                                 .fixedSize(horizontal: false,
                                                            vertical: true)
                                         }
                                     }
                                     Text("These are auto-resolved when the plan generates.")
                                         .font(.system(size: 10))
-                                        .foregroundColor(Color(hex: "4A4A4A"))
+                                        .foregroundColor(.secondary)
                                 }
                                 .padding(14)
                                 .background(Color(.secondarySystemBackground))
@@ -376,10 +373,10 @@ struct CreatePlanView: View {
                                               design: .monospaced))
                                 .kerning(2)
                         }
-                        .foregroundColor(.black)
+                        .foregroundColor(Color(.systemBackground))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
-                        .background(Color.white)
+                        .background(Color(.label))
                         .cornerRadius(14)
                     }
                     .disabled(isGenerating ||
@@ -444,18 +441,10 @@ struct CreatePlanView: View {
         }
     }
 
-    // MARK: - BUG #2 FIX: Rest Day Blocking
-    //
-    // A day is blocked from becoming a rest day if:
-    //   (a) it already has a specific running role assigned, OR
-    //   (b) adding it as rest would leave fewer running days than the
-    //       plan's minimum, making the schedule impossible.
-
     private func daysBlockedFromRest() -> [Weekday] {
         let s = settings.schedule
         let p = settings.planType
 
-        // Hard-blocked: days already assigned to a specific role
         var hardBlocked = Set<Weekday>()
         hardBlocked.insert(s.longRunDay)
         if p != .higdon             { hardBlocked.insert(s.workoutDay1) }
@@ -463,16 +452,13 @@ struct CreatePlanView: View {
         if p.usesMidweekLongRun     { hardBlocked.insert(s.midweekLongDay) }
         if p.usesCrossTraining, let ct = s.crossTrainDay { hardBlocked.insert(ct) }
 
-        // Soft-blocked: days that, if made rest, would violate minimum running days
-        let minRunDays   = minimumRunDays(for: p)
-        let maxRestDays  = 7 - minRunDays
-        // Current rest count (excluding hard-blocked days which are already running days)
-        let currentRest  = s.restDays.filter { !hardBlocked.contains($0) }.count
+        let minRunDays  = minimumRunDays(for: p)
+        let maxRestDays = 7 - minRunDays
+        let currentRest = s.restDays.filter { !hardBlocked.contains($0) }.count
 
         var blocked = Array(hardBlocked)
 
         if currentRest >= maxRestDays {
-            // Cannot add more rest days — block all free non-rest days
             let cannotAdd = Weekday.allCases.filter {
                 !hardBlocked.contains($0) && !s.restDays.contains($0)
             }
@@ -539,11 +525,6 @@ struct CreatePlanView: View {
         settings.goalTimeMinutes = goalHours * 60 + goalMinutes
     }
 
-    // BUG #1 FIX:
-    // Capture the @State settings value at the moment Generate is tapped.
-    // Swift structs copy by value, so capturedSettings is a snapshot of
-    // exactly what the user configured. This snapshot is what the generator
-    // sees — no stale state, no binding issues, no defaults sneaking in.
     private func generatePlan() {
         updateGoalTime()
         isGenerating = true
@@ -575,7 +556,7 @@ struct CreateLabel: View {
     var body: some View {
         Text(title)
             .font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .foregroundColor(Color(hex: "3E3E3E"))
+            .foregroundColor(.secondary)
             .kerning(3)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 20)
@@ -589,7 +570,7 @@ struct CreateScheduleLabel: View {
     var body: some View {
         Text(title)
             .font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .foregroundColor(Color(hex: "4A4A4A"))
+            .foregroundColor(.secondary)
             .kerning(3)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 20)
@@ -601,29 +582,46 @@ struct CreatePlanTypeRow: View {
     let plan       : PlanType
     let isSelected : Bool
     let onTap      : () -> Void
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 14) {
+                // Radio circle — uses primary/secondary so it works in both modes
                 Circle()
-                    .stroke(isSelected ? Color.white : Color(hex: "3A3A3A"),
-                            lineWidth: 1.5)
-                    .background(Circle().fill(isSelected ? Color.white : Color.clear))
+                    .stroke(
+                        isSelected ? Color.accentColor : Color(.systemFill),
+                        lineWidth: 1.5
+                    )
+                    .background(
+                        Circle().fill(isSelected
+                                      ? Color.accentColor.opacity(0.15)
+                                      : Color.clear)
+                    )
                     .frame(width: 16, height: 16)
+
                 VStack(alignment: .leading, spacing: 3) {
                     Text(plan.rawValue)
                         .font(.system(size: 14,
-                                      weight: isSelected ? .medium : .regular))
-                        .foregroundColor(isSelected ? .white : Color(hex: "9A9A9A"))
+                                      weight: isSelected ? .semibold : .regular))
+                        .foregroundColor(.primary)
                     Text(plan.description)
                         .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "4A4A4A"))
+                        .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
                 Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.accentColor)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(isSelected ? Color(hex: "222222") : Color.clear)
+            .background(isSelected
+                        ? Color(.systemFill)
+                        : Color.clear)
         }
         .buttonStyle(.plain)
     }
@@ -633,16 +631,21 @@ struct CreateDurationChip: View {
     let label      : String
     let isSelected : Bool
     let onTap      : () -> Void
+
     var body: some View {
         Button(action: onTap) {
             Text(label)
                 .font(.system(size: 12,
                               weight: isSelected ? .semibold : .regular,
                               design: .monospaced))
-                .foregroundColor(isSelected ? .black : Color(hex: "5E5E5E"))
+                .foregroundColor(isSelected
+                                 ? Color(.systemBackground)
+                                 : .secondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(isSelected ? Color.white : Color(.secondarySystemBackground))
+                .background(isSelected
+                            ? Color(.label)
+                            : Color(.secondarySystemBackground))
                 .cornerRadius(8)
         }
         .buttonStyle(.plain)
@@ -652,6 +655,7 @@ struct CreateDurationChip: View {
 struct CreateCrossTrainToggle: View {
     @Binding var schedule : UserSchedule
     let taken             : [Weekday]
+
     var body: some View {
         ZStack {
             Color(.secondarySystemBackground)
@@ -679,12 +683,11 @@ struct CreateCrossTrainToggle: View {
                         }
                     ))
                     .labelsHidden()
-                    .tint(.white)
                 }
                 .padding(16)
 
                 if schedule.crossTrainDay != nil {
-                    Divider().background(Color(.tertiarySystemBackground))
+                    Divider()
                     HStack(spacing: 5) {
                         ForEach(Weekday.allCases) { day in
                             let isSel = schedule.crossTrainDay == day
@@ -699,15 +702,17 @@ struct CreateCrossTrainToggle: View {
                                                   weight: isSel ? .semibold : .regular,
                                                   design: .monospaced))
                                     .foregroundColor(
-                                        isDis ? Color(.tertiarySystemBackground) :
+                                        isDis ? Color(.tertiaryLabel) :
                                         isSel ? Color(.systemBackground) :
-                                                Color(hex: "5E5E5E"))
+                                                .secondary
+                                    )
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 11)
                                     .background(
-                                        isDis ? Color(hex: "1C1C1C") :
-                                        isSel ? Color.white :
-                                                Color(hex: "242424"))
+                                        isDis ? Color(.tertiarySystemFill) :
+                                        isSel ? Color(.label) :
+                                                Color(.tertiarySystemBackground)
+                                    )
                                     .cornerRadius(7)
                             }
                             .buttonStyle(.plain)

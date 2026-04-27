@@ -333,12 +333,12 @@ struct TodayWorkoutCard: View {
                                  ? "Completed" : "Mark Complete")
                                 .font(.system(size: 13, weight: .semibold))
                         }
-                        .foregroundColor(status == .completed ? .black : .white)
+                        .foregroundColor(status == .completed ? .white : .primary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(status == .completed
                                     ? Color(hex: "30D158")
-                                    : Color(.tertiarySystemBackground))
+                                    : Color(.systemFill))
                         .cornerRadius(12)
                         .contentShape(Rectangle())
                     }
