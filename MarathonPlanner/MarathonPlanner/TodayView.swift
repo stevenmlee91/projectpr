@@ -6,9 +6,8 @@ struct TodayView: View {
     @EnvironmentObject var store: PlanStore
 
     private var todayContext: TodayContext? {
-        TodayContext.find(in: store.plans)
+        TodayContext.find(in: store.plans, primaryID: store.primaryPlanID)
     }
-
     var body: some View {
         NavigationStack {
             ZStack {
@@ -664,19 +663,27 @@ struct TodayContext {
     let weekNumber : Int
     let totalWeeks : Int
 
-    static func find(in plans: [SavedPlan]) -> TodayContext? {
+    // Now reads from primary plan only.
+    // Pass the store so we can read primaryPlan directly.
+    static func find(in plans: [SavedPlan],
+                     primaryID: UUID?) -> TodayContext? {
         let cal   = Calendar.current
         let today = cal.startOfDay(for: Date())
 
-        let activePlans = plans.filter { plan in
-            let start = cal.startOfDay(for: plan.startDate)
-            let end   = cal.startOfDay(for: plan.raceDate)
-            return today >= start && today <= end
+        // Use primary plan if set, otherwise fall back to first active plan
+        let plan: SavedPlan?
+        if let id = primaryID,
+           let primary = plans.first(where: { $0.id == id }) {
+            plan = primary
+        } else {
+            plan = plans.filter { p in
+                let start = cal.startOfDay(for: p.startDate)
+                let end   = cal.startOfDay(for: p.raceDate)
+                return today >= start && today <= end
+            }.sorted { $0.raceDate < $1.raceDate }.first
         }
 
-        guard let plan = activePlans.sorted(by: {
-            $0.raceDate < $1.raceDate
-        }).first else { return nil }
+        guard let plan = plan else { return nil }
 
         guard let week = plan.weeks.first(where: { week in
             week.days.contains { cal.isDate($0.date, inSameDayAs: today) }

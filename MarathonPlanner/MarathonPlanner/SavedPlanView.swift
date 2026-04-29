@@ -59,8 +59,27 @@ struct SavedPlanView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button { showingEdit = true } label: {
-                    Image(systemName: "pencil").foregroundColor(.primary)
+                HStack(spacing: 16) {
+                    // Set as active plan button — only shows when not primary
+                    if !store.isPrimary(livePlan) {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                store.setPrimary(livePlan)
+                            }
+                        } label: {
+                            Image(systemName: "bolt")
+                                .foregroundColor(.primary)
+                        }
+                    } else {
+                        // Active indicator — not tappable
+                        Image(systemName: "bolt.fill")
+                            .foregroundColor(.primary)
+                    }
+
+                    Button { showingEdit = true } label: {
+                        Image(systemName: "pencil")
+                            .foregroundColor(.primary)
+                    }
                 }
             }
         }
