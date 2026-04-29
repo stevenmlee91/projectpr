@@ -1,18 +1,29 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct MarathonTrainerApp: App {
     @StateObject private var store             = PlanStore()
     @StateObject private var appearanceManager = AppearanceManager()
+    @StateObject private var notificationManager = NotificationManager.shared
 
     var body: some Scene {
         WindowGroup {
             RootTabView()
                 .environmentObject(store)
                 .environmentObject(appearanceManager)
-                // This single modifier controls the entire app's color scheme.
-                // nil = follow system, .light = force light, .dark = force dark
+                .environmentObject(notificationManager)
                 .preferredColorScheme(appearanceManager.appearance.colorScheme)
+                .onAppear {
+                    // Refresh auth status and reschedule on every launch
+                    notificationManager.refreshAuthorizationStatus()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        notificationManager.scheduleWorkoutReminders(
+                            for:       store.plans,
+                            primaryID: store.primaryPlanID
+                        )
+                    }
+                }
         }
     }
 }
@@ -33,8 +44,6 @@ struct RootTabView: View {
                     Label("Settings", systemImage: "gearshape")
                 }
         }
-        // Remove the hardcoded .colorScheme(.dark) from here.
-        // preferredColorScheme on the root WindowGroup handles everything.
         .tint(.primary)
     }
 }

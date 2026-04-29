@@ -10,28 +10,6 @@ enum ChartPhase {
     case taper
     case race
     case future
-
-    // Priority order when multiple states overlap:
-    // race > peak > taper > current > past > future
-    var color: Color {
-        switch self {
-        case .past:    return Color(hex: "2E7D52")   // muted green — completed
-        case .current: return Color.white              // white — you are here
-        case .peak:    return Color(hex: "FF453A")    // red — peak effort
-        case .taper:   return Color(hex: "FF9F0A")    // amber — taper
-        case .race:    return Color.yellow             // yellow — race week
-        case .future:  return Color(hex: "1E3A2A")    // dark green — upcoming
-        }
-    }
-
-    var dimmedColor: Color {
-        switch self {
-        case .peak:  return Color(hex: "FF453A").opacity(0.3)
-        case .taper: return Color(hex: "FF9F0A").opacity(0.3)
-        case .race:  return Color.yellow.opacity(0.35)
-        default:     return Color(hex: "1E3A2A")
-        }
-    }
 }
 
 // MARK: - Chart Data Point
@@ -39,25 +17,42 @@ enum ChartPhase {
 struct MileagePoint: Identifiable {
     let id         : UUID
     let weekNumber : Int
-    let miles      : Double
+    let planned    : Double
+    let actual     : Double      // 0 if week not started yet
     let phase      : ChartPhase
     let phaseLabel : String
     let isCurrent  : Bool
     let isSelected : Bool
+    let hasLogged  : Bool        // true if user has touched any day this week
 
-    var barColor: Color {
-        // Selected always overrides
-        if isSelected { return Color.gray.opacity(0.9) }
-
-        // Priority: race > peak > taper > current > past > future
+    // Color for the planned bar
+    var plannedColor: Color {
+        if isSelected { return Color(.systemFill) }
         switch phase {
-        case .race:    return Color.yellow
-        case .peak:    return Color(hex: "FF453A")
-        case .taper:   return Color(hex: "FF9F0A")
-        case .current: return Color.blue
-        case .past:    return Color(hex: "2E7D52")
-        case .future:  return Color(hex: "1E3A2A")
+        case .race:    return Color.yellow.opacity(barOpacity * 0.6)
+        case .peak:    return Color(hex: "FF453A").opacity(barOpacity * 0.4)
+        case .taper:   return Color(hex: "FF9F0A").opacity(barOpacity * 0.4)
+        case .current: return Color(.systemFill)
+        case .past:    return Color(.systemFill)
+        case .future:  return Color(.systemFill).opacity(0.5)
         }
+    }
+
+    // Color for the actual bar
+    var actualColor: Color {
+        if isSelected { return Color.white }
+        switch phase {
+        case .race:    return Color.yellow.opacity(barOpacity)
+        case .peak:    return Color(hex: "FF453A").opacity(barOpacity)
+        case .taper:   return Color(hex: "FF9F0A").opacity(barOpacity)
+        case .current: return Color.white
+        case .past:    return Color(hex: "30D158")
+        case .future:  return Color(.tertiaryLabel)
+        }
+    }
+
+    private var barOpacity: Double {
+        weekNumber <= 0 ? 0.3 : 1.0
     }
 }
 
@@ -69,33 +64,15 @@ private func detectPhase(
     peakWeekNum: Int
 ) -> ChartPhase {
     let phase = week.phase.lowercased()
-
-    // Race week — check first
-    if phase.contains("race") {
-        return .race
-    }
-
-    // Taper — explicit phase label
-    if phase.contains("taper") {
+    if phase.contains("race")   { return .race }
+    if phase.contains("taper")  {
         return week.weekNumber < currentWeekNum ? .past : .taper
     }
-
-    // Peak — explicit phase label OR is the highest mileage week
     if phase.contains("peak") || week.weekNumber == peakWeekNum {
         return week.weekNumber < currentWeekNum ? .past : .peak
     }
-
-    // Current week
-    if week.weekNumber == currentWeekNum {
-        return .current
-    }
-
-    // Past
-    if week.weekNumber < currentWeekNum {
-        return .past
-    }
-
-    // Future build
+    if week.weekNumber == currentWeekNum { return .current }
+    if week.weekNumber < currentWeekNum  { return .past }
     return .future
 }
 
@@ -106,14 +83,14 @@ struct WeeklyMileageChartView: View {
     let currentWeekNum : Int
     var onSelectWeek   : ((SavedWeek) -> Void)? = nil
 
-    @State private var selectedWeekNum : Int? = nil
+    @State private var selectedWeekNum : Int?  = nil
     @State private var animateChart            = false
+    @State private var showActual              = true
 
-    // The true peak is the non-race, non-taper week with highest mileage
     private var peakWeekNum: Int {
         plan.weeks
-            .filter { week in
-                let p = week.phase.lowercased()
+            .filter { w in
+                let p = w.phase.lowercased()
                 return !p.contains("race") && !p.contains("taper")
             }
             .max { $0.totalMiles < $1.totalMiles }?
@@ -122,19 +99,19 @@ struct WeeklyMileageChartView: View {
 
     private var chartData: [MileagePoint] {
         plan.weeks.map { week in
-            let phase = detectPhase(
-                week:           week,
-                currentWeekNum: currentWeekNum,
-                peakWeekNum:    peakWeekNum
-            )
+            let phase = detectPhase(week: week,
+                                    currentWeekNum: currentWeekNum,
+                                    peakWeekNum: peakWeekNum)
             return MileagePoint(
                 id:         week.id,
                 weekNumber: week.weekNumber,
-                miles:      week.totalMiles,
+                planned:    week.totalMiles,
+                actual:     week.actualTotalMiles,
                 phase:      phase,
                 phaseLabel: week.phase,
                 isCurrent:  week.weekNumber == currentWeekNum,
-                isSelected: week.weekNumber == selectedWeekNum
+                isSelected: week.weekNumber == selectedWeekNum,
+                hasLogged:  week.hasAnyActualMiles
             )
         }
     }
@@ -146,6 +123,11 @@ struct WeeklyMileageChartView: View {
     private var selectedWeek: SavedWeek? {
         guard let n = selectedWeekNum else { return nil }
         return plan.weeks.first { $0.weekNumber == n }
+    }
+
+    // Whether any week has actual logged data to show
+    private var hasAnyLoggedData: Bool {
+        plan.weeks.contains { $0.hasAnyActualMiles }
     }
 
     var body: some View {
@@ -187,6 +169,24 @@ struct WeeklyMileageChartView: View {
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
                 Spacer()
+                // Toggle between planned / actual view
+                if hasAnyLoggedData {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showActual.toggle()
+                        }
+                    } label: {
+                        Text(showActual ? "Actual" : "Planned")
+                            .font(.system(size: 11, weight: .semibold,
+                                          design: .monospaced))
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color(.tertiarySystemBackground))
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                }
                 currentPhaseChip
             }
         }
@@ -195,7 +195,7 @@ struct WeeklyMileageChartView: View {
     private var currentPhaseChip: some View {
         let point = chartData.first { $0.isCurrent }
         let label = point?.phaseLabel.uppercased() ?? "TRAINING"
-        let color = point?.barColor ?? Color(hex: "30D158")
+        let color = phaseChipColor(point?.phase ?? .current)
         return Text(label)
             .font(.system(size: 10, weight: .semibold, design: .monospaced))
             .foregroundColor(color)
@@ -205,16 +205,46 @@ struct WeeklyMileageChartView: View {
             .cornerRadius(6)
     }
 
+    private func phaseChipColor(_ phase: ChartPhase) -> Color {
+        switch phase {
+        case .taper, .race: return Color(hex: "FF9F0A")
+        case .peak:         return Color(hex: "FF453A")
+        default:            return Color(hex: "30D158")
+        }
+    }
+
     // MARK: - Chart
 
     private var chart: some View {
         Chart(chartData) { point in
-            BarMark(
-                x: .value("Week", point.weekNumber),
-                y: .value("Miles", animateChart ? point.miles : 0)
-            )
-            .foregroundStyle(point.barColor)
-            .cornerRadius(3)
+            if showActual && hasAnyLoggedData {
+                // Planned bar — lighter, behind
+                BarMark(
+                    x: .value("Week", point.weekNumber),
+                    y: .value("Planned", animateChart ? point.planned : 0)
+                )
+                .foregroundStyle(point.plannedColor)
+                .cornerRadius(3)
+
+                // Actual bar — solid, in front
+                // Only draw if week has been touched at all
+                if point.hasLogged {
+                    BarMark(
+                        x: .value("Week", point.weekNumber),
+                        y: .value("Actual", animateChart ? point.actual : 0)
+                    )
+                    .foregroundStyle(point.actualColor)
+                    .cornerRadius(3)
+                }
+            } else {
+                // Planned only view
+                BarMark(
+                    x: .value("Week", point.weekNumber),
+                    y: .value("Miles", animateChart ? point.planned : 0)
+                )
+                .foregroundStyle(plannedOnlyColor(point))
+                .cornerRadius(3)
+            }
         }
         .chartXAxis {
             AxisMarks(values: xAxisValues()) { value in
@@ -223,9 +253,7 @@ struct WeeklyMileageChartView: View {
                         Text("\(wk)")
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundColor(
-                                wk == currentWeekNum
-                                    ? .white
-                                    : Color(hex: "3A3A3A")
+                                wk == currentWeekNum ? .primary : .secondary
                             )
                     }
                 }
@@ -238,10 +266,10 @@ struct WeeklyMileageChartView: View {
                     AxisValueLabel {
                         Text("\(Int(miles))")
                             .font(.system(size: 9, design: .monospaced))
-                            .foregroundColor(Color(hex: "3A3A3A"))
+                            .foregroundColor(.secondary)
                     }
                     AxisGridLine()
-                        .foregroundStyle(Color(hex: "222222"))
+                        .foregroundStyle(Color(.separator).opacity(0.4))
                 }
             }
         }
@@ -265,16 +293,28 @@ struct WeeklyMileageChartView: View {
                             }
                             .onEnded { _ in
                                 DispatchQueue.main.asyncAfter(
-                                    deadline: .now() + 3
-                                ) {
+                                    deadline: .now() + 3) {
                                     withAnimation { selectedWeekNum = nil }
                                 }
                             }
                     )
             }
         }
-        .frame(height: 150)
+        .frame(height: 160)
         .animation(.easeOut(duration: 0.8), value: animateChart)
+        .animation(.easeInOut(duration: 0.3), value: showActual)
+    }
+
+    private func plannedOnlyColor(_ point: MileagePoint) -> Color {
+        if point.isSelected   { return Color.white }
+        switch point.phase {
+        case .race:    return Color.yellow
+        case .peak:    return Color(hex: "FF453A")
+        case .taper:   return Color(hex: "FF9F0A")
+        case .current: return Color.white
+        case .past:    return Color(hex: "30D158")
+        case .future:  return Color(.systemFill)
+        }
     }
 
     // MARK: - Selected Week Detail
@@ -289,49 +329,88 @@ struct WeeklyMileageChartView: View {
                                       design: .monospaced))
                         .foregroundColor(.primary)
 
-                    // Phase badges
                     if point.isCurrent {
-                        phaseBadge(label: "YOU ARE HERE",
-                                   fg: .black,
-                                   bg: Color.white)
+                        phaseBadge("NOW", fg: Color(.systemBackground),
+                                   bg: Color(.label))
                     }
                     if point.phase == .peak {
-                        phaseBadge(label: "PEAK",
-                                   fg: .white,
+                        phaseBadge("PEAK", fg: .white,
                                    bg: Color(hex: "FF453A"))
                     }
                     if point.phase == .taper {
-                        phaseBadge(label: "TAPER",
-                                   fg: .black,
+                        phaseBadge("TAPER", fg: .black,
                                    bg: Color(hex: "FF9F0A"))
                     }
                     if point.phase == .race {
-                        phaseBadge(label: "RACE",
-                                   fg: .black,
-                                   bg: Color.yellow)
+                        phaseBadge("RACE", fg: .black, bg: .yellow)
                     }
                 }
                 Text(point.phaseLabel)
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
+
+                // Planned vs actual breakdown
+                if point.hasLogged {
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("PLANNED")
+                                .font(.system(size: 8, weight: .semibold,
+                                              design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .kerning(1)
+                            Text(String(format: "%.0f mi", point.planned))
+                                .font(.system(size: 14, weight: .medium,
+                                              design: .monospaced))
+                                .foregroundColor(.secondary)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("ACTUAL")
+                                .font(.system(size: 8, weight: .semibold,
+                                              design: .monospaced))
+                                .foregroundColor(Color(hex: "30D158"))
+                                .kerning(1)
+                            Text(String(format: "%.0f mi", point.actual))
+                                .font(.system(size: 14, weight: .semibold,
+                                              design: .monospaced))
+                                .foregroundColor(Color(hex: "30D158"))
+                        }
+                        // Difference
+                        if point.actual != point.planned {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("DIFF")
+                                    .font(.system(size: 8, weight: .semibold,
+                                                  design: .monospaced))
+                                    .foregroundColor(.secondary)
+                                    .kerning(1)
+                                let diff = point.actual - point.planned
+                                Text(String(format: "%+.0f mi", diff))
+                                    .font(.system(size: 14, weight: .medium,
+                                                  design: .monospaced))
+                                    .foregroundColor(diff >= 0
+                                                     ? Color(hex: "30D158")
+                                                     : Color(hex: "FF453A"))
+                            }
+                        }
+                    }
+                }
             }
 
             Spacer()
 
+            // Big mileage number
             VStack(alignment: .trailing, spacing: 2) {
-                Text(String(format: "%.0f", point.miles))
+                Text(String(format: "%.0f",
+                            point.hasLogged ? point.actual : point.planned))
                     .font(.system(size: 28, weight: .thin,
                                   design: .monospaced))
                     .foregroundColor(.primary)
-                Text("miles")
+                Text(point.hasLogged ? "actual mi" : "planned mi")
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundColor(.secondary)
             }
 
             if onSelectWeek != nil {
-                Button {
-                    onSelectWeek?(week)
-                } label: {
+                Button { onSelectWeek?(week) } label: {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.secondary)
@@ -341,11 +420,11 @@ struct WeeklyMileageChartView: View {
             }
         }
         .padding(12)
-        .background(Color(.secondarySystemBackground))
+        .background(Color(.tertiarySystemBackground))
         .cornerRadius(10)
     }
 
-    private func phaseBadge(label: String, fg: Color, bg: Color) -> some View {
+    private func phaseBadge(_ label: String, fg: Color, bg: Color) -> some View {
         Text(label)
             .font(.system(size: 8, weight: .bold, design: .monospaced))
             .foregroundColor(fg)
@@ -359,20 +438,20 @@ struct WeeklyMileageChartView: View {
 
     private var legend: some View {
         HStack(spacing: 0) {
-            Group {
-                legendDot(color: Color(hex: "2E7D52"), label: "Done")
+            if hasAnyLoggedData && showActual {
+                legendDot(color: Color(.systemFill),       label: "Planned")
                 Spacer()
-                legendDot(color: Color.blue, label: "Now")
+                legendDot(color: Color(hex: "30D158"),     label: "Actual")
                 Spacer()
-                legendDot(color: Color(hex: "FF453A"), label: "Peak")
             }
-            Group {
+            legendDot(color: Color(hex: "FF453A"), label: "Peak")
+            Spacer()
+            legendDot(color: Color(hex: "FF9F0A"), label: "Taper")
+            Spacer()
+            legendDot(color: Color.yellow,         label: "Race")
+            if hasAnyLoggedData && showActual {
                 Spacer()
-                legendDot(color: Color(hex: "FF9F0A"), label: "Taper")
-                Spacer()
-                legendDot(color: Color.yellow, label: "Race")
-                Spacer()
-                legendDot(color: Color(hex: "1E3A2A"), label: "Ahead")
+                legendDot(color: Color(hex: "FF453A"), label: "Under")
             }
         }
         .padding(.top, 2)
@@ -385,22 +464,11 @@ struct WeeklyMileageChartView: View {
                 .frame(width: 8, height: 8)
             Text(label)
                 .font(.system(size: 9, design: .monospaced))
-                .foregroundColor(Color(hex: "4A4A4A"))
+                .foregroundColor(.secondary)
         }
     }
 
-    private func legendItem(color: Color, label: String) -> some View {
-        HStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(color)
-                .frame(width: 8, height: 8)
-            Text(label)
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundColor(Color(hex: "4A4A4A"))
-        }
-    }
-
-    // MARK: - X Axis Values
+    // MARK: - X Axis
 
     private func xAxisValues() -> [Int] {
         let total = plan.weeks.count
@@ -419,10 +487,10 @@ struct WeeklyMileageChartEmptyView: View {
         VStack(spacing: 10) {
             Image(systemName: "chart.bar.fill")
                 .font(.system(size: 28, weight: .ultraLight))
-                .foregroundColor(Color(.tertiarySystemBackground))
+                .foregroundColor(Color(.tertiaryLabel))
             Text("Generate a plan to see\nyour mileage progression.")
                 .font(.system(size: 12))
-                .foregroundColor(Color(hex: "3A3A3A"))
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)

@@ -1,13 +1,21 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @EnvironmentObject var appearanceManager: AppearanceManager
-    @EnvironmentObject var store: PlanStore
+    @EnvironmentObject var appearanceManager   : AppearanceManager
+    @EnvironmentObject var store               : PlanStore
+    @EnvironmentObject var notificationManager : NotificationManager
 
     var body: some View {
         NavigationStack {
             List {
+                // Notifications
+                NotificationSettingsView(nm: notificationManager)
+                    .environmentObject(store)
+
+                // Appearance
                 appearanceSection
+
+                // About
                 aboutSection
             }
             .navigationTitle("Settings")
@@ -15,7 +23,7 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Appearance Section
+    // MARK: - Appearance
 
     private var appearanceSection: some View {
         Section {
@@ -30,12 +38,9 @@ struct SettingsView: View {
                             .font(.system(size: 16))
                             .foregroundColor(.primary)
                             .frame(width: 28)
-
                         Text(option.displayName)
                             .foregroundColor(.primary)
-
                         Spacer()
-
                         if appearanceManager.appearance == option {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 14, weight: .semibold))
@@ -51,7 +56,7 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - About Section
+    // MARK: - About
 
     private var aboutSection: some View {
         Section {

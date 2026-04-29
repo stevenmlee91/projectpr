@@ -20,6 +20,8 @@
 		B07526172F9EB5CB008F9552 /* WeeklyMileageChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526162F9EB5CB008F9552 /* WeeklyMileageChart.swift */; };
 		B07526192F9EC44E008F9552 /* AppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526182F9EC44E008F9552 /* AppearanceManager.swift */; };
 		B075261B2F9EC478008F9552 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B075261A2F9EC478008F9552 /* SettingsView.swift */; };
+		B08F59BC2FA1B9BB00BFFC53 /* NotificationsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59BB2FA1B9BB00BFFC53 /* NotificationsManager.swift */; };
+		B08F59BE2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59BD2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -67,6 +69,8 @@
 		B07526162F9EB5CB008F9552 /* WeeklyMileageChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyMileageChart.swift; sourceTree = "<group>"; };
 		B07526182F9EC44E008F9552 /* AppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
 		B075261A2F9EC478008F9552 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B08F59BB2FA1B9BB00BFFC53 /* NotificationsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsManager.swift; sourceTree = "<group>"; };
+		B08F59BD2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsSettingsView.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -139,8 +143,10 @@
 				B0A62D7E2F9861A70093719D /* ContentView.swift */,
 				B0A62DA62F9862170093719D /* TrainingPlan.swift */,
 				B0A62DA82F9862340093719D /* PlanGenerator.swift */,
+				B08F59BD2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift */,
 				B075260C2F9B1317008F9552 /* ScheduleSetupView.swift */,
 				B07526002F9B0C72008F9552 /* PlanStore.swift */,
+				B08F59BB2FA1B9BB00BFFC53 /* NotificationsManager.swift */,
 				B07526102F9DD78F008F9552 /* WeekDetailViewModel.swift */,
 				B075260E2F9D9F2B008F9552 /* EditPlanView.swift */,
 				B07526022F9B0C89008F9552 /* PlanListView.swift */,
@@ -317,10 +323,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B08F59BE2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift in Sources */,
 				B0A62DA92F9862340093719D /* PlanGenerator.swift in Sources */,
 				B0A62DB22F98629C0093719D /* WeekDetailView.swift in Sources */,
 				B07526172F9EB5CB008F9552 /* WeeklyMileageChart.swift in Sources */,
 				B0A62DAE2F9862780093719D /* PacesView.swift in Sources */,
+				B08F59BC2FA1B9BB00BFFC53 /* NotificationsManager.swift in Sources */,
 				B0A62DB42F9862AD0093719D /* MinitabView.swift in Sources */,
 				B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */,
 				B07526052F9B0C9F008F9552 /* CreatePlanView.swift in Sources */,
@@ -500,6 +508,7 @@
 				DEVELOPMENT_TEAM = BX2P9YS3TZ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Mile Zero";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -529,6 +538,7 @@
 				DEVELOPMENT_TEAM = BX2P9YS3TZ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Mile Zero";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

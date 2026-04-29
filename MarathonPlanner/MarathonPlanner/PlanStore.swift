@@ -46,10 +46,41 @@ struct SavedWeek: Identifiable, Codable {
         self.days       = days
     }
 
+    // Total planned miles for the week
     var totalMiles: Double {
         days.reduce(0) { $0 + $1.miles }
     }
 
+    // Total actual miles based on completion status
+    // Completed  → actual miles if entered, else planned miles
+    // Modified   → actual miles if entered, else planned miles
+    // Skipped    → 0
+    // NotStarted → 0
+    var actualTotalMiles: Double {
+        days.reduce(0) { sum, day in
+            switch day.completionStatus {
+            case .completed:
+                return sum + (day.actualMiles ?? day.miles)
+            case .modified:
+                return sum + (day.actualMiles ?? day.miles)
+            case .skipped:
+                return sum + 0
+            case .notStarted:
+                return sum + 0
+            }
+        }
+    }
+
+    // True if the user has interacted with any day this week
+    var hasAnyActualMiles: Bool {
+        days.contains {
+            $0.completionStatus == .completed
+            || $0.completionStatus == .modified
+            || $0.completionStatus == .skipped
+        }
+    }
+
+    // Sum of actual miles entered by user (ignores planned fallback)
     var actualMiles: Double {
         days.reduce(0) { $0 + ($1.actualMiles ?? 0) }
     }
@@ -157,8 +188,6 @@ func buildSavedWeeks(from trainingWeeks: [TrainingWeek],
 class PlanStore: ObservableObject {
     @Published var plans: [SavedPlan] = []
 
-    // Primary plan ID stored separately — clean single source of truth.
-    // Never risk two plans both being primary.
     @Published private(set) var primaryPlanID: UUID? {
         didSet {
             if let id = primaryPlanID {
@@ -172,18 +201,15 @@ class PlanStore: ObservableObject {
     private let key        = "saved_training_plans_v2"
     private let primaryKey = "primary_plan_id"
 
-    // Convenience — the actual primary plan object
     var primaryPlan: SavedPlan? {
         guard let id = primaryPlanID else { return nil }
         return plans.first { $0.id == id }
     }
 
-    // Whether a given plan is primary
     func isPrimary(_ plan: SavedPlan) -> Bool {
         plan.id == primaryPlanID
     }
 
-    // Non-primary plans sorted by race date
     var otherPlans: [SavedPlan] {
         plans.filter { $0.id != primaryPlanID }
              .sorted { $0.raceDate < $1.raceDate }
@@ -194,10 +220,12 @@ class PlanStore: ObservableObject {
         loadPrimaryID()
     }
 
-    // MARK: - Primary Plan Management
+    // MARK: - Primary Plan
 
     func setPrimary(_ plan: SavedPlan) {
         primaryPlanID = plan.id
+        NotificationManager.shared.scheduleWorkoutReminders(
+            for: plans, primaryID: primaryPlanID)
     }
 
     // MARK: - CRUD
@@ -205,40 +233,38 @@ class PlanStore: ObservableObject {
     func savePlan(_ plan: SavedPlan) {
         plans.removeAll { $0.id == plan.id }
         plans.append(plan)
-
-        // First plan ever → automatically becomes primary
         if plans.count == 1 {
             primaryPlanID = plan.id
         }
-
         persist()
+        NotificationManager.shared.scheduleWorkoutReminders(
+            for: plans, primaryID: primaryPlanID)
     }
 
     func deletePlan(_ plan: SavedPlan) {
         let wasPrimary = plan.id == primaryPlanID
         plans.removeAll { $0.id == plan.id }
-
-        // If we deleted the primary, promote another plan
         if wasPrimary {
             primaryPlanID = plans.first?.id
         }
-
         persist()
+        NotificationManager.shared.scheduleWorkoutReminders(
+            for: plans, primaryID: primaryPlanID)
     }
 
     func deletePlans(at offsets: IndexSet) {
         let toDelete = offsets.map { plans[$0] }
-        for plan in toDelete {
-            deletePlan(plan)
-        }
+        for plan in toDelete { deletePlan(plan) }
     }
 
-    // MARK: - Completion
+    // MARK: - Week Lookup
 
     func week(planID: UUID, weekID: UUID) -> SavedWeek? {
         plans.first { $0.id == planID }?
              .weeks.first { $0.id == weekID }
     }
+
+    // MARK: - Completion
 
     func updateCompletion(planID: UUID, weekID: UUID, dayID: UUID,
                           status: CompletionStatus, actual: Double? = nil) {
@@ -252,6 +278,7 @@ class PlanStore: ObservableObject {
         }
 
         plans[pi].weeks[wi].days[di].completionStatus = status
+
         if let actual = actual {
             plans[pi].weeks[wi].days[di].actualMiles = actual
         }
@@ -262,7 +289,8 @@ class PlanStore: ObservableObject {
         let snapshot = plans
         DispatchQueue.global(qos: .utility).async {
             if let data = try? JSONEncoder().encode(snapshot) {
-                UserDefaults.standard.set(data, forKey: "saved_training_plans_v2")
+                UserDefaults.standard.set(data,
+                    forKey: "saved_training_plans_v2")
             }
         }
     }
@@ -274,12 +302,14 @@ class PlanStore: ObservableObject {
             let di = plans[pi].weeks[wi].days.firstIndex(where: { $0.id == dayID })
         else { return }
 
-        plans[pi].weeks[wi].days[di].completionNote = note.isEmpty ? nil : note
+        plans[pi].weeks[wi].days[di].completionNote =
+            note.isEmpty ? nil : note
 
         let snapshot = plans
         DispatchQueue.global(qos: .utility).async {
             if let data = try? JSONEncoder().encode(snapshot) {
-                UserDefaults.standard.set(data, forKey: "saved_training_plans_v2")
+                UserDefaults.standard.set(data,
+                    forKey: "saved_training_plans_v2")
             }
         }
     }
@@ -296,7 +326,8 @@ class PlanStore: ObservableObject {
                                                startDate: plan.startDate,
                                                cal: cal)
         return SavedPlan(id: plan.id, name: plan.name,
-                         raceDate: plan.raceDate, startDate: plan.startDate,
+                         raceDate: plan.raceDate,
+                         startDate: plan.startDate,
                          planType: newSettings.planType.rawValue,
                          weeks: saved, settings: newSettings)
     }
@@ -309,7 +340,8 @@ class PlanStore: ObservableObject {
                                             startDate: plan.startDate,
                                             cal: cal)
         return SavedPlan(id: plan.id, name: plan.name,
-                         raceDate: plan.raceDate, startDate: plan.startDate,
+                         raceDate: plan.raceDate,
+                         startDate: plan.startDate,
                          planType: newSettings.planType.rawValue,
                          weeks: saved, settings: newSettings)
     }
@@ -325,37 +357,51 @@ class PlanStore: ObservableObject {
     private func loadPlans() {
         guard
             let data  = UserDefaults.standard.data(forKey: key),
-            let saved = try? JSONDecoder().decode([SavedPlan].self, from: data)
+            let saved = try? JSONDecoder().decode([SavedPlan].self,
+                                                  from: data)
         else { return }
         plans = saved
     }
 
     private func loadPrimaryID() {
-        guard let str = UserDefaults.standard.string(forKey: primaryKey),
-              let id  = UUID(uuidString: str)
+        guard
+            let str = UserDefaults.standard.string(forKey: primaryKey),
+            let id  = UUID(uuidString: str)
         else {
-            // No primary saved yet — promote first plan automatically
             primaryPlanID = plans.first?.id
             return
         }
-        // Validate the saved ID still exists
-        primaryPlanID = plans.contains(where: { $0.id == id }) ? id : plans.first?.id
+        primaryPlanID = plans.contains(where: { $0.id == id })
+            ? id
+            : plans.first?.id
     }
 }
 
 // MARK: - Conformances
 
 extension SavedPlan: Equatable, Hashable {
-    static func == (lhs: SavedPlan, rhs: SavedPlan) -> Bool { lhs.id == rhs.id }
-    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: SavedPlan, rhs: SavedPlan) -> Bool {
+        lhs.id == rhs.id
+    }
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
 }
 
 extension SavedWeek: Equatable, Hashable {
-    static func == (lhs: SavedWeek, rhs: SavedWeek) -> Bool { lhs.id == rhs.id }
-    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: SavedWeek, rhs: SavedWeek) -> Bool {
+        lhs.id == rhs.id
+    }
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
 }
 
 extension SavedDay: Equatable, Hashable {
-    static func == (lhs: SavedDay, rhs: SavedDay) -> Bool { lhs.id == rhs.id }
-    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: SavedDay, rhs: SavedDay) -> Bool {
+        lhs.id == rhs.id
+    }
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
 }
