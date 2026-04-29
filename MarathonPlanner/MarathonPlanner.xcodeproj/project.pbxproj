@@ -22,6 +22,8 @@
 		B075261B2F9EC478008F9552 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B075261A2F9EC478008F9552 /* SettingsView.swift */; };
 		B08F59BC2FA1B9BB00BFFC53 /* NotificationsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59BB2FA1B9BB00BFFC53 /* NotificationsManager.swift */; };
 		B08F59BE2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59BD2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift */; };
+		B08F59C02FA1BDDD00BFFC53 /* PaceCalculatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59BF2FA1BDDD00BFFC53 /* PaceCalculatorView.swift */; };
+		B08F59C22FA1BF6C00BFFC53 /* PaceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59C12FA1BF6C00BFFC53 /* PaceEngine.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -71,6 +73,8 @@
 		B075261A2F9EC478008F9552 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B08F59BB2FA1B9BB00BFFC53 /* NotificationsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsManager.swift; sourceTree = "<group>"; };
 		B08F59BD2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsSettingsView.swift; sourceTree = "<group>"; };
+		B08F59BF2FA1BDDD00BFFC53 /* PaceCalculatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaceCalculatorView.swift; sourceTree = "<group>"; };
+		B08F59C12FA1BF6C00BFFC53 /* PaceEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaceEngine.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -140,9 +144,11 @@
 			children = (
 				B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */,
 				B075261A2F9EC478008F9552 /* SettingsView.swift */,
+				B08F59BF2FA1BDDD00BFFC53 /* PaceCalculatorView.swift */,
 				B0A62D7E2F9861A70093719D /* ContentView.swift */,
 				B0A62DA62F9862170093719D /* TrainingPlan.swift */,
 				B0A62DA82F9862340093719D /* PlanGenerator.swift */,
+				B08F59C12FA1BF6C00BFFC53 /* PaceEngine.swift */,
 				B08F59BD2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift */,
 				B075260C2F9B1317008F9552 /* ScheduleSetupView.swift */,
 				B07526002F9B0C72008F9552 /* PlanStore.swift */,
@@ -333,6 +339,7 @@
 				B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */,
 				B07526052F9B0C9F008F9552 /* CreatePlanView.swift in Sources */,
 				B07526192F9EC44E008F9552 /* AppearanceManager.swift in Sources */,
+				B08F59C22FA1BF6C00BFFC53 /* PaceEngine.swift in Sources */,
 				B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */,
 				B07526032F9B0C89008F9552 /* PlanListView.swift in Sources */,
 				B07526152F9E6FF5008F9552 /* TodayView.swift in Sources */,
@@ -340,6 +347,7 @@
 				B07526112F9DD78F008F9552 /* WeekDetailViewModel.swift in Sources */,
 				B075260F2F9D9F2B008F9552 /* EditPlanView.swift in Sources */,
 				B0A62DB02F9862890093719D /* PlanView.swift in Sources */,
+				B08F59C02FA1BDDD00BFFC53 /* PaceCalculatorView.swift in Sources */,
 				B07526012F9B0C72008F9552 /* PlanStore.swift in Sources */,
 				B075260D2F9B1317008F9552 /* ScheduleSetupView.swift in Sources */,
 				B0A62DA72F9862170093719D /* TrainingPlan.swift in Sources */,

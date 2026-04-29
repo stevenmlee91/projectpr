@@ -35,10 +35,17 @@ struct RootTabView: View {
                 .tabItem {
                     Label("Today", systemImage: "figure.run")
                 }
+
             PlanListView()
                 .tabItem {
                     Label("Plans", systemImage: "list.bullet.rectangle")
                 }
+
+            PaceCalculatorView()
+                .tabItem {
+                    Label("Pace", systemImage: "speedometer")
+                }
+
             SettingsView()
                 .tabItem {
                     Label("Settings", systemImage: "gearshape")
