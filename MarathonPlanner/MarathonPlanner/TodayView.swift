@@ -20,10 +20,13 @@ struct TodayView: View {
                                 .environmentObject(store)
                             WeekProgressCard(ctx: ctx)
                                 .environmentObject(store)
-                            WeeklyMileageChartView(
-                                plan:           ctx.plan,
-                                currentWeekNum: ctx.weekNumber
-                            )
+                            if let livePlan = store.plans.first(where: { $0.id == ctx.plan.id }) {
+                                WeeklyMileageChartView(
+                                    plan:           livePlan,
+                                    currentWeekNum: ctx.weekNumber
+                                )
+                                .id(livePlan.weeks.map { "\($0.id)\($0.actualTotalMiles)" }.joined())
+                            }
                             RaceCountdownCard(ctx: ctx)
                         } else {
                             emptyState
