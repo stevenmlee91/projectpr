@@ -21,7 +21,7 @@ struct RouteSegment: Identifiable {
     let id        : UUID     = UUID()
     let polyline  : MKPolyline
     let distanceM : Double
-    let ascentM   : Double   // estimated elevation gain
+    let ascentM   : Double
 }
 
 // MARK: - Route Builder ViewModel
@@ -32,11 +32,12 @@ class RouteBuilderViewModel: NSObject, ObservableObject,
 
     // MARK: Published
 
-    @Published var waypoints    : [RouteWaypoint]  = []
-    @Published var segments     : [RouteSegment]   = []
-    @Published var isRouting    : Bool             = false
-    @Published var errorMessage : String?          = nil
-    @Published var cameraRegion : MKCoordinateRegion
+    @Published var waypoints       : [RouteWaypoint]  = []
+    @Published var segments        : [RouteSegment]   = []
+    @Published var isRouting       : Bool             = false
+    @Published var errorMessage    : String?          = nil
+    @Published var cameraRegion    : MKCoordinateRegion
+    @Published var shouldMoveCamera: Bool             = false
 
     // MARK: Computed stats
 
@@ -65,10 +66,9 @@ class RouteBuilderViewModel: NSObject, ObservableObject,
     // MARK: Init
 
     override init() {
-        // Default camera — Sydney CBD. Will move to user location on first fix.
         cameraRegion = MKCoordinateRegion(
-            center:     CLLocationCoordinate2D(latitude: -33.8688,
-                                               longitude: 151.2093),
+            center:             CLLocationCoordinate2D(latitude: -33.8688,
+                                                       longitude: 151.2093),
             latitudinalMeters:  3000,
             longitudinalMeters: 3000
         )
@@ -93,6 +93,7 @@ class RouteBuilderViewModel: NSObject, ObservableObject,
                     latitudinalMeters:  2000,
                     longitudinalMeters: 2000
                 )
+                self.shouldMoveCamera = true
             }
         }
     }
@@ -135,6 +136,7 @@ class RouteBuilderViewModel: NSObject, ObservableObject,
             latitudinalMeters:  2000,
             longitudinalMeters: 2000
         )
+        shouldMoveCamera = true
     }
 
     // MARK: - Route fetching
@@ -153,13 +155,9 @@ class RouteBuilderViewModel: NSObject, ObservableObject,
         do {
             let response = try await MKDirections(request: req).calculate()
             if let route = response.routes.first {
-                // Estimate ascent: sum positive altitude deltas across steps
                 var ascent = 0.0
                 let steps  = route.steps
                 for i in 1..<steps.count {
-                    // MKRoute.Step doesn't give elevation directly.
-                    // We use a conservative 1.5% average grade estimate
-                    // on any step whose distance is non-trivial.
                     let d = steps[i].distance
                     if d > 10 { ascent += d * 0.015 }
                 }
@@ -171,7 +169,6 @@ class RouteBuilderViewModel: NSObject, ObservableObject,
                 segments.append(seg)
             }
         } catch {
-            // Route failed — remove the waypoint we just added
             if !waypoints.isEmpty { waypoints.removeLast() }
             errorMessage = "No walkable route found here. Try tapping closer to a road or path."
         }

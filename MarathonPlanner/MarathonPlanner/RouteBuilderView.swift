@@ -3,10 +3,10 @@ import MapKit
 
 struct RouteBuilderView: View {
 
-    @StateObject private var vm      = RouteBuilderViewModel()
-    @State private var showWaypoints = false
-    @State private var shareURL      : URL? = nil
-    @State private var showClearAlert = false
+    @StateObject private var vm           = RouteBuilderViewModel()
+    @State private var showWaypoints      = false
+    @State private var shareURL           : URL? = nil
+    @State private var showClearAlert     = false
 
     var body: some View {
         NavigationStack {
@@ -104,37 +104,24 @@ struct RouteBuilderView: View {
 
     private var statsBar: some View {
         HStack(spacing: 0) {
-            statCell(
-                value: String(format: "%.2f", vm.totalMiles),
-                unit:  "mi",
-                icon:  "arrow.left.and.right"
-            )
+            statCell(value: String(format: "%.2f", vm.totalMiles),
+                     unit:  "mi")
             Divider().frame(height: 32)
-            statCell(
-                value: String(format: "%.1f", vm.totalKm),
-                unit:  "km",
-                icon:  "arrow.left.and.right"
-            )
+            statCell(value: String(format: "%.1f", vm.totalKm),
+                     unit:  "km")
             Divider().frame(height: 32)
-            statCell(
-                value: String(format: "%.0f", vm.totalAscentFeet),
-                unit:  "ft gain",
-                icon:  "arrow.up.right"
-            )
+            statCell(value: String(format: "%.0f", vm.totalAscentFeet),
+                     unit:  "ft gain")
             Divider().frame(height: 32)
-            statCell(
-                value: "\(vm.waypoints.count)",
-                unit:  "points",
-                icon:  "mappin"
-            )
+            statCell(value: "\(vm.waypoints.count)",
+                     unit:  "points")
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .background(.ultraThinMaterial)
     }
 
-    private func statCell(value: String, unit: String,
-                           icon: String) -> some View {
+    private func statCell(value: String, unit: String) -> some View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.system(size: 18, weight: .thin,
@@ -155,28 +142,27 @@ struct RouteBuilderView: View {
         HStack(spacing: 12) {
 
             // Center on user
-            circleButton(icon: "location.fill",
+            circleButton(icon:  "location.fill",
                          color: Color(hex: "0A84FF")) {
                 vm.centerOnUser()
             }
 
             // Undo
-            circleButton(icon: "arrow.uturn.backward",
-                         color: .primary,
+            circleButton(icon:     "arrow.uturn.backward",
+                         color:    .primary,
                          disabled: !vm.canUndo) {
                 vm.undoLast()
             }
 
             // Clear
-            circleButton(icon: "trash",
-                         color: Color(hex: "FF453A"),
+            circleButton(icon:     "trash",
+                         color:    Color(hex: "FF453A"),
                          disabled: vm.waypoints.isEmpty) {
                 showClearAlert = true
             }
 
             Spacer()
 
-            // Instruction label
             if vm.waypoints.isEmpty {
                 Text("Tap the map to start")
                     .font(.system(size: 12, design: .monospaced))
@@ -247,8 +233,10 @@ struct RouteBuilderView: View {
                         .multilineTextAlignment(.center)
                 } else {
                     List {
-                        ForEach(Array(vm.waypoints.enumerated()),
-                                id: \.element.id) { i, wp in
+                        ForEach(
+                            Array(vm.waypoints.enumerated()),
+                            id: \.element.id
+                        ) { i, wp in
                             HStack(spacing: 14) {
                                 ZStack {
                                     Circle()
@@ -274,22 +262,26 @@ struct RouteBuilderView: View {
                                         .font(.system(size: 14,
                                                       weight: .medium))
                                         .foregroundColor(.primary)
-                                    Text(String(format: "%.5f, %.5f",
-                                                wp.coordinate.latitude,
-                                                wp.coordinate.longitude))
-                                        .font(.system(size: 10,
-                                                      design: .monospaced))
-                                        .foregroundColor(.secondary)
+                                    Text(String(
+                                        format: "%.5f, %.5f",
+                                        wp.coordinate.latitude,
+                                        wp.coordinate.longitude
+                                    ))
+                                    .font(.system(size: 10,
+                                                  design: .monospaced))
+                                    .foregroundColor(.secondary)
                                 }
 
                                 Spacer()
 
                                 if i < vm.segments.count {
-                                    Text(String(format: "+%.1f mi",
-                                                vm.segments[i].distanceM / 1609.344))
-                                        .font(.system(size: 11,
-                                                      design: .monospaced))
-                                        .foregroundColor(.secondary)
+                                    Text(String(
+                                        format: "+%.1f mi",
+                                        vm.segments[i].distanceM / 1609.344
+                                    ))
+                                    .font(.system(size: 11,
+                                                  design: .monospaced))
+                                    .foregroundColor(.secondary)
                                 }
                             }
                             .padding(.vertical, 4)
@@ -315,10 +307,13 @@ struct RouteBuilderView: View {
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     func makeUIViewController(
-        context: Context) -> UIActivityViewController {
+        context: Context
+    ) -> UIActivityViewController {
         UIActivityViewController(activityItems: items,
                                  applicationActivities: nil)
     }
     func updateUIViewController(
-        _ vc: UIActivityViewController, context: Context) {}
+        _ vc: UIActivityViewController,
+        context: Context
+    ) {}
 }

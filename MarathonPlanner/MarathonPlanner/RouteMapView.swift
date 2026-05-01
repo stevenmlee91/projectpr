@@ -1,13 +1,6 @@
 import SwiftUI
 import MapKit
 
-// MARK: - Tap-recognising Map
-
-// We wrap MKMapView in UIViewRepresentable so we can:
-// 1. Receive tap coordinates
-// 2. Draw polylines for each segment
-// 3. Show waypoint pins
-
 struct RouteMapView: UIViewRepresentable {
 
     @ObservedObject var vm: RouteBuilderViewModel
@@ -15,12 +8,12 @@ struct RouteMapView: UIViewRepresentable {
     // MARK: Make
 
     func makeUIView(context: Context) -> MKMapView {
-        let map                          = MKMapView()
-        map.delegate                     = context.coordinator
-        map.showsUserLocation            = true
-        map.showsCompass                 = true
-        map.showsScale                   = true
-        map.isRotateEnabled              = false
+        let map                = MKMapView()
+        map.delegate           = context.coordinator
+        map.showsUserLocation  = true
+        map.showsCompass       = true
+        map.showsScale         = true
+        map.isRotateEnabled    = false
         map.setRegion(vm.cameraRegion, animated: false)
 
         let tap = UITapGestureRecognizer(
@@ -34,10 +27,14 @@ struct RouteMapView: UIViewRepresentable {
     // MARK: Update
 
     func updateUIView(_ map: MKMapView, context: Context) {
-        // Sync camera
-        if map.region.center.latitude  != vm.cameraRegion.center.latitude ||
-           map.region.center.longitude != vm.cameraRegion.center.longitude {
+
+        // Only move the camera when explicitly requested.
+        // This prevents the map jumping back when the user pans.
+        if vm.shouldMoveCamera {
             map.setRegion(vm.cameraRegion, animated: true)
+            DispatchQueue.main.async {
+                vm.shouldMoveCamera = false
+            }
         }
 
         // Remove old overlays and annotations
@@ -93,11 +90,11 @@ struct RouteMapView: UIViewRepresentable {
             guard let polyline = overlay as? MKPolyline else {
                 return MKOverlayRenderer(overlay: overlay)
             }
-            let r           = MKPolylineRenderer(polyline: polyline)
-            r.strokeColor   = UIColor(Color(hex: "0A84FF"))
-            r.lineWidth     = 4
-            r.lineCap       = .round
-            r.lineJoin      = .round
+            let r         = MKPolylineRenderer(polyline: polyline)
+            r.strokeColor = UIColor(Color(hex: "0A84FF"))
+            r.lineWidth   = 4
+            r.lineCap     = .round
+            r.lineJoin    = .round
             return r
         }
 
@@ -114,10 +111,9 @@ struct RouteMapView: UIViewRepresentable {
             ?? MKMarkerAnnotationView(annotation: annotation,
                                       reuseIdentifier: id)
 
-            view.annotation      = annotation
-            view.canShowCallout  = true
+            view.annotation     = annotation
+            view.canShowCallout = true
 
-            // Start = green, End = red, middle = blue
             if annotation.title == "Start" {
                 view.markerTintColor = UIColor(Color(hex: "30D158"))
                 view.glyphImage      = UIImage(systemName: "figure.run")
