@@ -3,10 +3,11 @@ import MapKit
 
 struct RouteBuilderView: View {
 
-    @StateObject private var vm           = RouteBuilderViewModel()
-    @State private var showWaypoints      = false
-    @State private var shareURL           : URL? = nil
-    @State private var showClearAlert     = false
+    @StateObject private var vm       = RouteBuilderViewModel()
+    @State private var showWaypoints  = false
+    @State private var shareURL       : URL? = nil
+    @State private var showClearAlert = false
+    @State private var showElevation  = false
 
     var body: some View {
         NavigationStack {
@@ -41,8 +42,7 @@ struct RouteBuilderView: View {
                 if let err = vm.errorMessage {
                     VStack {
                         HStack(spacing: 8) {
-                            Image(systemName:
-                                    "exclamationmark.triangle.fill")
+                            Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundColor(.orange)
                             Text(err)
                                 .font(.system(size: 12))
@@ -90,8 +90,14 @@ struct RouteBuilderView: View {
             .sheet(item: $shareURL) { url in
                 ShareSheet(items: [url])
             }
-            .alert("Clear Route",
-                   isPresented: $showClearAlert) {
+            .sheet(isPresented: $showElevation) {
+                ElevationSheetView(
+                    segments:    vm.segments,
+                    totalMiles:  vm.totalMiles,
+                    isPresented: $showElevation
+                )
+            }
+            .alert("Clear Route", isPresented: $showClearAlert) {
                 Button("Clear", role: .destructive) { vm.clearAll() }
                 Button("Cancel", role: .cancel) {}
             } message: {
@@ -175,35 +181,60 @@ struct RouteBuilderView: View {
 
             Spacer()
 
-            // Export GPX
+            // Elevation button
+            if vm.segments.count >= 1 {
+                Button {
+                    showElevation = true
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: "mountain.2.fill")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("ELEV")
+                            .font(.system(size: 8, weight: .bold,
+                                          design: .monospaced))
+                            .kerning(1)
+                    }
+                    .foregroundColor(Color(hex: "FF9F0A"))
+                    .frame(width: 46, height: 46)
+                    .background(Color(hex: "FF9F0A").opacity(0.10))
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(Color(hex: "FF9F0A").opacity(0.25),
+                                    lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
+            // GPX export button
             Button {
                 if let url = vm.buildGPX() {
                     shareURL = url
                 }
             } label: {
-                HStack(spacing: 6) {
+                VStack(spacing: 3) {
                     Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 14, weight: .medium))
                     Text("GPX")
-                        .font(.system(size: 12, weight: .semibold,
+                        .font(.system(size: 8, weight: .bold,
                                       design: .monospaced))
+                        .kerning(1)
                 }
-                .foregroundColor(vm.canExport
-                                 ? Color(.systemBackground)
-                                 : .secondary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(vm.canExport
-                            ? Color(.label)
-                            : Color(.secondarySystemBackground))
-                .cornerRadius(12)
+                .foregroundColor(vm.canExport ? .primary : .secondary)
+                .frame(width: 46, height: 46)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(Circle())
             }
+            .buttonStyle(.plain)
             .disabled(!vm.canExport)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .background(.ultraThinMaterial)
     }
+
+    // MARK: - Circle Button
 
     private func circleButton(icon: String,
                                color: Color,
