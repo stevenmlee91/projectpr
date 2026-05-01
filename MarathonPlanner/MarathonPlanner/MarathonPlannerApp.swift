@@ -45,6 +45,11 @@ struct RootTabView: View {
                 .tabItem {
                     Label("Pace", systemImage: "speedometer")
                 }
+            
+            RouteBuilderView()
+                .tabItem {
+                    Label("Route", systemImage: "map")
+                }
 
             SettingsView()
                 .tabItem {

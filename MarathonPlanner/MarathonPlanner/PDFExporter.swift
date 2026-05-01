@@ -91,7 +91,14 @@ struct PDFExporter {
                 yPos += 22
 
                 // Days
-                for day in week.days {
+                let mondayFirstOrder = ["Monday","Tuesday","Wednesday",
+                                        "Thursday","Friday","Saturday","Sunday"]
+                let sortedDays = week.days.sorted { a, b in
+                    let i0 = mondayFirstOrder.firstIndex(of: a.weekday) ?? 7
+                    let i1 = mondayFirstOrder.firstIndex(of: b.weekday) ?? 7
+                    return i0 < i1
+                }
+                for day in sortedDays {
                     checkPageBreak(neededHeight: 40)
 
                     let isRest = day.workoutType == "Rest"

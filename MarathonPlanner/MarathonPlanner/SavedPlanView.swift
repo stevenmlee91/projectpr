@@ -1,13 +1,18 @@
 import SwiftUI
 
+// MARK: - URL + Identifiable
+
+extension URL: Identifiable {
+    public var id: String { absoluteString }
+}
+
 // MARK: - Saved Plan View
 
 struct SavedPlanView: View {
     let plan: SavedPlan
     @EnvironmentObject var store: PlanStore
-    @State private var showingEdit    = false
-    @State private var showShareSheet = false
-    @State private var exportItems: [Any] = []
+    @State private var showingEdit = false
+    @State private var shareURL: URL? = nil
 
     private var livePlan: SavedPlan {
         store.plans.first { $0.id == plan.id } ?? plan
@@ -60,7 +65,6 @@ struct SavedPlanView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 16) {
-                    // Set as active plan button — only shows when not primary
                     if !store.isPrimary(livePlan) {
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
@@ -71,7 +75,6 @@ struct SavedPlanView: View {
                                 .foregroundColor(.primary)
                         }
                     } else {
-                        // Active indicator — not tappable
                         Image(systemName: "bolt.fill")
                             .foregroundColor(.primary)
                     }
@@ -86,8 +89,8 @@ struct SavedPlanView: View {
         .sheet(isPresented: $showingEdit) {
             EditPlanView(plan: livePlan).environmentObject(store)
         }
-        .sheet(isPresented: $showShareSheet) {
-            SPVShareSheet(items: exportItems)
+        .sheet(item: $shareURL) { url in
+            SPVShareSheet(items: [url])
         }
     }
 
@@ -196,6 +199,26 @@ struct SavedPlanView: View {
         .padding(.bottom, 20)
     }
 
+    func exportPDF() {
+        let captured = livePlan
+        DispatchQueue.global(qos: .userInitiated).async {
+            let url = PDFExporter.exportPlan(captured)
+            DispatchQueue.main.async {
+                shareURL = url
+            }
+        }
+    }
+
+    func exportCalendar() {
+        let captured = livePlan
+        DispatchQueue.global(qos: .userInitiated).async {
+            let url = ICSExporter.exportPlan(captured)
+            DispatchQueue.main.async {
+                shareURL = url
+            }
+        }
+    }
+
     // MARK: - Weeks List
 
     private var weeksList: some View {
@@ -209,16 +232,6 @@ struct SavedPlanView: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 32)
-    }
-
-    func exportPDF() {
-        exportItems = [PDFExporter.exportPlan(livePlan)]
-        showShareSheet = true
-    }
-
-    func exportCalendar() {
-        exportItems = [ICSExporter.exportPlan(livePlan)]
-        showShareSheet = true
     }
 }
 
@@ -290,9 +303,7 @@ struct SPVWeekRow: View {
             HStack {
                 Text(week.phase)
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(isRaceWeek
-                                     ? Color.orange
-                                     : .secondary)
+                    .foregroundColor(isRaceWeek ? Color.orange : .secondary)
                 Spacer()
                 if let s = weekStart, let e = weekEnd {
                     Text("\(shortDate.string(from: s)) – \(shortDate.string(from: e))")
@@ -315,7 +326,9 @@ struct SPVWeekRow: View {
                     : Color(.secondarySystemBackground))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(isRaceWeek ? Color.yellow.opacity(0.5) : Color.clear,
+                .stroke(isRaceWeek
+                        ? Color.yellow.opacity(0.5)
+                        : Color.clear,
                         lineWidth: 1.5)
         )
         .cornerRadius(12)
@@ -388,20 +401,26 @@ struct DotView: View {
 
     var baseDotColor: Color {
         switch day.workoutType {
-        case "Rest":                                   return Color(.tertiarySystemBackground)
-        case "Recovery Run":                           return Color(hex: "34C759")
-        case "Easy Run", "Easy + Strides",
-             "Shakeout Run":                           return Color(hex: "30D158")
+        case "Rest":
+            return Color(.tertiarySystemBackground)
+        case "Recovery Run":
+            return Color(hex: "34C759")
+        case "Easy Run", "Easy + Strides", "Shakeout Run":
+            return Color(hex: "30D158")
         case "Long Run", "Long Run w/ MP Finish",
-             "Medium-Long Run", "Midweek Longer Run":  return Color(hex: "0A84FF")
-        case "Tempo Run", "Strength (MP)",
-             "Marathon Pace":                          return Color(hex: "FF9F0A")
+             "Medium-Long Run", "Midweek Longer Run":
+            return Color(hex: "0A84FF")
+        case "Tempo Run", "Strength (MP)", "Marathon Pace":
+            return Color(hex: "FF9F0A")
         case "Lactate Threshold", "Cruise Intervals",
-             "Speed Work", "Interval Work",
-             "Repetition Work":                       return Color(hex: "FF453A")
-        case "Cross-Training":                        return Color(hex: "BF5AF2")
-        case "Race Day 🏁":                           return Color.yellow
-        default:                                      return Color(.systemFill)
+             "Speed Work", "Interval Work", "Repetition Work":
+            return Color(hex: "FF453A")
+        case "Cross-Training":
+            return Color(hex: "BF5AF2")
+        case "Race Day 🏁":
+            return Color.yellow
+        default:
+            return Color(.systemFill)
         }
     }
 }
@@ -462,7 +481,6 @@ struct SPVWeekDetailView: View {
         }
         .navigationTitle("Week \(liveWeek.weekNumber)")
         .navigationBarTitleDisplayMode(.inline)
-
     }
 
     private var weekSummaryCard: some View {
@@ -474,7 +492,8 @@ struct SPVWeekDetailView: View {
                         Text(liveWeek.phase)
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundColor(isRaceWeek
-                                             ? .yellow : Color(.secondaryLabel))
+                                             ? .yellow
+                                             : Color(.secondaryLabel))
                         if isRaceWeek {
                             Image(systemName: "flag.checkered")
                                 .foregroundColor(.orange)
@@ -536,19 +555,24 @@ struct SPVDayRow: View {
 
     var dotColor: Color {
         switch day.workoutType {
-        case "Rest":                                   return .gray
-        case "Recovery Run":                           return Color(hex: "34C759")
-        case "Easy Run", "Easy + Strides",
-             "Shakeout Run":                           return Color(hex: "30D158")
+        case "Rest":
+            return .gray
+        case "Recovery Run":
+            return Color(hex: "34C759")
+        case "Easy Run", "Easy + Strides", "Shakeout Run":
+            return Color(hex: "30D158")
         case "Long Run", "Long Run w/ MP Finish",
-             "Medium-Long Run", "Midweek Longer Run":  return Color(hex: "0A84FF")
-        case "Tempo Run", "Strength (MP)",
-             "Marathon Pace":                          return Color(hex: "FF9F0A")
+             "Medium-Long Run", "Midweek Longer Run":
+            return Color(hex: "0A84FF")
+        case "Tempo Run", "Strength (MP)", "Marathon Pace":
+            return Color(hex: "FF9F0A")
         case "Lactate Threshold", "Cruise Intervals",
-             "Speed Work", "Interval Work",
-             "Repetition Work":                       return Color(hex: "FF453A")
-        case "Cross-Training":                        return Color(hex: "BF5AF2")
-        default:                                      return Color(hex: "3A3A3A")
+             "Speed Work", "Interval Work", "Repetition Work":
+            return Color(hex: "FF453A")
+        case "Cross-Training":
+            return Color(hex: "BF5AF2")
+        default:
+            return Color(hex: "3A3A3A")
         }
     }
 
@@ -565,7 +589,8 @@ struct SPVDayRow: View {
                         Text(dateFormatter.string(from: day.date))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(day.isToday
-                                             ? Color(hex: "0A84FF") : .primary)
+                                             ? Color(hex: "0A84FF")
+                                             : .primary)
                         if day.isToday {
                             Text("TODAY")
                                 .font(.system(size: 9, weight: .bold,
@@ -595,7 +620,6 @@ struct SPVDayRow: View {
                             .foregroundColor(Color(hex: "0A84FF"))
                     }
 
-                    // Note preview
                     if let note = day.completionNote, !note.isEmpty {
                         Button {
                             showingNoteSheet = true
@@ -773,129 +797,6 @@ struct SPVDayRow: View {
     }
 }
 
-// MARK: - Note Editor Sheet
-//
-// @FocusState lives here — only created when sheet is presented.
-// Never instantiated during list rendering, which was causing the freeze.
-
-struct NoteEditorSheet: View {
-    let day    : SavedDay
-    let planID : UUID
-    let weekID : UUID
-    @EnvironmentObject var store: PlanStore
-    @Environment(\.dismiss) var dismiss
-
-    @State private var noteInput = ""
-    @FocusState private var focused: Bool
-
-    private let limit = 250
-
-    var body: some View {
-        ZStack {
-            Color(.systemBackground).ignoresSafeArea()
-            VStack(alignment: .leading, spacing: 20) {
-
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color(hex: "3A3A3A"))
-                    .frame(width: 36, height: 4)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 12)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("HOW DID IT FEEL?")
-                        .font(.system(size: 11, weight: .semibold,
-                                      design: .monospaced))
-                        .foregroundColor(.secondary)
-                        .kerning(2)
-                    Text(day.workoutType)
-                        .font(.system(size: 18, weight: .light,
-                                      design: .serif))
-                        .foregroundColor(.primary)
-                }
-                .padding(.horizontal, 24)
-
-                ZStack(alignment: .topLeading) {
-                    if noteInput.isEmpty {
-                        Text("Legs felt strong, negative split, shin a bit tight...")
-                            .font(.system(size: 14))
-                            .foregroundColor(Color(.tertiaryLabel))
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 14)
-                            .allowsHitTesting(false)
-                    }
-                    TextEditor(text: $noteInput)
-                        .focused($focused)
-                        .font(.system(size: 14))
-                        .foregroundColor(.primary)
-                        .scrollContentBackground(.hidden)
-                        .background(Color.clear)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .onChange(of: noteInput) { val in
-                            if val.count > limit {
-                                noteInput = String(val.prefix(limit))
-                            }
-                        }
-                }
-                .frame(minHeight: 140)
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(14)
-                .padding(.horizontal, 16)
-
-                HStack {
-                    Text("\(noteInput.count)/\(limit)")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(noteInput.count > limit - 20
-                                         ? Color(hex: "FF453A")
-                                         : Color(hex: "3A3A3A"))
-                    Spacer()
-                }
-                .padding(.horizontal, 24)
-
-                HStack(spacing: 12) {
-                    Button("Skip") {
-                        dismiss()
-                    }
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(12)
-                    .buttonStyle(.plain)
-
-                    Button {
-                        store.saveNote(planID: planID, weekID: weekID,
-                                       dayID: day.id, note: noteInput)
-                        dismiss()
-                    } label: {
-                        Text("Save Note")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color(hex: "30D158"))
-                            .cornerRadius(12)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 16)
-
-                Spacer()
-            }
-        }
-
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.hidden)
-        .onAppear {
-            noteInput = day.completionNote ?? ""
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                focused = true
-            }
-        }
-    }
-}
-
 // MARK: - Race Day Row
 
 struct SPVRaceDayRow: View {
@@ -924,12 +825,12 @@ struct SPVRaceDayRow: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("26.2 miles")
+                    Text(String(format: "%.1f miles", day.miles))
                         .font(.system(size: 22, weight: .thin,
                                       design: .monospaced))
                         .foregroundColor(.primary)
                     Spacer()
-                    Text("🏅 42.2 km")
+                    Text(day.miles > 20 ? "🏅 42.2 km" : "🏅 21.1 km")
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                 }
