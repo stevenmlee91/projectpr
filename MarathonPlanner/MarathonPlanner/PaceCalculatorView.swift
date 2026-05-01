@@ -1,24 +1,146 @@
 import SwiftUI
 
+// MARK: - Race Distance Mode
+
+enum PaceCalculatorMode: String, CaseIterable {
+    case marathon     = "Marathon"
+    case halfMarathon = "Half Marathon"
+
+    var label: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .marathon:     return "figure.run"
+        case .halfMarathon: return "figure.run.circle"
+        }
+    }
+
+    var heroLabel: String {
+        switch self {
+        case .marathon:     return "Marathon Pace"
+        case .halfMarathon: return "Half Marathon Pace"
+        }
+    }
+
+    var heroSubtitle: String {
+        switch self {
+        case .marathon:     return "Your goal race pace"
+        case .halfMarathon: return "Your goal half marathon pace"
+        }
+    }
+
+    var treadmillRaceLabel: String {
+        switch self {
+        case .marathon:     return "Marathon Pace"
+        case .halfMarathon: return "HM Pace"
+        }
+    }
+
+    // Default hours for the picker
+    var defaultHours: Int {
+        switch self {
+        case .marathon:     return 3
+        case .halfMarathon: return 1
+        }
+    }
+
+    var defaultMinutes: Int {
+        switch self {
+        case .marathon:     return 30
+        case .halfMarathon: return 45
+        }
+    }
+
+    var hourRange: [Int] {
+        switch self {
+        case .marathon:     return Array(2...6)
+        case .halfMarathon: return Array(1...3)
+        }
+    }
+
+    var presets: [(label: String, hours: Int, minutes: Int)] {
+        switch self {
+        case .marathon:
+            return [
+                ("2:45", 2, 45), ("3:00", 3,  0), ("3:15", 3, 15),
+                ("3:30", 3, 30), ("3:45", 3, 45), ("4:00", 4,  0),
+                ("4:30", 4, 30), ("5:00", 5,  0),
+            ]
+        case .halfMarathon:
+            return [
+                ("1:20", 1, 20), ("1:30", 1, 30), ("1:45", 1, 45),
+                ("2:00", 2,  0), ("2:15", 2, 15), ("2:30", 2, 30),
+            ]
+        }
+    }
+}
+
+// MARK: - Half Marathon Pace Engine
+//
+// Half marathon paces are faster than marathon paces for the same runner.
+// We derive them from the HM goal time directly, using standard
+// equivalency relationships between HM pace and training zones.
+
+struct HalfMarathonPaceEngine {
+    let goalMinutes: Int
+
+    // Half marathon pace in seconds per mile
+    var HMP: Int {
+        Int(Double(goalMinutes) / 13.1 * 60)
+    }
+
+    // Easy: 60–90 sec slower than HMP
+    var easy        : (low: Int, high: Int) { (HMP + 60, HMP + 90)  }
+
+    // Long run: 45–75 sec slower than HMP
+    var longRun     : (low: Int, high: Int) { (HMP + 45, HMP + 75)  }
+
+    // Recovery: 90 sec slower than HMP
+    var recovery    : Int                   { HMP + 90 }
+
+    // Tempo / lactate threshold: ~10 sec faster than HMP
+    var tempo       : Int                   { HMP - 10 }
+
+    // Threshold: ~20 sec faster than HMP
+    var threshold   : Int                   { HMP - 20 }
+
+    // Intervals (5K effort): ~40 sec faster than HMP
+    var intervals   : Int                   { HMP - 40 }
+
+    // Speed / repetition: ~60 sec faster than HMP
+    var speed       : Int                   { HMP - 60 }
+
+    static func format(_ s: Int) -> String {
+        let safe = max(s, 60)
+        return String(format: "%d:%02d", safe / 60, safe % 60)
+    }
+
+    func rangeString(_ r: (low: Int, high: Int)) -> String {
+        "\(HalfMarathonPaceEngine.format(r.high))–\(HalfMarathonPaceEngine.format(r.low))"
+    }
+
+    func singleString(_ s: Int) -> String {
+        HalfMarathonPaceEngine.format(s)
+    }
+}
+
 // MARK: - Pace Calculator View
 
 struct PaceCalculatorView: View {
+    @State private var mode          : PaceCalculatorMode = .marathon
     @State private var hours         = 3
     @State private var minutes       = 30
     @State private var useKilometers = false
     @State private var copied        = false
 
-    private let presets: [(label: String, hours: Int, minutes: Int)] = [
-        ("2:45", 2, 45), ("3:00", 3,  0), ("3:15", 3, 15),
-        ("3:30", 3, 30), ("3:45", 3, 45), ("4:00", 4,  0),
-        ("4:30", 4, 30), ("5:00", 5,  0),
-    ]
-
     private var goalMinutes: Int { hours * 60 + minutes }
 
-    // Uses the existing PaceEngine from TrainingPlan.swift
-    private var engine: PaceEngine {
+    private var marathonEngine: PaceEngine {
         PaceEngine(goalMinutes: goalMinutes)
+    }
+
+    private var halfEngine: HalfMarathonPaceEngine {
+        HalfMarathonPaceEngine(goalMinutes: goalMinutes)
     }
 
     var body: some View {
@@ -27,6 +149,7 @@ struct PaceCalculatorView: View {
                 Color(.systemBackground).ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 0) {
+                        modeSelector
                         header
                         timePicker
                         presetRow
@@ -48,13 +171,49 @@ struct PaceCalculatorView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { copyAllPaces() } label: {
-                        Image(systemName: copied
-                              ? "checkmark" : "doc.on.doc")
+                        Image(systemName: copied ? "checkmark" : "doc.on.doc")
                             .foregroundColor(.primary)
                     }
                 }
             }
         }
+    }
+
+    // MARK: - Mode Selector
+
+    private var modeSelector: some View {
+        HStack(spacing: 8) {
+            ForEach(PaceCalculatorMode.allCases, id: \.self) { m in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        mode    = m
+                        hours   = m.defaultHours
+                        minutes = m.defaultMinutes
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: m.icon)
+                            .font(.system(size: 12, weight: .medium))
+                        Text(m.label)
+                            .font(.system(size: 12, weight: .semibold,
+                                          design: .monospaced))
+                    }
+                    .foregroundColor(mode == m
+                                     ? Color(.systemBackground)
+                                     : .primary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(mode == m
+                                ? Color(.label)
+                                : Color(.secondarySystemBackground))
+                    .cornerRadius(10)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
     }
 
     // MARK: - Header
@@ -71,7 +230,7 @@ struct PaceCalculatorView: View {
                     .font(.system(size: 52, weight: .thin,
                                   design: .monospaced))
                     .foregroundColor(.primary)
-                Text("marathon")
+                Text(mode == .marathon ? "marathon" : "half marathon")
                     .font(.system(size: 14, weight: .light))
                     .foregroundColor(.secondary)
                     .padding(.bottom, 6)
@@ -79,8 +238,9 @@ struct PaceCalculatorView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 24)
-        .padding(.top, 20)
+        .padding(.top, 12)
         .padding(.bottom, 16)
+        .animation(.none, value: mode)
     }
 
     // MARK: - Time Picker
@@ -90,7 +250,7 @@ struct PaceCalculatorView: View {
             Color(.secondarySystemBackground)
             HStack(spacing: 0) {
                 Picker("Hours", selection: $hours) {
-                    ForEach(2...6, id: \.self) { h in
+                    ForEach(mode.hourRange, id: \.self) { h in
                         Text("\(h)h").tag(h)
                     }
                 }
@@ -123,7 +283,7 @@ struct PaceCalculatorView: View {
     private var presetRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(presets, id: \.label) { preset in
+                ForEach(mode.presets, id: \.label) { preset in
                     let isSelected = hours == preset.hours
                                   && minutes == preset.minutes
                     Button {
@@ -178,12 +338,26 @@ struct PaceCalculatorView: View {
 
     private var paceCards: some View {
         VStack(spacing: 10) {
-            // Marathon Pace — hero card
+            if mode == .marathon {
+                marathonPaceCards
+            } else {
+                halfMarathonPaceCards
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 20)
+        .animation(.easeInOut(duration: 0.25), value: mode)
+    }
+
+    // MARK: Marathon Cards
+
+    private var marathonPaceCards: some View {
+        VStack(spacing: 10) {
             heroPaceCard(
-                label:    "Marathon Pace",
+                label:    mode.heroLabel,
                 icon:     "flag.checkered",
-                seconds:  engine.MP,
-                subtitle: "Your goal race pace",
+                seconds:  marathonEngine.MP,
+                subtitle: mode.heroSubtitle,
                 color:    Color(hex: "0A84FF")
             )
 
@@ -193,40 +367,87 @@ struct PaceCalculatorView: View {
             ], spacing: 10) {
                 paceCard(label: "Easy Run",
                          icon:  "figure.walk",
-                         range: engine.easy,
+                         range: marathonEngine.easy,
                          color: Color(hex: "30D158"))
 
                 paceCard(label: "Long Run",
                          icon:  "arrow.right.to.line",
-                         range: engine.longRun,
+                         range: marathonEngine.longRun,
                          color: Color(hex: "30D158"))
 
                 paceCard(label: "Tempo",
                          icon:  "flame",
-                         seconds: engine.higdonTempo,
+                         seconds: marathonEngine.higdonTempo,
                          color: Color(hex: "FF9F0A"))
 
                 paceCard(label: "Threshold",
                          icon:  "bolt",
-                         seconds: engine.pfitzLT,
+                         seconds: marathonEngine.pfitzLT,
                          color: Color(hex: "FF9F0A"))
 
                 paceCard(label: "Intervals",
                          icon:  "repeat",
-                         seconds: engine.dInterval,
+                         seconds: marathonEngine.dInterval,
                          color: Color(hex: "FF453A"))
 
                 paceCard(label: "Recovery",
                          icon:  "moon",
-                         seconds: engine.recovery,
+                         seconds: marathonEngine.recovery,
                          color: Color(hex: "BF5AF2"))
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 20)
     }
 
-    // MARK: - Hero Card (single pace)
+    // MARK: Half Marathon Cards
+
+    private var halfMarathonPaceCards: some View {
+        VStack(spacing: 10) {
+            heroPaceCard(
+                label:    mode.heroLabel,
+                icon:     "flag.checkered",
+                seconds:  halfEngine.HMP,
+                subtitle: mode.heroSubtitle,
+                color:    Color(hex: "0A84FF")
+            )
+
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 10) {
+                paceCard(label: "Easy Run",
+                         icon:  "figure.walk",
+                         range: halfEngine.easy,
+                         color: Color(hex: "30D158"))
+
+                paceCard(label: "Long Run",
+                         icon:  "arrow.right.to.line",
+                         range: halfEngine.longRun,
+                         color: Color(hex: "30D158"))
+
+                paceCard(label: "Tempo",
+                         icon:  "flame",
+                         seconds: halfEngine.tempo,
+                         color: Color(hex: "FF9F0A"))
+
+                paceCard(label: "Threshold",
+                         icon:  "bolt",
+                         seconds: halfEngine.threshold,
+                         color: Color(hex: "FF9F0A"))
+
+                paceCard(label: "Intervals",
+                         icon:  "repeat",
+                         seconds: halfEngine.intervals,
+                         color: Color(hex: "FF453A"))
+
+                paceCard(label: "Recovery",
+                         icon:  "moon",
+                         seconds: halfEngine.recovery,
+                         color: Color(hex: "BF5AF2"))
+            }
+        }
+    }
+
+    // MARK: - Hero Card
 
     private func heroPaceCard(label: String, icon: String,
                                seconds: Int, subtitle: String,
@@ -338,25 +559,47 @@ struct PaceCalculatorView: View {
                 .padding(.horizontal, 4)
 
             VStack(spacing: 0) {
-                treadmillRow(label: "Easy Run",
-                             seconds: (engine.easy.low + engine.easy.high) / 2,
-                             display: displayRange(engine.easy),
-                             isLast: false)
-                Divider().padding(.leading, 16)
-                treadmillRow(label: "Marathon Pace",
-                             seconds: engine.MP,
-                             display: displaySingle(engine.MP),
-                             isLast: false)
-                Divider().padding(.leading, 16)
-                treadmillRow(label: "Tempo",
-                             seconds: engine.higdonTempo,
-                             display: displaySingle(engine.higdonTempo),
-                             isLast: false)
-                Divider().padding(.leading, 16)
-                treadmillRow(label: "Threshold",
-                             seconds: engine.pfitzLT,
-                             display: displaySingle(engine.pfitzLT),
-                             isLast: true)
+                if mode == .marathon {
+                    treadmillRow(label: "Easy Run",
+                                 seconds: (marathonEngine.easy.low + marathonEngine.easy.high) / 2,
+                                 display: displayRange(marathonEngine.easy),
+                                 isLast: false)
+                    Divider().padding(.leading, 16)
+                    treadmillRow(label: mode.treadmillRaceLabel,
+                                 seconds: marathonEngine.MP,
+                                 display: displaySingle(marathonEngine.MP),
+                                 isLast: false)
+                    Divider().padding(.leading, 16)
+                    treadmillRow(label: "Tempo",
+                                 seconds: marathonEngine.higdonTempo,
+                                 display: displaySingle(marathonEngine.higdonTempo),
+                                 isLast: false)
+                    Divider().padding(.leading, 16)
+                    treadmillRow(label: "Threshold",
+                                 seconds: marathonEngine.pfitzLT,
+                                 display: displaySingle(marathonEngine.pfitzLT),
+                                 isLast: true)
+                } else {
+                    treadmillRow(label: "Easy Run",
+                                 seconds: (halfEngine.easy.low + halfEngine.easy.high) / 2,
+                                 display: displayRange(halfEngine.easy),
+                                 isLast: false)
+                    Divider().padding(.leading, 16)
+                    treadmillRow(label: mode.treadmillRaceLabel,
+                                 seconds: halfEngine.HMP,
+                                 display: displaySingle(halfEngine.HMP),
+                                 isLast: false)
+                    Divider().padding(.leading, 16)
+                    treadmillRow(label: "Tempo",
+                                 seconds: halfEngine.tempo,
+                                 display: displaySingle(halfEngine.tempo),
+                                 isLast: false)
+                    Divider().padding(.leading, 16)
+                    treadmillRow(label: "Threshold",
+                                 seconds: halfEngine.threshold,
+                                 display: displaySingle(halfEngine.threshold),
+                                 isLast: true)
+                }
             }
             .background(Color(.secondarySystemBackground))
             .cornerRadius(14)
@@ -388,18 +631,15 @@ struct PaceCalculatorView: View {
 
     // MARK: - Display Helpers
 
-    // Format seconds to "M:SS"
     private func fmt(_ s: Int) -> String {
         let safe = max(s, 60)
         return String(format: "%d:%02d", safe / 60, safe % 60)
     }
 
-    // Single pace — optionally converted to km
     private func displaySingle(_ seconds: Int) -> String {
         useKilometers ? fmt(toKmSeconds(seconds)) : fmt(seconds)
     }
 
-    // Range pace — optionally converted to km
     private func displayRange(_ range: (low: Int, high: Int)) -> String {
         if useKilometers {
             return "\(fmt(toKmSeconds(range.high)))–\(fmt(toKmSeconds(range.low)))"
@@ -407,12 +647,10 @@ struct PaceCalculatorView: View {
         return "\(fmt(range.high))–\(fmt(range.low))"
     }
 
-    // Convert seconds/mile to seconds/km
     private func toKmSeconds(_ secondsPerMile: Int) -> Int {
         Int(Double(secondsPerMile) / 1.60934)
     }
 
-    // Treadmill MPH from seconds per mile
     private func mph(from secondsPerMile: Int) -> String {
         guard secondsPerMile > 0 else { return "—" }
         return String(format: "%.1f", 3600.0 / Double(secondsPerMile))
@@ -421,19 +659,38 @@ struct PaceCalculatorView: View {
     // MARK: - Copy
 
     private func copyAllPaces() {
-        let unit = useKilometers ? "/km" : "/mi"
-        let text = """
-        Mile Zero — Pace Calculator
-        Goal: \(String(format: "%d:%02d", hours, minutes)) Marathon
+        let unit      = useKilometers ? "/km" : "/mi"
+        let raceLabel = mode == .marathon ? "Marathon" : "Half Marathon"
+        let text: String
 
-        Marathon Pace:  \(displaySingle(engine.MP))\(unit)
-        Easy Run:       \(displayRange(engine.easy))\(unit)
-        Long Run:       \(displayRange(engine.longRun))\(unit)
-        Tempo:          \(displaySingle(engine.higdonTempo))\(unit)
-        Threshold:      \(displaySingle(engine.pfitzLT))\(unit)
-        Intervals:      \(displaySingle(engine.dInterval))\(unit)
-        Recovery:       \(displaySingle(engine.recovery))\(unit)
-        """
+        if mode == .marathon {
+            text = """
+            Mile Zero — Pace Calculator
+            Goal: \(String(format: "%d:%02d", hours, minutes)) \(raceLabel)
+
+            \(raceLabel) Pace:  \(displaySingle(marathonEngine.MP))\(unit)
+            Easy Run:          \(displayRange(marathonEngine.easy))\(unit)
+            Long Run:          \(displayRange(marathonEngine.longRun))\(unit)
+            Tempo:             \(displaySingle(marathonEngine.higdonTempo))\(unit)
+            Threshold:         \(displaySingle(marathonEngine.pfitzLT))\(unit)
+            Intervals:         \(displaySingle(marathonEngine.dInterval))\(unit)
+            Recovery:          \(displaySingle(marathonEngine.recovery))\(unit)
+            """
+        } else {
+            text = """
+            Mile Zero — Pace Calculator
+            Goal: \(String(format: "%d:%02d", hours, minutes)) \(raceLabel)
+
+            HM Pace:    \(displaySingle(halfEngine.HMP))\(unit)
+            Easy Run:   \(displayRange(halfEngine.easy))\(unit)
+            Long Run:   \(displayRange(halfEngine.longRun))\(unit)
+            Tempo:      \(displaySingle(halfEngine.tempo))\(unit)
+            Threshold:  \(displaySingle(halfEngine.threshold))\(unit)
+            Intervals:  \(displaySingle(halfEngine.intervals))\(unit)
+            Recovery:   \(displaySingle(halfEngine.recovery))\(unit)
+            """
+        }
+
         UIPasteboard.general.string = text
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         withAnimation { copied = true }

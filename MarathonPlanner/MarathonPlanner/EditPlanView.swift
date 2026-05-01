@@ -26,6 +26,7 @@ struct EditPlanView: View {
         || editedSettings.baseMileage  != plan.settings.baseMileage
         || editedSettings.planType     != plan.settings.planType
         || editedSettings.planLength   != plan.settings.planLength
+        || editedSettings.taperDuration != plan.settings.taperDuration
     }
 
     private var hasAnyChange: Bool {
@@ -34,6 +35,21 @@ struct EditPlanView: View {
         || editedSettings.planType     != plan.settings.planType
         || editedSettings.planLength   != plan.settings.planLength
         || editedSettings.schedule     != plan.settings.schedule
+    }
+
+    // Available plan types filtered to same race type as original plan
+    private var availablePlanTypes: [PlanType] {
+        PlanType.options(for: plan.settings.raceType)
+    }
+
+    private var availableLengths: [PlanLength] {
+        PlanLength.options(for: plan.settings.raceType)
+    }
+
+    private var goalHourRange: [Int] {
+        plan.settings.raceType == .halfMarathon
+            ? Array(1...3)
+            : Array(2...6)
     }
 
     var body: some View {
@@ -49,6 +65,7 @@ struct EditPlanView: View {
                             goalTimeSection
                             baseMileageSection
                             planLengthSection
+                            taperSection
                         }
                         Group {
                             longRunDaySection
@@ -128,7 +145,7 @@ struct EditPlanView: View {
         VStack(spacing: 0) {
             EditLabel("PLAN TYPE")
             VStack(spacing: 1) {
-                ForEach(PlanType.allCases) { p in
+                ForEach(availablePlanTypes) { p in
                     EditPlanTypeRow(
                         plan:       p,
                         isSelected: editedSettings.planType == p,
@@ -155,7 +172,7 @@ struct EditPlanView: View {
                 Color(.secondarySystemBackground)
                 HStack(spacing: 0) {
                     Picker("", selection: $goalHours) {
-                        ForEach(2...6, id: \.self) { h in
+                        ForEach(goalHourRange, id: \.self) { h in
                             Text("\(h)h").tag(h)
                         }
                     }
@@ -242,7 +259,7 @@ struct EditPlanView: View {
         VStack(spacing: 0) {
             EditLabel("PLAN LENGTH")
             HStack(spacing: 10) {
-                ForEach(PlanLength.allCases) { length in
+                ForEach(availableLengths) { length in
                     EditDurationChip(
                         label:      length.label,
                         isSelected: editedSettings.planLength == length,
@@ -250,6 +267,62 @@ struct EditPlanView: View {
                     )
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+        }
+    }
+    // MARK: - Taper Duration
+
+    private var taperSection: some View {
+        VStack(spacing: 0) {
+            EditLabel("TAPER LENGTH")
+            ZStack {
+                Color(.secondarySystemBackground)
+                VStack(spacing: 0) {
+                    ForEach(TaperDuration.allCases) { option in
+                        Button {
+                            editedSettings.taperDuration = option
+                        } label: {
+                            HStack(spacing: 14) {
+                                Circle()
+                                    .stroke(editedSettings.taperDuration == option
+                                            ? Color.accentColor : Color(.systemFill),
+                                            lineWidth: 1.5)
+                                    .background(Circle().fill(
+                                        editedSettings.taperDuration == option
+                                            ? Color.accentColor.opacity(0.15)
+                                            : Color.clear))
+                                    .frame(width: 16, height: 16)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(option.label)
+                                        .font(.system(size: 14,
+                                                      weight: editedSettings.taperDuration == option
+                                                          ? .semibold : .regular))
+                                        .foregroundColor(.primary)
+                                    Text(option.description)
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                if editedSettings.taperDuration == option {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(.accentColor)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(editedSettings.taperDuration == option
+                                        ? Color(.systemFill) : Color.clear)
+                        }
+                        .buttonStyle(.plain)
+                        if option != TaperDuration.allCases.last {
+                            Divider().padding(.leading, 46)
+                        }
+                    }
+                }
+            }
+            .cornerRadius(12)
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
@@ -274,12 +347,9 @@ struct EditPlanView: View {
 
     private var primaryWorkoutSection: some View {
         Group {
-            if editedSettings.planType != .higdon {
-                EditScheduleLabel(
-                    editedSettings.planType == .higdonIntermediate
-                        ? "TEMPO DAY"
-                        : "PRIMARY WORKOUT DAY (Q1)"
-                )
+            if editedSettings.planType != .higdon
+                && editedSettings.planType != .higdonHalfNovice {
+                EditScheduleLabel(primaryWorkoutLabel)
                 SingleDayPicker(
                     selected: $editedSettings.schedule.workoutDay1,
                     disabled: [editedSettings.schedule.longRunDay]
@@ -290,13 +360,23 @@ struct EditPlanView: View {
         }
     }
 
+    private var primaryWorkoutLabel: String {
+        switch editedSettings.planType {
+        case .higdonIntermediate, .higdonHalfIntermediate:
+            return "TEMPO DAY"
+        default:
+            return "PRIMARY WORKOUT DAY (Q1)"
+        }
+    }
+
     // MARK: - Secondary Workout Day
 
     private var secondaryWorkoutSection: some View {
         Group {
             if editedSettings.planType == .hansons
                 || editedSettings.planType == .pfitz
-                || editedSettings.planType == .jackDaniels {
+                || editedSettings.planType == .jackDaniels
+                || editedSettings.planType == .hansonsHalf {
                 EditScheduleLabel("SECONDARY WORKOUT DAY (Q2)")
                 SingleDayPicker(
                     selected: $editedSettings.schedule.workoutDay2,
@@ -358,10 +438,10 @@ struct EditPlanView: View {
             HStack(spacing: 6) {
                 Image(systemName: "info.circle")
                     .font(.system(size: 10))
-                    .foregroundColor(Color(hex: "3A3A3A"))
+                    .foregroundColor(.secondary)
                 Text("Days with assigned runs cannot be rest days.")
                     .font(.system(size: 11))
-                    .foregroundColor(Color(hex: "3A3A3A"))
+                    .foregroundColor(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
@@ -388,17 +468,16 @@ struct EditPlanView: View {
                     }
                     ForEach(issues, id: \.self) { msg in
                         HStack(alignment: .top, spacing: 6) {
-                            Text("•")
-                                .foregroundColor(.secondary)
+                            Text("•").foregroundColor(.secondary)
                             Text(msg)
                                 .font(.system(size: 11))
-                                .foregroundColor(Color(hex: "9A9A9A"))
+                                .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     Text("Auto-resolved when saved.")
                         .font(.system(size: 10))
-                        .foregroundColor(Color(hex: "4A4A4A"))
+                        .foregroundColor(.secondary)
                 }
                 .padding(14)
                 .background(Color(.secondarySystemBackground))
@@ -413,19 +492,14 @@ struct EditPlanView: View {
 
     private var previewSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("PREVIEW CHANGES")
-                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .foregroundColor(Color(hex: "3E3E3E"))
-                .kerning(3)
-                .padding(.leading, 20)
-                .padding(.bottom, 8)
+            EditLabel("PREVIEW CHANGES")
 
             VStack(alignment: .leading, spacing: 8) {
                 let notes = buildChangeNotes()
                 if notes.isEmpty {
                     Text("No changes made yet.")
                         .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "4A4A4A"))
+                        .foregroundColor(.secondary)
                 } else {
                     ForEach(notes, id: \.self) { note in
                         HStack(alignment: .top, spacing: 8) {
@@ -435,7 +509,7 @@ struct EditPlanView: View {
                                 .padding(.top, 2)
                             Text(note)
                                 .font(.system(size: 12))
-                                .foregroundColor(Color(hex: "9A9A9A"))
+                                .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -464,7 +538,7 @@ struct EditPlanView: View {
                                       design: .monospaced))
                         .kerning(1)
                 }
-                .foregroundColor(Color(hex: "9A9A9A"))
+                .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(Color(.secondarySystemBackground))
@@ -477,7 +551,6 @@ struct EditPlanView: View {
                 HStack(spacing: 10) {
                     if isSaving {
                         ProgressView()
-                            .tint(.black)
                             .scaleEffect(0.8)
                         Text("SAVING...")
                             .font(.system(size: 13, weight: .semibold,
@@ -496,10 +569,12 @@ struct EditPlanView: View {
                             .kerning(1)
                     }
                 }
-                .foregroundColor(.black)
+                .foregroundColor(Color(.systemBackground))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
-                .background(hasAnyChange ? Color.white : Color(.tertiarySystemBackground))
+                .background(hasAnyChange
+                            ? Color(.label)
+                            : Color(.systemFill))
                 .cornerRadius(14)
             }
             .disabled(!hasAnyChange || isSaving)
@@ -571,9 +646,7 @@ struct EditPlanView: View {
         let oldRest = old.schedule.restDays.map { $0.name }.sorted().joined(separator: ", ")
         let newRest = new.schedule.restDays.map { $0.name }.sorted().joined(separator: ", ")
         if oldRest != newRest {
-            let oldStr = oldRest.isEmpty ? "None" : oldRest
-            let newStr = newRest.isEmpty ? "None" : newRest
-            notes.append("Rest days: \(oldStr) → \(newStr)")
+            notes.append("Rest days: \(oldRest.isEmpty ? "None" : oldRest) → \(newRest.isEmpty ? "None" : newRest)")
         }
         return notes
     }
@@ -582,11 +655,16 @@ struct EditPlanView: View {
 
     private var restLabel: String {
         switch editedSettings.planType {
-        case .hansons:            return "REST DAY (1 ONLY)"
-        case .pfitz:              return "REST DAY (1 MAXIMUM)"
-        case .higdon:             return "REST DAYS (SELECT 2)"
-        case .higdonIntermediate: return "REST DAY (1 MINIMUM)"
-        case .jackDaniels:        return "REST DAYS (1–2)"
+        case .hansons, .hansonsHalf:
+            return "REST DAY (1 ONLY)"
+        case .pfitz:
+            return "REST DAY (1 MAXIMUM)"
+        case .higdon, .higdonHalfNovice:
+            return "REST DAYS (SELECT 2)"
+        case .higdonIntermediate, .higdonHalfIntermediate:
+            return "REST DAY (1 MINIMUM)"
+        case .jackDaniels:
+            return "REST DAYS (1–2)"
         }
     }
 
@@ -595,7 +673,9 @@ struct EditPlanView: View {
         let p = editedSettings.planType
         var hard = Set<Weekday>()
         hard.insert(s.longRunDay)
-        if p != .higdon             { hard.insert(s.workoutDay1) }
+        if p != .higdon && p != .higdonHalfNovice {
+            hard.insert(s.workoutDay1)
+        }
         if p.requiresTwoWorkoutDays { hard.insert(s.workoutDay2) }
         if p.usesMidweekLongRun     { hard.insert(s.midweekLongDay) }
         if p.usesCrossTraining, let ct = s.crossTrainDay { hard.insert(ct) }
@@ -614,16 +694,17 @@ struct EditPlanView: View {
 
     private func minimumRunDays(for plan: PlanType) -> Int {
         switch plan {
-        case .hansons: return 6
-        case .pfitz:   return 5
-        default:       return 4
+        case .hansons, .hansonsHalf: return 6
+        case .pfitz:                 return 5
+        default:                     return 3
         }
     }
 
     private func midweekDisabled() -> [Weekday] {
         let s = editedSettings.schedule
         var d = [s.longRunDay] + s.restDays
-        if editedSettings.planType != .higdon {
+        if editedSettings.planType != .higdon
+            && editedSettings.planType != .higdonHalfNovice {
             d.append(s.workoutDay1)
         }
         if editedSettings.planType.requiresTwoWorkoutDays {
@@ -634,7 +715,8 @@ struct EditPlanView: View {
 
     private func allAssigned() -> [Weekday] {
         let s = editedSettings.schedule
-        var t = [s.longRunDay, s.workoutDay1, s.workoutDay2, s.midweekLongDay]
+        var t = [s.longRunDay, s.workoutDay1,
+                 s.workoutDay2, s.midweekLongDay]
         t += s.restDays
         if let ct = s.crossTrainDay { t.append(ct) }
         return t
@@ -648,7 +730,8 @@ struct EditPlanView: View {
         if s.restDays.contains(s.longRunDay) {
             issues.append("\(s.longRunDay.fullName) is both a rest day and your long run day.")
         }
-        if p != .higdon && s.restDays.contains(s.workoutDay1) {
+        if p != .higdon && p != .higdonHalfNovice
+            && s.restDays.contains(s.workoutDay1) {
             issues.append("\(s.workoutDay1.fullName) is both a rest day and a workout day.")
         }
         if p.requiresTwoWorkoutDays && s.restDays.contains(s.workoutDay2) {
@@ -658,7 +741,7 @@ struct EditPlanView: View {
             issues.append("Workout Day 1 and Day 2 are the same (\(s.workoutDay1.fullName)).")
         }
         if p.usesMidweekLongRun && s.midweekLongDay == s.longRunDay {
-            issues.append("Midweek run and long run are on the same day (\(s.longRunDay.fullName)).")
+            issues.append("Midweek run and long run are on the same day.")
         }
         return issues
     }
@@ -676,7 +759,7 @@ struct EditLabel: View {
     var body: some View {
         Text(t)
             .font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .foregroundColor(Color(hex: "3E3E3E"))
+            .foregroundColor(.secondary)
             .kerning(3)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 20)
@@ -690,7 +773,7 @@ struct EditScheduleLabel: View {
     var body: some View {
         Text(t)
             .font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .foregroundColor(Color(hex: "4A4A4A"))
+            .foregroundColor(.secondary)
             .kerning(3)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 20)
@@ -707,25 +790,32 @@ struct EditPlanTypeRow: View {
         Button(action: onTap) {
             HStack(spacing: 14) {
                 Circle()
-                    .stroke(isSelected ? Color.white : Color(hex: "3A3A3A"),
+                    .stroke(isSelected ? Color.accentColor : Color(.systemFill),
                             lineWidth: 1.5)
-                    .background(Circle().fill(isSelected ? Color.white : Color.clear))
+                    .background(Circle().fill(isSelected
+                                              ? Color.accentColor.opacity(0.15)
+                                              : Color.clear))
                     .frame(width: 16, height: 16)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(plan.rawValue)
                         .font(.system(size: 14,
-                                      weight: isSelected ? .medium : .regular))
-                        .foregroundColor(isSelected ? .white : Color(hex: "9A9A9A"))
+                                      weight: isSelected ? .semibold : .regular))
+                        .foregroundColor(.primary)
                     Text(plan.description)
                         .font(.system(size: 10))
-                        .foregroundColor(Color(hex: "4A4A4A"))
-                        .lineLimit(1)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
                 }
                 Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.accentColor)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(isSelected ? Color(hex: "222222") : Color.clear)
+            .background(isSelected ? Color(.systemFill) : Color.clear)
         }
         .buttonStyle(.plain)
     }
@@ -742,10 +832,14 @@ struct EditDurationChip: View {
                 .font(.system(size: 12,
                               weight: isSelected ? .semibold : .regular,
                               design: .monospaced))
-                .foregroundColor(isSelected ? .black : Color(hex: "5E5E5E"))
+                .foregroundColor(isSelected
+                                 ? Color(.systemBackground)
+                                 : .secondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(isSelected ? Color.white : Color(.secondarySystemBackground))
+                .background(isSelected
+                            ? Color(.label)
+                            : Color(.secondarySystemBackground))
                 .cornerRadius(8)
         }
         .buttonStyle(.plain)
@@ -783,12 +877,11 @@ struct EditCrossTrainToggle: View {
                         }
                     ))
                     .labelsHidden()
-                    .tint(.white)
                 }
                 .padding(16)
 
                 if schedule.crossTrainDay != nil {
-                    Divider().background(Color(.tertiarySystemBackground))
+                    Divider()
                     HStack(spacing: 5) {
                         ForEach(Weekday.allCases) { day in
                             let isSel = schedule.crossTrainDay == day
@@ -803,15 +896,17 @@ struct EditCrossTrainToggle: View {
                                                   weight: isSel ? .semibold : .regular,
                                                   design: .monospaced))
                                     .foregroundColor(
-                                        isDis ? Color(.tertiarySystemBackground) :
+                                        isDis ? Color(.tertiaryLabel) :
                                         isSel ? Color(.systemBackground) :
-                                                Color(hex: "5E5E5E"))
+                                                .secondary
+                                    )
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
                                     .background(
-                                        isDis ? Color(hex: "1C1C1C") :
-                                        isSel ? Color.white :
-                                                Color(hex: "242424"))
+                                        isDis ? Color(.tertiarySystemFill) :
+                                        isSel ? Color(.label) :
+                                                Color(.tertiarySystemBackground)
+                                    )
                                     .cornerRadius(7)
                             }
                             .buttonStyle(.plain)

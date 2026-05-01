@@ -34,7 +34,7 @@ struct ScheduleSetupView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    // MARK: Header
+    // MARK: - Header
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -58,11 +58,11 @@ struct ScheduleSetupView: View {
 
     private var planDescription: String {
         switch plan {
-        case .higdon:
-            return "Novice: Long run + midweek run + 2 rest days."
-        case .higdonIntermediate:
-            return "Intermediate: Long run + midweek run + tempo + cross-training + 1 rest day."
-        case .hansons:
+        case .higdon, .higdonHalfNovice:
+            return "Long run is the anchor. Easy running builds your base."
+        case .higdonIntermediate, .higdonHalfIntermediate:
+            return "Long run + midweek run + tempo + cross-training."
+        case .hansons, .hansonsHalf:
             return "Six days running. One quality day per week."
         case .pfitz:
             return "Six days running. Two quality days + medium-long run mid-week."
@@ -71,7 +71,7 @@ struct ScheduleSetupView: View {
         }
     }
 
-    // MARK: Long Run Day
+    // MARK: - Long Run Day
 
     private var longRunDaySection: some View {
         VStack(spacing: 0) {
@@ -85,13 +85,13 @@ struct ScheduleSetupView: View {
         }
     }
 
-    // MARK: Workout Days
+    // MARK: - Workout Days
 
     private var workoutDaySection: some View {
         VStack(spacing: 0) {
-            if plan != .higdon {
+            if plan != .higdon && plan != .higdonHalfNovice {
                 ScheduleLabel(
-                    plan == .higdonIntermediate
+                    (plan == .higdonIntermediate || plan == .higdonHalfIntermediate)
                         ? "TEMPO DAY"
                         : "PRIMARY WORKOUT DAY (Q1)"
                 )
@@ -103,7 +103,8 @@ struct ScheduleSetupView: View {
                 .padding(.bottom, 24)
             }
 
-            if plan == .hansons || plan == .pfitz || plan == .jackDaniels {
+            if plan == .hansons || plan == .pfitz
+                || plan == .jackDaniels || plan == .hansonsHalf {
                 ScheduleLabel("SECONDARY WORKOUT DAY (Q2)")
                 SingleDayPicker(
                     selected: $settings.schedule.workoutDay2,
@@ -118,21 +119,19 @@ struct ScheduleSetupView: View {
         }
     }
 
-    // MARK: Rest Days
+    // MARK: - Rest Days
 
     private var restDaySection: some View {
         VStack(spacing: 0) {
             ScheduleLabel(
-                plan == .higdonIntermediate
+                (plan == .higdonIntermediate || plan == .higdonHalfIntermediate)
                     ? "REST DAY (1 required)"
                     : "REST DAYS (2 recommended)"
             )
 
-            let blocked = blockedFromRest()
-
             MultiDayPicker(
                 selected: $settings.schedule.restDays,
-                disabled: blocked
+                disabled: blockedFromRest()
             )
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
@@ -151,7 +150,7 @@ struct ScheduleSetupView: View {
         }
     }
 
-    // MARK: Advanced
+    // MARK: - Advanced
 
     private var advancedSection: some View {
         VStack(spacing: 0) {
@@ -177,7 +176,7 @@ struct ScheduleSetupView: View {
         }
     }
 
-    // MARK: Conflict Banner
+    // MARK: - Conflict Banner
 
     private var conflictBanner: some View {
         Group {
@@ -215,13 +214,17 @@ struct ScheduleSetupView: View {
         }
     }
 
-    // MARK: Helpers
+    // MARK: - Helpers
 
     func blockedFromRest() -> [Weekday] {
         var b = [settings.schedule.longRunDay,
                  settings.schedule.midweekLongDay]
-        if plan != .higdon             { b.append(settings.schedule.workoutDay1) }
-        if plan.requiresTwoWorkoutDays { b.append(settings.schedule.workoutDay2) }
+        if plan != .higdon && plan != .higdonHalfNovice {
+            b.append(settings.schedule.workoutDay1)
+        }
+        if plan.requiresTwoWorkoutDays {
+            b.append(settings.schedule.workoutDay2)
+        }
         if let ct = settings.schedule.crossTrainDay { b.append(ct) }
         return b
     }
@@ -229,8 +232,12 @@ struct ScheduleSetupView: View {
     func midweekDisabled() -> [Weekday] {
         var d = [settings.schedule.longRunDay]
         d += settings.schedule.restDays
-        if plan != .higdon             { d.append(settings.schedule.workoutDay1) }
-        if plan.requiresTwoWorkoutDays { d.append(settings.schedule.workoutDay2) }
+        if plan != .higdon && plan != .higdonHalfNovice {
+            d.append(settings.schedule.workoutDay1)
+        }
+        if plan.requiresTwoWorkoutDays {
+            d.append(settings.schedule.workoutDay2)
+        }
         return d
     }
 
@@ -447,27 +454,37 @@ struct ScheduleLabel: View {
 // MARK: - Schedule Validator
 
 struct ScheduleValidator {
-    static func conflicts(schedule: UserSchedule, planType: PlanType) -> [String] {
+    static func conflicts(schedule: UserSchedule,
+                          planType: PlanType) -> [String] {
         var issues: [String] = []
         let s = schedule
 
         if s.restDays.contains(s.longRunDay) {
-            issues.append("\(s.longRunDay.fullName) is both a rest day and your long run day.")
+            issues.append(
+                "\(s.longRunDay.fullName) is both a rest day and your long run day.")
         }
-        if planType != .higdon && s.restDays.contains(s.workoutDay1) {
-            issues.append("\(s.workoutDay1.fullName) is both a rest day and a workout day.")
+        if planType != .higdon && planType != .higdonHalfNovice
+            && s.restDays.contains(s.workoutDay1) {
+            issues.append(
+                "\(s.workoutDay1.fullName) is both a rest day and a workout day.")
         }
-        if planType.requiresTwoWorkoutDays && s.restDays.contains(s.workoutDay2) {
-            issues.append("\(s.workoutDay2.fullName) is both a rest day and a workout day.")
+        if planType.requiresTwoWorkoutDays
+            && s.restDays.contains(s.workoutDay2) {
+            issues.append(
+                "\(s.workoutDay2.fullName) is both a rest day and a workout day.")
         }
-        if planType.requiresTwoWorkoutDays && s.workoutDay1 == s.workoutDay2 {
+        if planType.requiresTwoWorkoutDays
+            && s.workoutDay1 == s.workoutDay2 {
             issues.append("Workout Day 1 and Workout Day 2 are the same day.")
         }
-        if planType.usesMidweekLongRun && s.midweekLongDay == s.longRunDay {
-            issues.append("Midweek longer run cannot be the same day as your long run.")
+        if planType.usesMidweekLongRun
+            && s.midweekLongDay == s.longRunDay {
+            issues.append(
+                "Midweek longer run cannot be the same day as your long run.")
         }
         if let ct = s.crossTrainDay, s.restDays.contains(ct) {
-            issues.append("\(ct.fullName) is both a rest day and your cross-training day.")
+            issues.append(
+                "\(ct.fullName) is both a rest day and your cross-training day.")
         }
         return issues
     }
