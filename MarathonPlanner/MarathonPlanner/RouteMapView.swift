@@ -1,9 +1,27 @@
 import SwiftUI
 import MapKit
 
+// MARK: - Route Map View
+
 struct RouteMapView: UIViewRepresentable {
 
-    @ObservedObject var vm: RouteBuilderViewModel
+    @ObservedObject var vm  : RouteBuilderViewModel
+    var mapLayer             : MapLayer
+    var poiMode              : MapPOIMode
+    var showsCompass         : Bool
+    var showsScale           : Bool
+
+    init(vm: RouteBuilderViewModel,
+         mapLayer: MapLayer = .standard,
+         poiMode: MapPOIMode = .runnerFocused,
+         showsCompass: Bool = true,
+         showsScale: Bool = true) {
+        self.vm           = vm
+        self.mapLayer     = mapLayer
+        self.poiMode      = poiMode
+        self.showsCompass = showsCompass
+        self.showsScale   = showsScale
+    }
 
     // MARK: Make
 
@@ -11,9 +29,11 @@ struct RouteMapView: UIViewRepresentable {
         let map                = MKMapView()
         map.delegate           = context.coordinator
         map.showsUserLocation  = true
-        map.showsCompass       = true
-        map.showsScale         = true
-        map.isRotateEnabled    = false
+        map.showsCompass       = showsCompass
+        map.showsScale         = showsScale
+        map.isRotateEnabled    = true
+        map.isPitchEnabled     = false
+        map.userTrackingMode   = .none
         map.setRegion(vm.cameraRegion, animated: false)
 
         let tap = UITapGestureRecognizer(
@@ -21,6 +41,10 @@ struct RouteMapView: UIViewRepresentable {
             action: #selector(Coordinator.handleTap(_:))
         )
         map.addGestureRecognizer(tap)
+
+        applyMapLayer(map, layer: mapLayer)
+        map.pointOfInterestFilter = poiMode.filter
+
         return map
     }
 
@@ -28,8 +52,7 @@ struct RouteMapView: UIViewRepresentable {
 
     func updateUIView(_ map: MKMapView, context: Context) {
 
-        // Only move the camera when explicitly requested.
-        // This prevents the map jumping back when the user pans.
+        // Only move camera when explicitly requested
         if vm.shouldMoveCamera {
             map.setRegion(vm.cameraRegion, animated: true)
             DispatchQueue.main.async {
@@ -37,26 +60,48 @@ struct RouteMapView: UIViewRepresentable {
             }
         }
 
+        // Map style + POI
+        applyMapLayer(map, layer: mapLayer)
+        map.pointOfInterestFilter = poiMode.filter
+        map.showsCompass          = showsCompass
+        map.showsScale            = showsScale
+
         // Remove old overlays and annotations
         map.removeOverlays(map.overlays)
         map.removeAnnotations(map.annotations.filter {
             !($0 is MKUserLocation)
         })
 
-        // Add polylines
+        // Draw route with casing effect for contrast
         for segment in vm.segments {
-            map.addOverlay(segment.polyline, level: .aboveRoads)
+            // Casing — wider line underneath
+            let casing       = CasingPolyline(
+                points: segment.polyline.points(),
+                count:  segment.polyline.pointCount
+            )
+            casing.layer = mapLayer
+            map.addOverlay(casing, level: .aboveRoads)
+
+            // Main route line on top
+            let route        = RoutePolyline(
+                points: segment.polyline.points(),
+                count:  segment.polyline.pointCount
+            )
+            route.layer = mapLayer
+            map.addOverlay(route, level: .aboveRoads)
         }
 
-        // Add waypoint pins
+        // Waypoint pins
         for (i, wp) in vm.waypoints.enumerated() {
-            let pin        = MKPointAnnotation()
-            pin.coordinate = wp.coordinate
-            pin.title      = i == 0
+            let pin          = WaypointAnnotation()
+            pin.coordinate   = wp.coordinate
+            pin.title        = i == 0
                 ? "Start"
                 : i == vm.waypoints.count - 1
                     ? "End"
                     : "Point \(i + 1)"
+            pin.index        = i
+            pin.isLast       = i == vm.waypoints.count - 1
             map.addAnnotation(pin)
         }
     }
@@ -67,12 +112,52 @@ struct RouteMapView: UIViewRepresentable {
         Coordinator(vm: vm)
     }
 
+    // MARK: - Apply Map Layer
+
+    private func applyMapLayer(_ map: MKMapView, layer: MapLayer) {
+        switch layer {
+        case .standard:
+            let config                   = MKStandardMapConfiguration()
+            config.emphasisStyle         = .default
+            config.pointOfInterestFilter = poiMode.filter
+            map.preferredConfiguration   = config
+            map.overrideUserInterfaceStyle = .unspecified
+
+        case .muted:
+            let config                   = MKStandardMapConfiguration()
+            config.emphasisStyle         = .muted
+            config.pointOfInterestFilter = poiMode.filter
+            map.preferredConfiguration   = config
+            map.overrideUserInterfaceStyle = .unspecified
+
+        case .satellite:
+            let config                 = MKImageryMapConfiguration()
+            map.preferredConfiguration = config
+            map.overrideUserInterfaceStyle = .unspecified
+
+        case .hybrid:
+            let config                   = MKHybridMapConfiguration()
+            config.pointOfInterestFilter = poiMode.filter
+            map.preferredConfiguration   = config
+            map.overrideUserInterfaceStyle = .unspecified
+
+        case .dark:
+            let config                   = MKStandardMapConfiguration()
+            config.emphasisStyle         = .muted
+            config.pointOfInterestFilter = poiMode.filter
+            map.preferredConfiguration   = config
+            map.overrideUserInterfaceStyle = .dark
+        }
+    }
+
+    // MARK: - Coordinator
+
     class Coordinator: NSObject, MKMapViewDelegate {
         let vm: RouteBuilderViewModel
 
         init(vm: RouteBuilderViewModel) { self.vm = vm }
 
-        // MARK: Tap handler
+        // MARK: Tap
 
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
             guard let map = gesture.view as? MKMapView else { return }
@@ -83,26 +168,42 @@ struct RouteMapView: UIViewRepresentable {
             }
         }
 
-        // MARK: Polyline renderer
+        // MARK: Overlay Renderer
 
         func mapView(_ mapView: MKMapView,
                      rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-            guard let polyline = overlay as? MKPolyline else {
-                return MKOverlayRenderer(overlay: overlay)
+
+            if let casing = overlay as? CasingPolyline {
+                let r         = MKPolylineRenderer(polyline: casing)
+                r.strokeColor = casing.layer.routeCasingColor
+                r.lineWidth   = 8
+                r.lineCap     = .round
+                r.lineJoin    = .round
+                return r
             }
-            let r         = MKPolylineRenderer(polyline: polyline)
-            r.strokeColor = UIColor(Color(hex: "0A84FF"))
-            r.lineWidth   = 4
-            r.lineCap     = .round
-            r.lineJoin    = .round
-            return r
+
+            if let route = overlay as? RoutePolyline {
+                let r         = MKPolylineRenderer(polyline: route)
+                r.strokeColor = route.layer.routeColor
+                r.lineWidth   = 5
+                r.lineCap     = .round
+                r.lineJoin    = .round
+                return r
+            }
+
+            return MKOverlayRenderer(overlay: overlay)
         }
 
-        // MARK: Annotation view
+        // MARK: Annotation View
 
         func mapView(_ mapView: MKMapView,
                      viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+
             guard !(annotation is MKUserLocation) else { return nil }
+
+            guard let wp = annotation as? WaypointAnnotation else {
+                return nil
+            }
 
             let id   = "waypoint"
             let view = mapView.dequeueReusableAnnotationView(
@@ -111,20 +212,40 @@ struct RouteMapView: UIViewRepresentable {
             ?? MKMarkerAnnotationView(annotation: annotation,
                                       reuseIdentifier: id)
 
-            view.annotation     = annotation
-            view.canShowCallout = true
+            view.annotation      = wp
+            view.canShowCallout  = true
+            view.displayPriority = .required
 
-            if annotation.title == "Start" {
+            if wp.title == "Start" {
                 view.markerTintColor = UIColor(Color(hex: "30D158"))
                 view.glyphImage      = UIImage(systemName: "figure.run")
-            } else if annotation.title == "End" {
+            } else if wp.isLast && vm.waypoints.count > 1 {
                 view.markerTintColor = UIColor(Color(hex: "FF453A"))
-                view.glyphImage      = UIImage(systemName: "flag.checkered")
+                view.glyphImage      = UIImage(
+                    systemName: "flag.checkered")
             } else {
                 view.markerTintColor = UIColor(Color(hex: "0A84FF"))
-                view.glyphImage      = nil
+                view.glyphText       = "\(wp.index + 1)"
             }
+
             return view
         }
     }
+}
+
+// MARK: - Custom Polyline Subclasses
+
+class RoutePolyline: MKPolyline {
+    var layer: MapLayer = .standard
+}
+
+class CasingPolyline: MKPolyline {
+    var layer: MapLayer = .standard
+}
+
+// MARK: - Custom Annotations
+
+class WaypointAnnotation: MKPointAnnotation {
+    var index  : Int  = 0
+    var isLast : Bool = false
 }

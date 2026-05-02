@@ -9,24 +9,48 @@ struct RouteBuilderView: View {
     @State private var showClearAlert = false
     @State private var showElevation  = false
     @State private var showSearch     = false
+    @State private var showLayerPicker = false
     @State private var searchQuery    = ""
     @State private var searchResults  : [MKMapItem] = []
     @State private var isSearching    = false
+    @State private var mapLayer       : MapLayer    = .standard
+    @State private var poiMode        : MapPOIMode  = .runnerFocused
+    @State private var useMetric      : Bool        = false
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
 
                 // MARK: Map
-                RouteMapView(vm: vm)
-                    .ignoresSafeArea()
+                RouteMapView(
+                    vm:       vm,
+                    mapLayer: mapLayer,
+                    poiMode:  poiMode
+                )
+                .ignoresSafeArea()
+
+                // MARK: Floating controls — right side
+                VStack {
+                    Spacer().frame(height: 100)
+                    HStack {
+                        Spacer()
+                        MapControlsView(
+                            vm:        vm,
+                            mapLayer:  $mapLayer,
+                            poiMode:   $poiMode,
+                            showLayer: $showLayerPicker,
+                            useMetric: $useMetric
+                        )
+                        .padding(.trailing, 12)
+                    }
+                    Spacer()
+                }
 
                 // MARK: Routing spinner
                 if vm.isRouting {
                     VStack {
                         HStack(spacing: 10) {
-                            ProgressView()
-                                .tint(.white)
+                            ProgressView().tint(.white)
                             Text("Snapping to road...")
                                 .font(.system(size: 12,
                                               weight: .medium,
@@ -68,13 +92,37 @@ struct RouteBuilderView: View {
                     statsBar
                     controlBar
                 }
+
+                // MARK: Layer picker overlay
+                if showLayerPicker {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.3)) {
+                                showLayerPicker = false
+                            }
+                        }
+
+                    VStack {
+                        Spacer()
+                        LayerPickerView(
+                            selectedLayer: $mapLayer,
+                            poiMode:       $poiMode,
+                            isShowing:     $showLayerPicker
+                        )
+                        .transition(.move(edge: .bottom)
+                                        .combined(with: .opacity))
+                        .cornerRadius(20, corners: [.topLeft, .topRight])
+                    }
+                    .ignoresSafeArea(edges: .bottom)
+                    .transition(.opacity)
+                }
             }
+            .animation(.spring(response: 0.35), value: showLayerPicker)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        showSearch = true
-                    } label: {
+                    Button { showSearch = true } label: {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.primary)
                     }
@@ -87,9 +135,7 @@ struct RouteBuilderView: View {
                         .kerning(3)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showWaypoints.toggle()
-                    } label: {
+                    Button { showWaypoints.toggle() } label: {
                         Image(systemName: "list.bullet")
                             .foregroundColor(.primary)
                     }
@@ -125,21 +171,42 @@ struct RouteBuilderView: View {
 
     private var statsBar: some View {
         HStack(spacing: 0) {
-            statCell(value: String(format: "%.2f", vm.totalMiles),
-                     unit:  "mi")
+            statCell(
+                value: useMetric
+                    ? String(format: "%.1f", vm.totalKm)
+                    : String(format: "%.2f", vm.totalMiles),
+                unit: useMetric ? "km" : "mi"
+            )
             Divider().frame(height: 32)
-            statCell(value: String(format: "%.1f", vm.totalKm),
-                     unit:  "km")
+            statCell(
+                value: String(format: "%.0f", vm.totalAscentFeet),
+                unit:  "ft gain"
+            )
             Divider().frame(height: 32)
-            statCell(value: String(format: "%.0f", vm.totalAscentFeet),
-                     unit:  "ft gain")
+            statCell(
+                value: estimatedTime,
+                unit:  "est. time"
+            )
             Divider().frame(height: 32)
-            statCell(value: "\(vm.waypoints.count)",
-                     unit:  "points")
+            statCell(
+                value: "\(vm.waypoints.count)",
+                unit:  "points"
+            )
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .background(.ultraThinMaterial)
+    }
+
+    // Estimated time at 9:00/mi easy pace
+    private var estimatedTime: String {
+        let totalSeconds = vm.totalMiles * 9 * 60
+        let h = Int(totalSeconds) / 3600
+        let m = (Int(totalSeconds) % 3600) / 60
+        if totalSeconds < 60 { return "—" }
+        return h > 0
+            ? String(format: "%d:%02d", h, m)
+            : String(format: "%dm", m)
     }
 
     private func statCell(value: String, unit: String) -> some View {
@@ -162,10 +229,9 @@ struct RouteBuilderView: View {
     private var controlBar: some View {
         VStack(spacing: 0) {
 
-            // MARK: Out-and-back banner
+            // Out-and-back banner
             if vm.waypoints.count >= 2 {
                 if vm.isOutAndBack {
-                    // Active — show cancel
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.triangle.2.circlepath")
                             .font(.system(size: 12, weight: .semibold))
@@ -203,9 +269,7 @@ struct RouteBuilderView: View {
                                 Color(hex: "30D158").opacity(0.2)),
                         alignment: .top
                     )
-
                 } else {
-                    // Inactive — offer to apply
                     Button {
                         vm.applyOutAndBack()
                     } label: {
@@ -217,8 +281,11 @@ struct RouteBuilderView: View {
                                               design: .monospaced))
                                 .kerning(1)
                             Spacer()
-                            Text(String(format: "%.2f mi total",
-                                        vm.totalMiles * 2))
+                            Text(String(format: "%.2f %@ total",
+                                        useMetric
+                                            ? vm.totalKm * 2
+                                            : vm.totalMiles * 2,
+                                        useMetric ? "km" : "mi"))
                                 .font(.system(size: 11,
                                               design: .monospaced))
                                 .foregroundColor(.secondary)
@@ -243,23 +310,15 @@ struct RouteBuilderView: View {
                 }
             }
 
-            // MARK: Main button row
+            // Main button row
             HStack(spacing: 12) {
 
-                // Center on user
-                circleButton(icon:  "location.fill",
-                             color: Color(hex: "0A84FF")) {
-                    vm.centerOnUser()
-                }
-
-                // Undo / cancel out-and-back
-                circleButton(icon:     "arrow.uturn.backward",
-                             color:    .primary,
+                circleButton(icon:  "arrow.uturn.backward",
+                             color: .primary,
                              disabled: !vm.canUndo) {
                     vm.undoLast()
                 }
 
-                // Clear
                 circleButton(icon:     "trash",
                              color:    Color(hex: "FF453A"),
                              disabled: vm.waypoints.isEmpty) {
@@ -280,7 +339,6 @@ struct RouteBuilderView: View {
 
                 Spacer()
 
-                // Elevation button
                 if vm.segments.count >= 1 {
                     Button {
                         showElevation = true
@@ -306,7 +364,6 @@ struct RouteBuilderView: View {
                     .buttonStyle(.plain)
                 }
 
-                // GPX export button
                 Button {
                     if let url = vm.buildGPX() {
                         shareURL = url
@@ -357,15 +414,11 @@ struct RouteBuilderView: View {
         NavigationStack {
             ZStack {
                 Color(.systemBackground).ignoresSafeArea()
-
                 VStack(spacing: 0) {
-
-                    // Search bar
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.secondary)
                             .font(.system(size: 15))
-
                         TextField("Search city, suburb, address...",
                                   text: $searchQuery)
                             .font(.system(size: 15))
@@ -382,7 +435,6 @@ struct RouteBuilderView: View {
                                     searchResults = []
                                 }
                             }
-
                         if !searchQuery.isEmpty {
                             Button {
                                 searchQuery   = ""
@@ -390,7 +442,6 @@ struct RouteBuilderView: View {
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(.secondary)
-                                    .font(.system(size: 15))
                             }
                             .buttonStyle(.plain)
                         }
@@ -407,18 +458,14 @@ struct RouteBuilderView: View {
                     if isSearching {
                         VStack(spacing: 12) {
                             Spacer().frame(height: 40)
-                            ProgressView()
-                                .tint(Color(hex: "0A84FF"))
+                            ProgressView().tint(Color(hex: "0A84FF"))
                             Text("Searching...")
                                 .font(.system(size: 13,
                                               design: .monospaced))
                                 .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity)
-
-                    } else if searchResults.isEmpty
-                                && !searchQuery.isEmpty
-                                && !isSearching {
+                    } else if searchResults.isEmpty && !searchQuery.isEmpty {
                         VStack(spacing: 12) {
                             Spacer().frame(height: 40)
                             Image(systemName: "mappin.slash")
@@ -428,13 +475,11 @@ struct RouteBuilderView: View {
                             Text("No results found")
                                 .font(.system(size: 15, weight: .light,
                                               design: .serif))
-                                .foregroundColor(.primary)
                             Text("Try a different search term.")
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity)
-
                     } else if searchResults.isEmpty {
                         VStack(spacing: 12) {
                             Spacer().frame(height: 40)
@@ -445,14 +490,11 @@ struct RouteBuilderView: View {
                             Text("Search for a location")
                                 .font(.system(size: 15, weight: .light,
                                               design: .serif))
-                                .foregroundColor(.primary)
-                            Text("Type a city, suburb, or address\nto move the map there.")
+                            Text("Type a city, suburb, or address.")
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
                         }
                         .frame(maxWidth: .infinity)
-
                     } else {
                         List(searchResults, id: \.self) { item in
                             Button {
@@ -473,7 +515,6 @@ struct RouteBuilderView: View {
                                             .foregroundColor(
                                                 Color(hex: "0A84FF"))
                                     }
-
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(item.name ?? "Unknown")
                                             .font(.system(size: 14,
@@ -485,9 +526,7 @@ struct RouteBuilderView: View {
                                             .foregroundColor(.secondary)
                                             .lineLimit(1)
                                     }
-
                                     Spacer()
-
                                     Image(systemName: "arrow.right")
                                         .font(.system(size: 11,
                                                       weight: .medium))
@@ -500,7 +539,6 @@ struct RouteBuilderView: View {
                         }
                         .listStyle(.plain)
                     }
-
                     Spacer()
                 }
             }
@@ -559,7 +597,6 @@ struct RouteBuilderView: View {
                                                       design: .monospaced))
                                         .foregroundColor(.white)
                                 }
-
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(i == 0
                                          ? "Start"
@@ -572,23 +609,22 @@ struct RouteBuilderView: View {
                                     Text(String(
                                         format: "%.5f, %.5f",
                                         wp.coordinate.latitude,
-                                        wp.coordinate.longitude
-                                    ))
-                                    .font(.system(size: 10,
-                                                  design: .monospaced))
-                                    .foregroundColor(.secondary)
+                                        wp.coordinate.longitude))
+                                        .font(.system(size: 10,
+                                                      design: .monospaced))
+                                        .foregroundColor(.secondary)
                                 }
-
                                 Spacer()
-
                                 if i < vm.segments.count {
                                     Text(String(
-                                        format: "+%.1f mi",
-                                        vm.segments[i].distanceM / 1609.344
-                                    ))
-                                    .font(.system(size: 11,
-                                                  design: .monospaced))
-                                    .foregroundColor(.secondary)
+                                        format: "+%.1f %@",
+                                        useMetric
+                                            ? vm.segments[i].distanceM / 1000
+                                            : vm.segments[i].distanceM / 1609.344,
+                                        useMetric ? "km" : "mi"))
+                                        .font(.system(size: 11,
+                                                      design: .monospaced))
+                                        .foregroundColor(.secondary)
                                 }
                             }
                             .padding(.vertical, 4)
@@ -613,29 +649,25 @@ struct RouteBuilderView: View {
     private func runSearch() async {
         guard !searchQuery.trimmingCharacters(in: .whitespaces).isEmpty
         else { return }
-
         isSearching   = true
         searchResults = []
-
         let request                  = MKLocalSearch.Request()
         request.naturalLanguageQuery = searchQuery
         request.resultTypes          = [.address, .pointOfInterest]
         request.region               = vm.cameraRegion
-
         do {
             let response  = try await MKLocalSearch(request: request).start()
             searchResults = response.mapItems
         } catch {
             searchResults = []
         }
-
         isSearching = false
     }
 
     private func moveMap(to item: MKMapItem) {
         guard let coord = item.placemark.location?.coordinate
         else { return }
-        vm.cameraRegion = MKCoordinateRegion(
+        vm.cameraRegion     = MKCoordinateRegion(
             center:             coord,
             latitudinalMeters:  2000,
             longitudinalMeters: 2000
@@ -646,12 +678,10 @@ struct RouteBuilderView: View {
     private func formattedAddress(_ item: MKMapItem) -> String {
         let p = item.placemark
         var parts: [String] = []
-        if let city    = p.locality            { parts.append(city)    }
-        if let state   = p.administrativeArea  { parts.append(state)   }
-        if let country = p.country             { parts.append(country) }
-        return parts.isEmpty
-            ? (p.title ?? "")
-            : parts.joined(separator: ", ")
+        if let city    = p.locality           { parts.append(city)    }
+        if let state   = p.administrativeArea { parts.append(state)   }
+        if let country = p.country            { parts.append(country) }
+        return parts.isEmpty ? (p.title ?? "") : parts.joined(separator: ", ")
     }
 
     private func mapItemIcon(_ item: MKMapItem) -> String {
@@ -664,6 +694,28 @@ struct RouteBuilderView: View {
         case .publicTransport: return "tram.fill"
         default:               return "mappin.circle.fill"
         }
+    }
+}
+
+// MARK: - Corner Radius Helper
+
+extension View {
+    func cornerRadius(_ radius: CGFloat,
+                      corners: UIRectCorner) -> some View {
+        clipShape(RoundedCorner(radius: radius, corners: corners))
+    }
+}
+
+struct RoundedCorner: Shape {
+    var radius  : CGFloat     = .infinity
+    var corners : UIRectCorner = .allCorners
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(
+            roundedRect:    rect,
+            byRoundingCorners: corners,
+            cornerRadii:    CGSize(width: radius, height: radius)
+        )
+        return Path(path.cgPath)
     }
 }
 

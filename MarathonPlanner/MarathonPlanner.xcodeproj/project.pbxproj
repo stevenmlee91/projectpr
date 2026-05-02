@@ -30,6 +30,8 @@
 		B08F59CD2FA5659F00BFFC53 /* ElevationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59CC2FA5659F00BFFC53 /* ElevationService.swift */; };
 		B08F59CF2FA565B400BFFC53 /* ElevationChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59CE2FA565B400BFFC53 /* ElevationChartView.swift */; };
 		B08F59D12FA565C000BFFC53 /* ElevationSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59D02FA565C000BFFC53 /* ElevationSheetView.swift */; };
+		B08F59D32FA5B74300BFFC53 /* MapLayerConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59D22FA5B74300BFFC53 /* MapLayerConfig.swift */; };
+		B08F59D52FA5B77500BFFC53 /* MapControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59D42FA5B77500BFFC53 /* MapControlsView.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -88,6 +90,8 @@
 		B08F59CC2FA5659F00BFFC53 /* ElevationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevationService.swift; sourceTree = "<group>"; };
 		B08F59CE2FA565B400BFFC53 /* ElevationChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevationChartView.swift; sourceTree = "<group>"; };
 		B08F59D02FA565C000BFFC53 /* ElevationSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevationSheetView.swift; sourceTree = "<group>"; };
+		B08F59D22FA5B74300BFFC53 /* MapLayerConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapLayerConfig.swift; sourceTree = "<group>"; };
+		B08F59D42FA5B77500BFFC53 /* MapControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapControlsView.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -161,8 +165,10 @@
 				B08F59C32FA4695C00BFFC53 /* NoteEditorSheet.swift */,
 				B08F59C52FA46ADB00BFFC53 /* RouteBuilderViewModel.swift */,
 				B08F59C72FA46AE800BFFC53 /* RouteMapView.swift */,
+				B08F59D42FA5B77500BFFC53 /* MapControlsView.swift */,
 				B08F59BF2FA1BDDD00BFFC53 /* PaceCalculatorView.swift */,
 				B08F59C92FA46B0000BFFC53 /* RouteBuilderView.swift */,
+				B08F59D22FA5B74300BFFC53 /* MapLayerConfig.swift */,
 				B08F59CC2FA5659F00BFFC53 /* ElevationService.swift */,
 				B08F59CE2FA565B400BFFC53 /* ElevationChartView.swift */,
 				B08F59D02FA565C000BFFC53 /* ElevationSheetView.swift */,
@@ -364,6 +370,7 @@
 				B07526052F9B0C9F008F9552 /* CreatePlanView.swift in Sources */,
 				B07526192F9EC44E008F9552 /* AppearanceManager.swift in Sources */,
 				B08F59D12FA565C000BFFC53 /* ElevationSheetView.swift in Sources */,
+				B08F59D32FA5B74300BFFC53 /* MapLayerConfig.swift in Sources */,
 				B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */,
 				B07526032F9B0C89008F9552 /* PlanListView.swift in Sources */,
 				B07526152F9E6FF5008F9552 /* TodayView.swift in Sources */,
@@ -377,6 +384,7 @@
 				B075260D2F9B1317008F9552 /* ScheduleSetupView.swift in Sources */,
 				B0A62DA72F9862170093719D /* TrainingPlan.swift in Sources */,
 				B08F59CD2FA5659F00BFFC53 /* ElevationService.swift in Sources */,
+				B08F59D52FA5B77500BFFC53 /* MapControlsView.swift in Sources */,
 				B075260B2F9B0CE6008F9552 /* ICSexporter.swift in Sources */,
 				B07526072F9B0CB4008F9552 /* SavedPlanView.swift in Sources */,
 				B07526092F9B0CD2008F9552 /* PDFExporter.swift in Sources */,
