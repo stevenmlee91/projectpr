@@ -10,17 +10,20 @@ struct RouteMapView: UIViewRepresentable {
     var poiMode              : MapPOIMode
     var showsCompass         : Bool
     var showsScale           : Bool
+    var useMetric            : Bool
 
     init(vm: RouteBuilderViewModel,
          mapLayer: MapLayer = .standard,
          poiMode: MapPOIMode = .runnerFocused,
          showsCompass: Bool = true,
-         showsScale: Bool = true) {
+         showsScale: Bool = true,
+         useMetric: Bool = false) {
         self.vm           = vm
         self.mapLayer     = mapLayer
         self.poiMode      = poiMode
         self.showsCompass = showsCompass
         self.showsScale   = showsScale
+        self.useMetric    = useMetric
     }
 
     // MARK: Make
@@ -60,7 +63,6 @@ struct RouteMapView: UIViewRepresentable {
             }
         }
 
-        // Map style + POI
         applyMapLayer(map, layer: mapLayer)
         map.pointOfInterestFilter = poiMode.filter
         map.showsCompass          = showsCompass
@@ -72,9 +74,8 @@ struct RouteMapView: UIViewRepresentable {
             !($0 is MKUserLocation)
         })
 
-        // Draw route with casing effect for contrast
+        // Draw route with casing effect
         for segment in vm.segments {
-            // Casing — wider line underneath
             let casing       = CasingPolyline(
                 points: segment.polyline.points(),
                 count:  segment.polyline.pointCount
@@ -82,7 +83,6 @@ struct RouteMapView: UIViewRepresentable {
             casing.layer = mapLayer
             map.addOverlay(casing, level: .aboveRoads)
 
-            // Main route line on top
             let route        = RoutePolyline(
                 points: segment.polyline.points(),
                 count:  segment.polyline.pointCount
@@ -91,17 +91,24 @@ struct RouteMapView: UIViewRepresentable {
             map.addOverlay(route, level: .aboveRoads)
         }
 
+        // Distance markers
+        let markerAnnotations = buildDistanceMarkers(
+            from:      vm.segments,
+            useMetric: useMetric
+        )
+        map.addAnnotations(markerAnnotations)
+
         // Waypoint pins
         for (i, wp) in vm.waypoints.enumerated() {
-            let pin          = WaypointAnnotation()
-            pin.coordinate   = wp.coordinate
-            pin.title        = i == 0
+            let pin        = WaypointAnnotation()
+            pin.coordinate = wp.coordinate
+            pin.title      = i == 0
                 ? "Start"
                 : i == vm.waypoints.count - 1
                     ? "End"
-                    : "Point \(i + 1)"
-            pin.index        = i
-            pin.isLast       = i == vm.waypoints.count - 1
+                    : "•"
+            pin.index      = i
+            pin.isLast     = i == vm.waypoints.count - 1
             map.addAnnotation(pin)
         }
     }
@@ -115,39 +122,112 @@ struct RouteMapView: UIViewRepresentable {
     // MARK: - Apply Map Layer
 
     private func applyMapLayer(_ map: MKMapView, layer: MapLayer) {
-        switch layer {
-        case .standard:
-            let config                   = MKStandardMapConfiguration()
-            config.emphasisStyle         = .default
-            config.pointOfInterestFilter = poiMode.filter
-            map.preferredConfiguration   = config
-            map.overrideUserInterfaceStyle = .unspecified
+        if #available(iOS 16.0, *) {
+            switch layer {
+            case .standard:
+                let config                   = MKStandardMapConfiguration()
+                config.emphasisStyle         = .default
+                config.pointOfInterestFilter = poiMode.filter
+                map.preferredConfiguration   = config
+                map.overrideUserInterfaceStyle = .unspecified
 
-        case .muted:
-            let config                   = MKStandardMapConfiguration()
-            config.emphasisStyle         = .muted
-            config.pointOfInterestFilter = poiMode.filter
-            map.preferredConfiguration   = config
-            map.overrideUserInterfaceStyle = .unspecified
+            case .muted:
+                let config                   = MKStandardMapConfiguration()
+                config.emphasisStyle         = .muted
+                config.pointOfInterestFilter = poiMode.filter
+                map.preferredConfiguration   = config
+                map.overrideUserInterfaceStyle = .unspecified
 
-        case .satellite:
-            let config                 = MKImageryMapConfiguration()
-            map.preferredConfiguration = config
-            map.overrideUserInterfaceStyle = .unspecified
+            case .satellite:
+                let config                 = MKImageryMapConfiguration()
+                map.preferredConfiguration = config
+                map.overrideUserInterfaceStyle = .unspecified
 
-        case .hybrid:
-            let config                   = MKHybridMapConfiguration()
-            config.pointOfInterestFilter = poiMode.filter
-            map.preferredConfiguration   = config
-            map.overrideUserInterfaceStyle = .unspecified
+            case .hybrid:
+                let config                   = MKHybridMapConfiguration()
+                config.pointOfInterestFilter = poiMode.filter
+                map.preferredConfiguration   = config
+                map.overrideUserInterfaceStyle = .unspecified
 
-        case .dark:
-            let config                   = MKStandardMapConfiguration()
-            config.emphasisStyle         = .muted
-            config.pointOfInterestFilter = poiMode.filter
-            map.preferredConfiguration   = config
-            map.overrideUserInterfaceStyle = .dark
+            case .dark:
+                let config                   = MKStandardMapConfiguration()
+                config.emphasisStyle         = .muted
+                config.pointOfInterestFilter = poiMode.filter
+                map.preferredConfiguration   = config
+                map.overrideUserInterfaceStyle = .dark
+            }
+        } else {
+            switch layer {
+            case .satellite: map.mapType = .satellite
+            case .hybrid:    map.mapType = .hybrid
+            default:         map.mapType = .standard
+            }
         }
+    }
+
+    // MARK: - Distance Markers
+
+    private func buildDistanceMarkers(
+        from segments  : [RouteSegment],
+        useMetric      : Bool
+    ) -> [DistanceMarkerAnnotation] {
+        guard !segments.isEmpty else { return [] }
+
+        let intervalMeters : Double = useMetric ? 1000.0 : 1609.344
+        var annotations    : [DistanceMarkerAnnotation] = []
+        var accumulated    : Double = 0
+        var markerCount    : Int    = 0
+        var lastCoord      : CLLocationCoordinate2D?
+
+        for segment in segments {
+            let count  = segment.polyline.pointCount
+            var coords = [CLLocationCoordinate2D](
+                repeating: kCLLocationCoordinate2DInvalid,
+                count: count
+            )
+            segment.polyline.getCoordinates(
+                &coords,
+                range: NSRange(location: 0, length: count)
+            )
+
+            for coord in coords {
+                guard CLLocationCoordinate2DIsValid(coord) else { continue }
+
+                if let last = lastCoord {
+                    let a = CLLocation(latitude:  last.latitude,
+                                       longitude: last.longitude)
+                    let b = CLLocation(latitude:  coord.latitude,
+                                       longitude: coord.longitude)
+                    accumulated += a.distance(from: b)
+
+                    while accumulated >= intervalMeters {
+                        accumulated -= intervalMeters
+                        markerCount += 1
+
+                        // Interpolate exact position of the marker
+                        let overshoot  = accumulated
+                        let segDist    = a.distance(from: b)
+                        let fraction   = max(0, min(1,
+                            (segDist - overshoot) / segDist))
+                        let markerLat  = last.latitude
+                            + (coord.latitude  - last.latitude)  * fraction
+                        let markerLon  = last.longitude
+                            + (coord.longitude - last.longitude) * fraction
+
+                        let annotation          = DistanceMarkerAnnotation()
+                        annotation.coordinate   = CLLocationCoordinate2D(
+                            latitude:  markerLat,
+                            longitude: markerLon
+                        )
+                        annotation.markerNumber = markerCount
+                        annotation.useMetric    = useMetric
+                        annotations.append(annotation)
+                    }
+                }
+                lastCoord = coord
+            }
+        }
+        return annotations
     }
 
     // MARK: - Coordinator
@@ -201,34 +281,104 @@ struct RouteMapView: UIViewRepresentable {
 
             guard !(annotation is MKUserLocation) else { return nil }
 
-            guard let wp = annotation as? WaypointAnnotation else {
-                return nil
-            }
-
-            let id   = "waypoint"
-            let view = mapView.dequeueReusableAnnotationView(
-                withIdentifier: id
-            ) as? MKMarkerAnnotationView
-            ?? MKMarkerAnnotationView(annotation: annotation,
+            // Distance marker
+            if let marker = annotation as? DistanceMarkerAnnotation {
+                let id   = "distanceMarker"
+                let view = mapView.dequeueReusableAnnotationView(
+                    withIdentifier: id
+                ) ?? MKAnnotationView(annotation: annotation,
                                       reuseIdentifier: id)
-
-            view.annotation      = wp
-            view.canShowCallout  = true
-            view.displayPriority = .required
-
-            if wp.title == "Start" {
-                view.markerTintColor = UIColor(Color(hex: "30D158"))
-                view.glyphImage      = UIImage(systemName: "figure.run")
-            } else if wp.isLast && vm.waypoints.count > 1 {
-                view.markerTintColor = UIColor(Color(hex: "FF453A"))
-                view.glyphImage      = UIImage(
-                    systemName: "flag.checkered")
-            } else {
-                view.markerTintColor = UIColor(Color(hex: "0A84FF"))
-                view.glyphText       = "\(wp.index + 1)"
+                view.annotation     = marker
+                view.canShowCallout = false
+                view.image          = markerImage(
+                    number:    marker.markerNumber,
+                    useMetric: marker.useMetric
+                )
+                // Offset so the dot sits on the route line
+                view.centerOffset   = CGPoint(x: 0, y: -14)
+                return view
             }
 
-            return view
+            // Waypoint pin
+            if let wp = annotation as? WaypointAnnotation {
+                let id   = "waypoint"
+                let view = mapView.dequeueReusableAnnotationView(
+                    withIdentifier: id
+                ) as? MKMarkerAnnotationView
+                ?? MKMarkerAnnotationView(annotation: annotation,
+                                          reuseIdentifier: id)
+
+                view.annotation      = wp
+                view.canShowCallout  = false
+                view.displayPriority = .required
+
+                if wp.title == "Start" {
+                    view.markerTintColor = UIColor(Color(hex: "30D158"))
+                    view.glyphImage      = UIImage(
+                        systemName: "figure.run")
+                } else if wp.isLast && vm.waypoints.count > 1 {
+                    view.markerTintColor = UIColor(Color(hex: "FF453A"))
+                    view.glyphImage      = UIImage(
+                        systemName: "flag.checkered")
+                } else {
+                    // Intermediate waypoints — invisible, route handles it
+                    view.alpha = 0
+                }
+                return view
+            }
+
+            return nil
+        }
+
+        // MARK: - Marker Image Builder
+
+        private func markerImage(number: Int,
+                                  useMetric: Bool) -> UIImage {
+            let unit   = useMetric ? "K" : ""
+            let label  = "\(number)\(unit)"
+            let size   = CGSize(width: 28, height: 28)
+
+            UIGraphicsBeginImageContextWithOptions(size, false, 0)
+            defer { UIGraphicsEndImageContext() }
+
+            let ctx    = UIGraphicsGetCurrentContext()!
+
+            // Circle background
+            ctx.setFillColor(UIColor.white.cgColor)
+            ctx.setShadow(offset: CGSize(width: 0, height: 1),
+                          blur: 3,
+                          color: UIColor.black.withAlphaComponent(0.3).cgColor)
+            ctx.fillEllipse(in: CGRect(origin: .zero, size: size)
+                .insetBy(dx: 1, dy: 1))
+
+            // Border
+            ctx.setShadow(offset: .zero, blur: 0, color: nil)
+            ctx.setStrokeColor(
+                UIColor(red: 0.04, green: 0.52,
+                        blue: 1.0,  alpha: 1.0).cgColor)
+            ctx.setLineWidth(1.5)
+            ctx.strokeEllipse(in: CGRect(origin: .zero, size: size)
+                .insetBy(dx: 2, dy: 2))
+
+            // Number label
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: label.count > 2 ? 9 : 11,
+                                         weight: .bold),
+                .foregroundColor: UIColor(red: 0.04, green: 0.52,
+                                           blue: 1.0, alpha: 1.0)
+            ]
+            let str    = NSString(string: label)
+            let strSize = str.size(withAttributes: attrs)
+            let strRect = CGRect(
+                x: (size.width  - strSize.width)  / 2,
+                y: (size.height - strSize.height) / 2,
+                width:  strSize.width,
+                height: strSize.height
+            )
+            str.draw(in: strRect, withAttributes: attrs)
+
+            return UIGraphicsGetImageFromCurrentImageContext()
+                ?? UIImage()
         }
     }
 }
@@ -248,4 +398,9 @@ class CasingPolyline: MKPolyline {
 class WaypointAnnotation: MKPointAnnotation {
     var index  : Int  = 0
     var isLast : Bool = false
+}
+
+class DistanceMarkerAnnotation: MKPointAnnotation {
+    var markerNumber : Int  = 0
+    var useMetric    : Bool = false
 }

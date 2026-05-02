@@ -32,6 +32,10 @@
 		B08F59D12FA565C000BFFC53 /* ElevationSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59D02FA565C000BFFC53 /* ElevationSheetView.swift */; };
 		B08F59D32FA5B74300BFFC53 /* MapLayerConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59D22FA5B74300BFFC53 /* MapLayerConfig.swift */; };
 		B08F59D52FA5B77500BFFC53 /* MapControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59D42FA5B77500BFFC53 /* MapControlsView.swift */; };
+		B08F59D72FA5BB9700BFFC53 /* SavedRouteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59D62FA5BB9700BFFC53 /* SavedRouteStore.swift */; };
+		B08F59D92FA5BBB100BFFC53 /* RouteSnapshotGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59D82FA5BBB100BFFC53 /* RouteSnapshotGenerator.swift */; };
+		B08F59DB2FA5BBC400BFFC53 /* SavedRouteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59DA2FA5BBC400BFFC53 /* SavedRouteSheet.swift */; };
+		B08F59DD2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59DC2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -92,6 +96,10 @@
 		B08F59D02FA565C000BFFC53 /* ElevationSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevationSheetView.swift; sourceTree = "<group>"; };
 		B08F59D22FA5B74300BFFC53 /* MapLayerConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapLayerConfig.swift; sourceTree = "<group>"; };
 		B08F59D42FA5B77500BFFC53 /* MapControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapControlsView.swift; sourceTree = "<group>"; };
+		B08F59D62FA5BB9700BFFC53 /* SavedRouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedRouteStore.swift; sourceTree = "<group>"; };
+		B08F59D82FA5BBB100BFFC53 /* RouteSnapshotGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteSnapshotGenerator.swift; sourceTree = "<group>"; };
+		B08F59DA2FA5BBC400BFFC53 /* SavedRouteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedRouteSheet.swift; sourceTree = "<group>"; };
+		B08F59DC2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedRouteLibraryView.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -165,6 +173,10 @@
 				B08F59C32FA4695C00BFFC53 /* NoteEditorSheet.swift */,
 				B08F59C52FA46ADB00BFFC53 /* RouteBuilderViewModel.swift */,
 				B08F59C72FA46AE800BFFC53 /* RouteMapView.swift */,
+				B08F59D62FA5BB9700BFFC53 /* SavedRouteStore.swift */,
+				B08F59D82FA5BBB100BFFC53 /* RouteSnapshotGenerator.swift */,
+				B08F59DA2FA5BBC400BFFC53 /* SavedRouteSheet.swift */,
+				B08F59DC2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift */,
 				B08F59D42FA5B77500BFFC53 /* MapControlsView.swift */,
 				B08F59BF2FA1BDDD00BFFC53 /* PaceCalculatorView.swift */,
 				B08F59C92FA46B0000BFFC53 /* RouteBuilderView.swift */,
@@ -360,6 +372,7 @@
 				B0A62DB22F98629C0093719D /* WeekDetailView.swift in Sources */,
 				B07526172F9EB5CB008F9552 /* WeeklyMileageChart.swift in Sources */,
 				B0A62DAE2F9862780093719D /* PacesView.swift in Sources */,
+				B08F59D92FA5BBB100BFFC53 /* RouteSnapshotGenerator.swift in Sources */,
 				B08F59C62FA46ADB00BFFC53 /* RouteBuilderViewModel.swift in Sources */,
 				B08F59BC2FA1B9BB00BFFC53 /* NotificationsManager.swift in Sources */,
 				B0A62DB42F9862AD0093719D /* MinitabView.swift in Sources */,
@@ -368,6 +381,7 @@
 				B08F59CF2FA565B400BFFC53 /* ElevationChartView.swift in Sources */,
 				B08F59CA2FA46B0000BFFC53 /* RouteBuilderView.swift in Sources */,
 				B07526052F9B0C9F008F9552 /* CreatePlanView.swift in Sources */,
+				B08F59D72FA5BB9700BFFC53 /* SavedRouteStore.swift in Sources */,
 				B07526192F9EC44E008F9552 /* AppearanceManager.swift in Sources */,
 				B08F59D12FA565C000BFFC53 /* ElevationSheetView.swift in Sources */,
 				B08F59D32FA5B74300BFFC53 /* MapLayerConfig.swift in Sources */,
@@ -389,6 +403,8 @@
 				B07526072F9B0CB4008F9552 /* SavedPlanView.swift in Sources */,
 				B07526092F9B0CD2008F9552 /* PDFExporter.swift in Sources */,
 				B075261B2F9EC478008F9552 /* SettingsView.swift in Sources */,
+				B08F59DD2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift in Sources */,
+				B08F59DB2FA5BBC400BFFC53 /* SavedRouteSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -558,6 +574,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -590,6 +607,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
