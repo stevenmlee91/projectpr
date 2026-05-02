@@ -36,6 +36,7 @@
 		B08F59D92FA5BBB100BFFC53 /* RouteSnapshotGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59D82FA5BBB100BFFC53 /* RouteSnapshotGenerator.swift */; };
 		B08F59DB2FA5BBC400BFFC53 /* SavedRouteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59DA2FA5BBC400BFFC53 /* SavedRouteSheet.swift */; };
 		B08F59DD2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59DC2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift */; };
+		B08F59DF2FA6487A00BFFC53 /* NearbyAmenitiesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59DE2FA6487A00BFFC53 /* NearbyAmenitiesService.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -100,6 +101,7 @@
 		B08F59D82FA5BBB100BFFC53 /* RouteSnapshotGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteSnapshotGenerator.swift; sourceTree = "<group>"; };
 		B08F59DA2FA5BBC400BFFC53 /* SavedRouteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedRouteSheet.swift; sourceTree = "<group>"; };
 		B08F59DC2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedRouteLibraryView.swift; sourceTree = "<group>"; };
+		B08F59DE2FA6487A00BFFC53 /* NearbyAmenitiesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyAmenitiesService.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -180,6 +182,7 @@
 				B08F59D42FA5B77500BFFC53 /* MapControlsView.swift */,
 				B08F59BF2FA1BDDD00BFFC53 /* PaceCalculatorView.swift */,
 				B08F59C92FA46B0000BFFC53 /* RouteBuilderView.swift */,
+				B08F59DE2FA6487A00BFFC53 /* NearbyAmenitiesService.swift */,
 				B08F59D22FA5B74300BFFC53 /* MapLayerConfig.swift */,
 				B08F59CC2FA5659F00BFFC53 /* ElevationService.swift */,
 				B08F59CE2FA565B400BFFC53 /* ElevationChartView.swift */,
@@ -395,6 +398,7 @@
 				B0A62DB02F9862890093719D /* PlanView.swift in Sources */,
 				B08F59C02FA1BDDD00BFFC53 /* PaceCalculatorView.swift in Sources */,
 				B07526012F9B0C72008F9552 /* PlanStore.swift in Sources */,
+				B08F59DF2FA6487A00BFFC53 /* NearbyAmenitiesService.swift in Sources */,
 				B075260D2F9B1317008F9552 /* ScheduleSetupView.swift in Sources */,
 				B0A62DA72F9862170093719D /* TrainingPlan.swift in Sources */,
 				B08F59CD2FA5659F00BFFC53 /* ElevationService.swift in Sources */,
