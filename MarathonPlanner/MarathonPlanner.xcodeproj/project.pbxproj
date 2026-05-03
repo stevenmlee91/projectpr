@@ -37,6 +37,7 @@
 		B08F59DB2FA5BBC400BFFC53 /* SavedRouteSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59DA2FA5BBC400BFFC53 /* SavedRouteSheet.swift */; };
 		B08F59DD2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59DC2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift */; };
 		B08F59DF2FA6487A00BFFC53 /* NearbyAmenitiesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59DE2FA6487A00BFFC53 /* NearbyAmenitiesService.swift */; };
+		B08F5A1C2FA70E0700BFFC53 /* OnBoardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A1B2FA70E0700BFFC53 /* OnBoardingView.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -102,6 +103,7 @@
 		B08F59DA2FA5BBC400BFFC53 /* SavedRouteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedRouteSheet.swift; sourceTree = "<group>"; };
 		B08F59DC2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedRouteLibraryView.swift; sourceTree = "<group>"; };
 		B08F59DE2FA6487A00BFFC53 /* NearbyAmenitiesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyAmenitiesService.swift; sourceTree = "<group>"; };
+		B08F5A1B2FA70E0700BFFC53 /* OnBoardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnBoardingView.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -171,6 +173,7 @@
 			children = (
 				B08F59CB2FA4778600BFFC53 /* Info.plist */,
 				B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */,
+				B08F5A1B2FA70E0700BFFC53 /* OnBoardingView.swift */,
 				B075261A2F9EC478008F9552 /* SettingsView.swift */,
 				B08F59C32FA4695C00BFFC53 /* NoteEditorSheet.swift */,
 				B08F59C52FA46ADB00BFFC53 /* RouteBuilderViewModel.swift */,
@@ -383,6 +386,7 @@
 				B08F59C82FA46AE800BFFC53 /* RouteMapView.swift in Sources */,
 				B08F59CF2FA565B400BFFC53 /* ElevationChartView.swift in Sources */,
 				B08F59CA2FA46B0000BFFC53 /* RouteBuilderView.swift in Sources */,
+				B08F5A1C2FA70E0700BFFC53 /* OnBoardingView.swift in Sources */,
 				B07526052F9B0C9F008F9552 /* CreatePlanView.swift in Sources */,
 				B08F59D72FA5BB9700BFFC53 /* SavedRouteStore.swift in Sources */,
 				B07526192F9EC44E008F9552 /* AppearanceManager.swift in Sources */,
