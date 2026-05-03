@@ -1,34 +1,41 @@
 import SwiftUI
 
+// MARK: - Keyboard Dismiss
+
+extension UIApplication {
+    func dismissKeyboard() {
+        sendAction(#selector(UIResponder.resignFirstResponder),
+                   to: nil, from: nil, for: nil)
+    }
+}
+
+// MARK: - Create Plan View
+
 struct CreatePlanView: View {
     @EnvironmentObject var store  : PlanStore
     @Environment(\.dismiss) var dismiss
 
-    // Race type selection drives everything else
-    @State private var selectedRaceType : RaceType    = .marathon
-    @State private var planName                       = ""
-    @State private var raceDate         = Date().addingTimeInterval(60 * 60 * 24 * 112)
+    @FocusState private var nameFieldFocused: Bool
+
+    @State private var selectedRaceType : RaceType = .marathon
+    @State private var planName                    = ""
+    @State private var raceDate         = Date().addingTimeInterval(
+        60 * 60 * 24 * 112)
     @State private var settings         = UserSettings()
     @State private var goalHours        = 3
     @State private var goalMinutes      = 30
     @State private var isGenerating     = false
 
-    // Available options filtered by race type
     private var availablePlanTypes: [PlanType] {
         PlanType.options(for: selectedRaceType)
     }
-
     private var availableLengths: [PlanLength] {
         PlanLength.options(for: selectedRaceType)
     }
-
-    // Goal time hour range differs by race type
     private var goalHourRange: [Int] {
         selectedRaceType == .halfMarathon
-            ? Array(1...3)
-            : Array(2...6)
+            ? Array(1...3) : Array(2...6)
     }
-
     var startDate: Date {
         Calendar.current.date(
             byAdding: .weekOfYear,
@@ -36,439 +43,37 @@ struct CreatePlanView: View {
             to: raceDate
         ) ?? raceDate
     }
-
+    private var isReadyToGenerate: Bool {
+        !planName.trimmingCharacters(in: .whitespaces).isEmpty
+    }
     private let dateFmt: DateFormatter = {
         let f = DateFormatter(); f.dateStyle = .medium; return f
     }()
 
+    // MARK: - Body
+
     var body: some View {
         NavigationView {
-            ZStack {
-                Color(.systemBackground).ignoresSafeArea()
-
-                ScrollView {
-                    VStack(spacing: 0) {
-                        Group {
-                            // ── Header ────────────────────────────────
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("NEW PLAN")
-                                    .font(.system(size: 11, weight: .semibold,
-                                                  design: .monospaced))
-                                    .foregroundColor(.secondary)
-                                    .kerning(3)
-                                Text("Create Training Plan")
-                                    .font(.system(size: 28, weight: .light,
-                                                  design: .serif))
-                                    .foregroundColor(.primary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 24)
-                            .padding(.top, 24)
-                            .padding(.bottom, 28)
-
-                            // ── Race Type ─────────────────────────────
-                            VStack(spacing: 12) {
-                                ForEach(RaceType.allCases, id: \.self) { type in
-                                    raceTypeCard(type)
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 28)
-
-                            // ── Plan Name ─────────────────────────────
-                            CreateLabel("PLAN NAME")
-                            ZStack {
-                                Color(.secondarySystemBackground)
-                                TextField(planNamePlaceholder,
-                                          text: $planName)
-                                    .foregroundColor(.primary)
-                                    .padding(16)
-                            }
-                            .cornerRadius(12)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
-
-                            // ── Race Date ─────────────────────────────
-                            CreateLabel("RACE DATE")
-                            ZStack {
-                                Color(.secondarySystemBackground)
-                                VStack(spacing: 0) {
-                                    DatePicker("Race Date",
-                                               selection: $raceDate,
-                                               displayedComponents: .date)
-                                        .datePickerStyle(.compact)
-                                        .foregroundColor(.primary)
-                                        .padding(16)
-                                    Divider()
-                                    HStack {
-                                        Text("Plan starts")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(.secondary)
-                                        Spacer()
-                                        Text(dateFmt.string(from: startDate))
-                                            .font(.system(size: 12,
-                                                          design: .monospaced))
-                                            .foregroundColor(.primary)
-                                    }
-                                    .padding(16)
-                                }
-                            }
-                            .cornerRadius(12)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
-
-                            // ── Training Method ───────────────────────
-                            CreateLabel("TRAINING METHOD")
-                            VStack(spacing: 1) {
-                                ForEach(availablePlanTypes) { plan in
-                                    CreatePlanTypeRow(
-                                        plan:       plan,
-                                        isSelected: settings.planType == plan,
-                                        onTap: {
-                                            settings.planType = plan
-                                            settings.resetScheduleForNewPlanType()
-                                        }
-                                    )
-                                }
-                            }
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(12)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
-                        }
-
-                        Group {
-                            // ── Duration ──────────────────────────────
-                            CreateLabel("DURATION")
-                            HStack(spacing: 10) {
-                                ForEach(availableLengths) { length in
-                                    CreateDurationChip(
-                                        label:      length.label,
-                                        isSelected: settings.planLength == length,
-                                        onTap:      { settings.planLength = length }
-                                    )
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
-
-                            // ── Taper Duration ────────────────────────
-                            CreateLabel("TAPER LENGTH")
-                            ZStack {
-                                Color(.secondarySystemBackground)
-                                VStack(spacing: 0) {
-                                    ForEach(TaperDuration.allCases) { option in
-                                        Button {
-                                            settings.taperDuration = option
-                                        } label: {
-                                            HStack(spacing: 14) {
-                                                Circle()
-                                                    .stroke(settings.taperDuration == option
-                                                            ? Color.accentColor : Color(.systemFill),
-                                                            lineWidth: 1.5)
-                                                    .background(Circle().fill(
-                                                        settings.taperDuration == option
-                                                            ? Color.accentColor.opacity(0.15)
-                                                            : Color.clear))
-                                                    .frame(width: 16, height: 16)
-                                                VStack(alignment: .leading, spacing: 2) {
-                                                    Text(option.label)
-                                                        .font(.system(size: 14,
-                                                                      weight: settings.taperDuration == option
-                                                                          ? .semibold : .regular))
-                                                        .foregroundColor(.primary)
-                                                    Text(option.description)
-                                                        .font(.system(size: 11))
-                                                        .foregroundColor(.secondary)
-                                                }
-                                                Spacer()
-                                                if settings.taperDuration == option {
-                                                    Image(systemName: "checkmark")
-                                                        .font(.system(size: 13, weight: .semibold))
-                                                        .foregroundColor(.accentColor)
-                                                }
-                                            }
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 12)
-                                            .background(settings.taperDuration == option
-                                                        ? Color(.systemFill) : Color.clear)
-                                        }
-                                        .buttonStyle(.plain)
-                                        if option != TaperDuration.allCases.last {
-                                            Divider().padding(.leading, 46)
-                                        }
-                                    }
-                                }
-                            }
-                            .cornerRadius(12)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
-
-                            // ── Goal Time ─────────────────────────────
-                            CreateLabel("GOAL TIME")
-                            ZStack {
-                                Color(.secondarySystemBackground)
-                                HStack(spacing: 0) {
-                                    Picker("", selection: $goalHours) {
-                                        ForEach(goalHourRange, id: \.self) { h in
-                                            Text("\(h)h").tag(h)
-                                        }
-                                    }
-                                    .pickerStyle(.wheel)
-                                    .frame(maxWidth: .infinity)
-
-                                    Text(":")
-                                        .foregroundColor(.secondary)
-                                        .font(.system(size: 24, weight: .thin))
-
-                                    Picker("", selection: $goalMinutes) {
-                                        ForEach(
-                                            [0,5,10,15,20,25,30,35,40,45,50,55],
-                                            id: \.self
-                                        ) { m in
-                                            Text(String(format: "%02dm", m)).tag(m)
-                                        }
-                                    }
-                                    .pickerStyle(.wheel)
-                                    .frame(maxWidth: .infinity)
-                                }
-                                .frame(height: 110)
-                            }
-                            .cornerRadius(12)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
-
-                            // ── Base Mileage ──────────────────────────
-                            CreateLabel("BASE MILEAGE")
-                            ZStack {
-                                Color(.secondarySystemBackground)
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("\(Int(settings.baseMileage))")
-                                            .font(.system(size: 36, weight: .thin,
-                                                          design: .monospaced))
-                                            .foregroundColor(.primary)
-                                        Text("miles / week currently")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.secondary)
-                                    }
-                                    Spacer()
-                                    VStack(spacing: 10) {
-                                        Button {
-                                            if settings.baseMileage < 80 {
-                                                settings.baseMileage += 5
-                                            }
-                                        } label: {
-                                            Image(systemName: "plus")
-                                                .foregroundColor(.primary)
-                                                .frame(width: 38, height: 38)
-                                                .background(Color(.tertiarySystemBackground))
-                                                .cornerRadius(8)
-                                        }
-                                        Button {
-                                            if settings.baseMileage > 10 {
-                                                settings.baseMileage -= 5
-                                            }
-                                        } label: {
-                                            Image(systemName: "minus")
-                                                .foregroundColor(.primary)
-                                                .frame(width: 38, height: 38)
-                                                .background(Color(.tertiarySystemBackground))
-                                                .cornerRadius(8)
-                                        }
-                                    }
-                                }
-                                .padding(18)
-                            }
-                            .cornerRadius(12)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
-                        }
-
-                        // ── Weekly Schedule ────────────────────────────
-                        Group {
-                            CreateLabel("WEEKLY SCHEDULE")
-
-                            ZStack {
-                                Color(.secondarySystemBackground)
-                                HStack(spacing: 12) {
-                                    Image(systemName: "info.circle")
-                                        .foregroundColor(.secondary)
-                                        .font(.system(size: 14))
-                                    Text(scheduleNote)
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .padding(14)
-                            }
-                            .cornerRadius(12)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 16)
-
-                            // Long Run Day
-                            CreateScheduleLabel("LONG RUN DAY")
-                            SingleDayPicker(
-                                selected: $settings.schedule.longRunDay,
-                                disabled: []
-                            )
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 20)
-
-                            // Primary Workout Day
-                            if settings.planType != .higdon
-                                && settings.planType != .higdonHalfNovice {
-                                CreateScheduleLabel(
-                                    primaryWorkoutLabel
-                                )
-                                SingleDayPicker(
-                                    selected: $settings.schedule.workoutDay1,
-                                    disabled: [settings.schedule.longRunDay]
-                                )
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 20)
-                            }
-
-                            // Secondary Workout Day
-                            if settings.planType == .hansons
-                                || settings.planType == .pfitz
-                                || settings.planType == .jackDaniels
-                                || settings.planType == .hansonsHalf {
-                                CreateScheduleLabel("SECONDARY WORKOUT DAY (Q2)")
-                                SingleDayPicker(
-                                    selected: $settings.schedule.workoutDay2,
-                                    disabled: [
-                                        settings.schedule.longRunDay,
-                                        settings.schedule.workoutDay1
-                                    ]
-                                )
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 20)
-                            }
-                        }
-
-                        Group {
-                            // Midweek Longer Run Day
-                            if settings.planType.usesMidweekLongRun {
-                                CreateScheduleLabel("MIDWEEK LONGER RUN DAY")
-                                SingleDayPicker(
-                                    selected: $settings.schedule.midweekLongDay,
-                                    disabled: midweekDisabled()
-                                )
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 20)
-                            }
-
-                            // Cross-Training
-                            if settings.planType.usesCrossTraining {
-                                CreateScheduleLabel("CROSS-TRAINING DAY (OPTIONAL)")
-                                CreateCrossTrainToggle(
-                                    schedule: $settings.schedule,
-                                    taken: allAssignedDays()
-                                )
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 20)
-                            }
-
-                            // Rest Days
-                            CreateScheduleLabel(restDaysLabel)
-                            MultiDayPicker(
-                                selected: $settings.schedule.restDays,
-                                disabled: daysBlockedFromRest()
-                            )
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 6)
-
-                            HStack(spacing: 6) {
-                                Image(systemName: "info.circle")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
-                                Text(restGuidance)
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 20)
-
-                            // Conflict warnings
-                            let issues = liveConflicts()
-                            if !issues.isEmpty {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                            .foregroundColor(.orange)
-                                            .font(.system(size: 12))
-                                        Text("CONFLICTS")
-                                            .font(.system(size: 10,
-                                                          weight: .semibold,
-                                                          design: .monospaced))
-                                            .foregroundColor(.orange)
-                                            .kerning(2)
-                                    }
-                                    ForEach(issues, id: \.self) { msg in
-                                        HStack(alignment: .top, spacing: 6) {
-                                            Text("•").foregroundColor(.secondary)
-                                            Text(msg)
-                                                .font(.system(size: 11))
-                                                .foregroundColor(.secondary)
-                                                .fixedSize(horizontal: false,
-                                                           vertical: true)
-                                        }
-                                    }
-                                    Text("These are auto-resolved when the plan generates.")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(14)
-                                .background(Color(.secondarySystemBackground))
-                                .cornerRadius(12)
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 20)
-                            }
-
-                            Spacer().frame(height: 110)
-                        }
-                    }
-                }
-
-                // ── Generate Button ────────────────────────────────────
+            ScrollView {
                 VStack(spacing: 0) {
-                    LinearGradient(
-                        colors: [Color(.systemBackground).opacity(0),
-                                 Color(.systemBackground)],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                    .frame(height: 30)
-
-                    Button(action: generatePlan) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "figure.run")
-                                .font(.system(size: 14, weight: .medium))
-                            Text(isGenerating ? "GENERATING..." : "GENERATE PLAN")
-                                .font(.system(size: 13, weight: .semibold,
-                                              design: .monospaced))
-                                .kerning(2)
-                        }
-                        .foregroundColor(Color(.systemBackground))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background(Color(.label))
-                        .cornerRadius(14)
-                    }
-                    .disabled(isGenerating ||
-                              planName.trimmingCharacters(in: .whitespaces).isEmpty)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 32)
-                    .background(Color(.systemBackground))
+                    formContent
+                    Spacer().frame(height: 120)
                 }
-                .frame(maxHeight: .infinity, alignment: .bottom)
+            }
+            .background(Color(.systemGroupedBackground))
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                generateButton
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
                         .foregroundColor(.primary)
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { nameFieldFocused = false }
+                        .font(.system(size: 14, weight: .semibold))
                 }
             }
         }
@@ -477,45 +82,563 @@ struct CreatePlanView: View {
         .onChange(of: selectedRaceType) { _ in handleRaceTypeChange() }
     }
 
-    // MARK: - Race Type Card
+    // MARK: - Form Content
 
-    private func raceTypeCard(_ type: RaceType) -> some View {
+    private var formContent: some View {
+        VStack(spacing: 0) {
+
+            // Header
+            VStack(alignment: .leading, spacing: 4) {
+                Text("NEW PLAN")
+                    .font(.system(size: 11, weight: .semibold,
+                                  design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .kerning(3)
+                Text("Create Training Plan")
+                    .font(.system(size: 28, weight: .light,
+                                  design: .serif))
+                    .foregroundColor(.primary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 28)
+
+            // Race Type
+            sectionCard("RACE TYPE") {
+                VStack(spacing: 0) {
+                    ForEach(RaceType.allCases, id: \.self) { type in
+                        raceTypeRow(type)
+                        if type != RaceType.allCases.last {
+                            Divider().padding(.leading, 52)
+                        }
+                    }
+                }
+            }
+
+            // Plan Name
+            sectionCard("PLAN NAME") {
+                HStack(spacing: 0) {
+                    TextField(planNamePlaceholder, text: $planName)
+                        .foregroundColor(.primary)
+                        .focused($nameFieldFocused)
+                        .submitLabel(.done)
+                        .onSubmit { nameFieldFocused = false }
+                    if !planName.isEmpty {
+                        Button {
+                            planName         = ""
+                            nameFieldFocused = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(Color(.systemGray3))
+                                .font(.system(size: 16))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
+            // Race Date
+            sectionCard("RACE DATE") {
+                VStack(spacing: 0) {
+                    DatePicker("Race Date",
+                               selection: $raceDate,
+                               displayedComponents: .date)
+                        .datePickerStyle(.compact)
+                        .foregroundColor(.primary)
+                    Divider().padding(.vertical, 12)
+                    HStack {
+                        Label("Plan starts",
+                              systemImage: "calendar")
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(dateFmt.string(from: startDate))
+                            .font(.system(size: 13,
+                                          design: .monospaced))
+                            .foregroundColor(.primary)
+                    }
+                }
+            }
+
+            // Training Method
+            sectionCard("TRAINING METHOD") {
+                VStack(spacing: 0) {
+                    ForEach(availablePlanTypes) { plan in
+                        CreatePlanTypeRow(
+                            plan:       plan,
+                            isSelected: settings.planType == plan,
+                            onTap: {
+                                UIImpactFeedbackGenerator(style: .light)
+                                    .impactOccurred()
+                                settings.planType = plan
+                                settings.resetScheduleForNewPlanType()
+                            }
+                        )
+                        if plan != availablePlanTypes.last {
+                            Divider().padding(.leading, 32)
+                        }
+                    }
+                }
+            }
+
+            // Duration
+            sectionCard("DURATION") {
+                HStack(spacing: 8) {
+                    ForEach(availableLengths) { length in
+                        CreateDurationChip(
+                            label:      length.label,
+                            isSelected: settings.planLength == length,
+                            onTap: {
+                                UIImpactFeedbackGenerator(style: .light)
+                                    .impactOccurred()
+                                settings.planLength = length
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Taper
+            sectionCard("TAPER LENGTH") {
+                VStack(spacing: 0) {
+                    ForEach(TaperDuration.allCases) { option in
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light)
+                                .impactOccurred()
+                            settings.taperDuration = option
+                        } label: {
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    Circle()
+                                        .stroke(
+                                            settings.taperDuration == option
+                                                ? Color.accentColor
+                                                : Color(.systemFill),
+                                            lineWidth: 1.5
+                                        )
+                                        .frame(width: 18, height: 18)
+                                    if settings.taperDuration == option {
+                                        Circle()
+                                            .fill(Color.accentColor)
+                                            .frame(width: 10, height: 10)
+                                    }
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(option.label)
+                                        .font(.system(
+                                            size: 14,
+                                            weight: settings.taperDuration == option
+                                                ? .semibold : .regular
+                                        ))
+                                        .foregroundColor(.primary)
+                                    Text(option.description)
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                            }
+                            .padding(.vertical, 12)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        if option != TaperDuration.allCases.last {
+                            Divider().padding(.leading, 32)
+                        }
+                    }
+                }
+            }
+
+            // Goal Time
+            sectionCard("GOAL TIME") {
+                HStack(spacing: 0) {
+                    Picker("", selection: $goalHours) {
+                        ForEach(goalHourRange, id: \.self) { h in
+                            Text("\(h)h").tag(h)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
+
+                    Text(":")
+                        .foregroundColor(.secondary)
+                        .font(.system(size: 24, weight: .thin))
+
+                    Picker("", selection: $goalMinutes) {
+                        ForEach(
+                            [0,5,10,15,20,25,30,35,40,45,50,55],
+                            id: \.self
+                        ) { m in
+                            Text(String(format: "%02dm", m)).tag(m)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
+                }
+                .frame(height: 110)
+            }
+
+            // Base Mileage
+            sectionCard("BASE MILEAGE") {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(Int(settings.baseMileage))")
+                            .font(.system(size: 38, weight: .thin,
+                                          design: .monospaced))
+                            .foregroundColor(.primary)
+                            .contentTransition(.numericText())
+                            .animation(.spring(response: 0.3),
+                                       value: settings.baseMileage)
+                        Text("miles / week currently")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    VStack(spacing: 8) {
+                        Button {
+                            if settings.baseMileage < 80 {
+                                UIImpactFeedbackGenerator(style: .light)
+                                    .impactOccurred()
+                                settings.baseMileage += 5
+                            }
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(.primary)
+                                .frame(width: 42, height: 42)
+                                .background(Color(.systemFill))
+                                .cornerRadius(10)
+                        }
+                        Button {
+                            if settings.baseMileage > 10 {
+                                UIImpactFeedbackGenerator(style: .light)
+                                    .impactOccurred()
+                                settings.baseMileage -= 5
+                            }
+                        } label: {
+                            Image(systemName: "minus")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(.primary)
+                                .frame(width: 42, height: 42)
+                                .background(Color(.systemFill))
+                                .cornerRadius(10)
+                        }
+                    }
+                }
+            }
+
+            // Schedule
+            scheduleSection
+        }
+        .onTapGesture {
+            UIApplication.shared.dismissKeyboard()
+        }
+    }
+
+    // MARK: - Section Card
+
+    private func sectionCard<Content: View>(
+        _ header: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(header)
+                .font(.system(size: 10, weight: .semibold,
+                              design: .monospaced))
+                .foregroundColor(.secondary)
+                .kerning(2)
+                .padding(.leading, 4)
+                .padding(.bottom, 8)
+
+            content()
+                .padding(16)
+                .background(Color(.secondarySystemGroupedBackground))
+                .cornerRadius(14)
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 24)
+    }
+
+    // MARK: - Schedule Block
+
+    private func scheduleBlock<Content: View>(
+        _ label: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(label)
+                .font(.system(size: 10, weight: .semibold,
+                              design: .monospaced))
+                .foregroundColor(.secondary)
+                .kerning(2)
+                .padding(.leading, 4)
+            content()
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 20)
+    }
+
+    // MARK: - Schedule Section
+
+    private var scheduleSection: some View {
+        VStack(spacing: 0) {
+
+            // Section title
+            Text("WEEKLY SCHEDULE")
+                .font(.system(size: 10, weight: .semibold,
+                              design: .monospaced))
+                .foregroundColor(.secondary)
+                .kerning(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 20)
+                .padding(.bottom, 10)
+
+            // Info note
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 13))
+                    .foregroundColor(Color(hex: "0A84FF"))
+                    .padding(.top, 1)
+                Text(scheduleNote)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(3)
+            }
+            .padding(14)
+            .background(Color(hex: "0A84FF").opacity(0.06))
+            .cornerRadius(12)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 20)
+
+            // Long Run Day
+            scheduleBlock("LONG RUN DAY") {
+                SingleDayPicker(
+                    selected: $settings.schedule.longRunDay,
+                    disabled: []
+                )
+            }
+
+            // Primary Workout Day
+            if settings.planType != .higdon
+                && settings.planType != .higdonHalfNovice {
+                scheduleBlock(primaryWorkoutLabel) {
+                    SingleDayPicker(
+                        selected: $settings.schedule.workoutDay1,
+                        disabled: [settings.schedule.longRunDay]
+                    )
+                }
+            }
+
+            // Secondary Workout Day
+            if settings.planType == .hansons
+                || settings.planType == .pfitz
+                || settings.planType == .jackDaniels
+                || settings.planType == .hansonsHalf {
+                scheduleBlock("SECONDARY WORKOUT DAY (Q2)") {
+                    SingleDayPicker(
+                        selected: $settings.schedule.workoutDay2,
+                        disabled: [
+                            settings.schedule.longRunDay,
+                            settings.schedule.workoutDay1
+                        ]
+                    )
+                }
+            }
+
+            // Midweek Long Run
+            if settings.planType.usesMidweekLongRun {
+                scheduleBlock("MIDWEEK LONGER RUN DAY") {
+                    SingleDayPicker(
+                        selected: $settings.schedule.midweekLongDay,
+                        disabled: midweekDisabled()
+                    )
+                }
+            }
+
+            // Cross Training
+            if settings.planType.usesCrossTraining {
+                scheduleBlock("CROSS-TRAINING DAY (OPTIONAL)") {
+                    CreateCrossTrainToggle(
+                        schedule: $settings.schedule,
+                        taken:    allAssignedDays()
+                    )
+                }
+            }
+
+            // Rest Days
+            scheduleBlock(restDaysLabel) {
+                VStack(alignment: .leading, spacing: 10) {
+                    MultiDayPicker(
+                        selected: $settings.schedule.restDays,
+                        disabled: daysBlockedFromRest()
+                    )
+                    HStack(spacing: 5) {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                        Text(restGuidance)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            // Conflicts
+            let issues = liveConflicts()
+            if !issues.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                            .font(.system(size: 12))
+                        Text("SCHEDULE CONFLICTS")
+                            .font(.system(size: 10, weight: .semibold,
+                                          design: .monospaced))
+                            .foregroundColor(.orange)
+                            .kerning(2)
+                    }
+                    ForEach(issues, id: \.self) { msg in
+                        HStack(alignment: .top, spacing: 6) {
+                            Text("·").foregroundColor(.secondary)
+                            Text(msg)
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false,
+                                           vertical: true)
+                        }
+                    }
+                    Text("These are auto-resolved when the plan generates.")
+                        .font(.system(size: 11))
+                        .foregroundColor(Color(.tertiaryLabel))
+                }
+                .padding(14)
+                .background(Color.orange.opacity(0.06))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+            }
+        }
+    }
+
+    // MARK: - Generate Button
+
+    private var generateButton: some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [
+                    Color(.systemGroupedBackground).opacity(0),
+                    Color(.systemGroupedBackground)
+                ],
+                startPoint: .top,
+                endPoint:   .bottom
+            )
+            .frame(height: 20)
+            .allowsHitTesting(false)
+
+            VStack(spacing: 8) {
+                if !isReadyToGenerate {
+                    Text("Enter a plan name to continue")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .transition(
+                            .opacity.combined(
+                                with: .move(edge: .bottom)))
+                }
+
+                Button(action: generatePlan) {
+                    HStack(spacing: 10) {
+                        if isGenerating {
+                            ProgressView()
+                                .tint(Color(.systemBackground))
+                                .scaleEffect(0.85)
+                        } else {
+                            Image(systemName: "figure.run")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        Text(isGenerating
+                             ? "GENERATING..."
+                             : "GENERATE PLAN")
+                            .font(.system(size: 13, weight: .semibold,
+                                          design: .monospaced))
+                            .kerning(1.5)
+                    }
+                    .foregroundColor(
+                        isReadyToGenerate
+                            ? Color(.systemBackground)
+                            : Color(.systemBackground).opacity(0.5)
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(isReadyToGenerate
+                                  ? Color(.label)
+                                  : Color(.systemGray3))
+                            .shadow(
+                                color: isReadyToGenerate
+                                    ? Color(.label).opacity(0.15)
+                                    : Color.clear,
+                                radius: 12, y: 4
+                            )
+                    )
+                    .animation(.easeInOut(duration: 0.2),
+                               value: isReadyToGenerate)
+                    .scaleEffect(isGenerating ? 0.98 : 1.0)
+                    .animation(.easeInOut(duration: 0.15),
+                               value: isGenerating)
+                }
+                .disabled(!isReadyToGenerate || isGenerating)
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
+            }
+            .padding(.top, 8)
+            .padding(.bottom, 8)
+            .background(Color(.systemGroupedBackground))
+            .animation(.easeInOut(duration: 0.2),
+                       value: isReadyToGenerate)
+        }
+    }
+
+    // MARK: - Race Type Row
+
+    private func raceTypeRow(_ type: RaceType) -> some View {
         let isSelected = selectedRaceType == type
-
         return Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             withAnimation(.easeInOut(duration: 0.2)) {
                 selectedRaceType = type
             }
         } label: {
-            HStack(spacing: 16) {
-                // Icon circle
+            HStack(spacing: 14) {
                 ZStack {
                     Circle()
                         .fill(isSelected
                               ? Color(.label)
-                              : Color(.tertiarySystemBackground))
-                        .frame(width: 44, height: 44)
+                              : Color(.systemFill))
+                        .frame(width: 38, height: 38)
                     Image(systemName: type.icon)
-                        .font(.system(size: 18, weight: .light))
+                        .font(.system(size: 16, weight: .light))
                         .foregroundColor(isSelected
                                          ? Color(.systemBackground)
                                          : .secondary)
                 }
-
-                // Text block
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(type.rawValue)
                         .font(.system(size: 15,
-                                      weight: isSelected ? .semibold : .regular))
+                                      weight: isSelected
+                                      ? .semibold : .regular))
                         .foregroundColor(.primary)
                     Text(type.displayDistance)
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundColor(.secondary)
                 }
-
                 Spacer()
-
-                // Selection indicator
                 ZStack {
                     Circle()
                         .stroke(isSelected
@@ -530,19 +653,8 @@ struct CreatePlanView: View {
                     }
                 }
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color(.secondarySystemBackground))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(isSelected
-                            ? Color(.label).opacity(0.3)
-                            : Color.clear,
-                            lineWidth: 1.5)
-            )
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -567,13 +679,13 @@ struct CreatePlanView: View {
     private var scheduleNote: String {
         switch settings.planType {
         case .higdon:
-            return "Novice: Long run is the anchor. 2 rest days recommended."
+            return "Novice plan: Long run is the anchor. 2 rest days recommended."
         case .higdonIntermediate:
             return "Intermediate: Long run + midweek run + tempo + optional cross-training. 1 rest day minimum."
         case .hansons:
-            return "Six days running. ONE quality day per week. 1 rest day only."
+            return "Six days running. One quality session per week. One rest day only."
         case .pfitz:
-            return "Six days running. Two quality days + medium-long run mid-week."
+            return "Six days running. Two quality days plus a medium-long run mid-week."
         case .jackDaniels:
             return "Q1 and Q2 anchor the week. All other days strictly easy."
         case .higdonHalfNovice:
@@ -587,12 +699,12 @@ struct CreatePlanView: View {
 
     private var restDaysLabel: String {
         switch settings.planType {
-        case .hansons, .hansonsHalf:  return "REST DAY (1 ONLY)"
-        case .pfitz:                  return "REST DAY (1 MAXIMUM)"
+        case .hansons, .hansonsHalf:     return "REST DAY (1 ONLY)"
+        case .pfitz:                     return "REST DAY (1 MAXIMUM)"
         case .higdon, .higdonHalfNovice: return "REST DAYS (SELECT 2)"
         case .higdonIntermediate,
-             .higdonHalfIntermediate: return "REST DAY (1 MINIMUM)"
-        case .jackDaniels:            return "REST DAYS (1–2)"
+             .higdonHalfIntermediate:    return "REST DAY (1 MINIMUM)"
+        case .jackDaniels:               return "REST DAYS (1–2)"
         }
     }
 
@@ -603,11 +715,11 @@ struct CreatePlanView: View {
         case .pfitz:
             return "Needs 5–6 running days. Limit rest to preserve volume."
         case .higdon, .higdonHalfNovice:
-            return "Two rest days help absorb training. Select any two free days."
+            return "Two rest days help absorb training."
         case .higdonIntermediate, .higdonHalfIntermediate:
-            return "One rest day minimum. Cross-training covers the other recovery day."
+            return "One rest day minimum. Cross-training covers recovery."
         case .jackDaniels:
-            return "One or two rest days. Keep Q1 and Q2 separated by at least one easy day."
+            return "Keep Q1 and Q2 separated by at least one easy day."
         }
     }
 
@@ -616,7 +728,6 @@ struct CreatePlanView: View {
     private func daysBlockedFromRest() -> [Weekday] {
         let s = settings.schedule
         let p = settings.planType
-
         var hardBlocked = Set<Weekday>()
         hardBlocked.insert(s.longRunDay)
         if p != .higdon && p != .higdonHalfNovice {
@@ -624,27 +735,27 @@ struct CreatePlanView: View {
         }
         if p.requiresTwoWorkoutDays { hardBlocked.insert(s.workoutDay2) }
         if p.usesMidweekLongRun     { hardBlocked.insert(s.midweekLongDay) }
-        if p.usesCrossTraining, let ct = s.crossTrainDay { hardBlocked.insert(ct) }
-
-        let minRunDays  = minimumRunDays(for: p)
-        let maxRestDays = 7 - minRunDays
-        let currentRest = s.restDays.filter { !hardBlocked.contains($0) }.count
-
+        if p.usesCrossTraining, let ct = s.crossTrainDay {
+            hardBlocked.insert(ct)
+        }
+        let maxRestDays = 7 - minimumRunDays(for: p)
+        let currentRest = s.restDays.filter {
+            !hardBlocked.contains($0)
+        }.count
         var blocked = Array(hardBlocked)
         if currentRest >= maxRestDays {
-            let cannotAdd = Weekday.allCases.filter {
+            blocked += Weekday.allCases.filter {
                 !hardBlocked.contains($0) && !s.restDays.contains($0)
             }
-            blocked += cannotAdd
         }
         return blocked
     }
 
     private func minimumRunDays(for plan: PlanType) -> Int {
         switch plan {
-        case .hansons, .hansonsHalf:  return 6
-        case .pfitz:                  return 5
-        default:                      return 3
+        case .hansons, .hansonsHalf: return 6
+        case .pfitz:                 return 5
+        default:                     return 3
         }
     }
 
@@ -656,7 +767,9 @@ struct CreatePlanView: View {
             && settings.planType != .higdonHalfNovice {
             d.append(s.workoutDay1)
         }
-        if settings.planType.requiresTwoWorkoutDays { d.append(s.workoutDay2) }
+        if settings.planType.requiresTwoWorkoutDays {
+            d.append(s.workoutDay2)
+        }
         return d
     }
 
@@ -673,21 +786,26 @@ struct CreatePlanView: View {
         var issues: [String] = []
         let s = settings.schedule
         let p = settings.planType
-
         if s.restDays.contains(s.longRunDay) {
-            issues.append("\(s.longRunDay.fullName) is both a rest day and your long run day.")
+            issues.append(
+                "\(s.longRunDay.fullName) is both a rest day and your long run day.")
         }
         if p != .higdon && p != .higdonHalfNovice
             && s.restDays.contains(s.workoutDay1) {
-            issues.append("\(s.workoutDay1.fullName) is both a rest day and a workout day.")
+            issues.append(
+                "\(s.workoutDay1.fullName) is both a rest day and a workout day.")
         }
-        if p.requiresTwoWorkoutDays && s.restDays.contains(s.workoutDay2) {
-            issues.append("\(s.workoutDay2.fullName) is both a rest day and a workout day.")
+        if p.requiresTwoWorkoutDays
+            && s.restDays.contains(s.workoutDay2) {
+            issues.append(
+                "\(s.workoutDay2.fullName) is both a rest day and a workout day.")
         }
-        if p.requiresTwoWorkoutDays && s.workoutDay1 == s.workoutDay2 {
-            issues.append("Workout Day 1 and Workout Day 2 are the same day.")
+        if p.requiresTwoWorkoutDays
+            && s.workoutDay1 == s.workoutDay2 {
+            issues.append("Q1 and Q2 are on the same day.")
         }
-        if p.usesMidweekLongRun && s.midweekLongDay == s.longRunDay {
+        if p.usesMidweekLongRun
+            && s.midweekLongDay == s.longRunDay {
             issues.append("Midweek run and long run are on the same day.")
         }
         return issues
@@ -696,12 +814,12 @@ struct CreatePlanView: View {
     // MARK: - Actions
 
     private func handleRaceTypeChange() {
-        if let firstPlan = PlanType.options(for: selectedRaceType).first {
-            settings.planType = firstPlan
+        if let first = PlanType.options(for: selectedRaceType).first {
+            settings.planType = first
             settings.resetScheduleForNewPlanType()
         }
-        if let firstLength = PlanLength.options(for: selectedRaceType).first {
-            settings.planLength = firstLength
+        if let first = PlanLength.options(for: selectedRaceType).first {
+            settings.planLength = first
         }
         goalHours   = selectedRaceType == .halfMarathon ? 1 : 3
         goalMinutes = 45
@@ -713,13 +831,12 @@ struct CreatePlanView: View {
     }
 
     private func generatePlan() {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
         updateGoalTime()
         isGenerating = true
-
         let capturedSettings = settings
         let capturedName     = planName.trimmingCharacters(in: .whitespaces)
         let capturedDate     = raceDate
-
         DispatchQueue.global(qos: .userInitiated).async {
             let plan = createSavedPlan(
                 name:     capturedName,
@@ -735,35 +852,7 @@ struct CreatePlanView: View {
     }
 }
 
-// MARK: - Sub-components (unchanged)
-
-struct CreateLabel: View {
-    let title: String
-    init(_ t: String) { title = t }
-    var body: some View {
-        Text(title)
-            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .foregroundColor(.secondary)
-            .kerning(3)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 20)
-            .padding(.bottom, 8)
-    }
-}
-
-struct CreateScheduleLabel: View {
-    let title: String
-    init(_ t: String) { title = t }
-    var body: some View {
-        Text(title)
-            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .foregroundColor(.secondary)
-            .kerning(3)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 20)
-            .padding(.bottom, 8)
-    }
-}
+// MARK: - Sub-components
 
 struct CreatePlanTypeRow: View {
     let plan       : PlanType
@@ -773,35 +862,40 @@ struct CreatePlanTypeRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 14) {
-                Circle()
-                    .stroke(isSelected ? Color.accentColor : Color(.systemFill),
-                            lineWidth: 1.5)
-                    .background(Circle().fill(isSelected
-                                              ? Color.accentColor.opacity(0.15)
-                                              : Color.clear))
-                    .frame(width: 16, height: 16)
-
+                ZStack {
+                    Circle()
+                        .stroke(isSelected
+                                ? Color.accentColor
+                                : Color(.systemFill),
+                                lineWidth: 1.5)
+                        .frame(width: 18, height: 18)
+                    if isSelected {
+                        Circle()
+                            .fill(Color.accentColor)
+                            .frame(width: 10, height: 10)
+                    }
+                }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(plan.rawValue)
                         .font(.system(size: 14,
-                                      weight: isSelected ? .semibold : .regular))
+                                      weight: isSelected
+                                      ? .semibold : .regular))
                         .foregroundColor(.primary)
                     Text(plan.description)
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                         .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
-
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.accentColor)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(isSelected ? Color(.systemFill) : Color.clear)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -825,8 +919,9 @@ struct CreateDurationChip: View {
                 .padding(.vertical, 12)
                 .background(isSelected
                             ? Color(.label)
-                            : Color(.secondarySystemBackground))
-                .cornerRadius(8)
+                            : Color(.systemFill))
+                .cornerRadius(10)
+                .animation(.easeInOut(duration: 0.15), value: isSelected)
         }
         .buttonStyle(.plain)
     }
@@ -837,72 +932,99 @@ struct CreateCrossTrainToggle: View {
     let taken             : [Weekday]
 
     var body: some View {
-        ZStack {
-            Color(.secondarySystemBackground)
-            VStack(spacing: 0) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Include Cross-Training Day")
-                            .font(.system(size: 14))
-                            .foregroundColor(.primary)
-                        Text("Cycling, swimming, elliptical, yoga")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                    Toggle("", isOn: Binding(
-                        get: { schedule.crossTrainDay != nil },
-                        set: { on in
-                            if on {
-                                let t = Set(taken)
-                                schedule.crossTrainDay =
-                                    Weekday.allCases.first { !t.contains($0) }
-                            } else {
-                                schedule.crossTrainDay = nil
-                            }
-                        }
-                    ))
-                    .labelsHidden()
+        VStack(spacing: 0) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Include Cross-Training Day")
+                        .font(.system(size: 14))
+                        .foregroundColor(.primary)
+                    Text("Cycling, swimming, elliptical, yoga")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
                 }
-                .padding(16)
-
-                if schedule.crossTrainDay != nil {
-                    Divider()
-                    HStack(spacing: 5) {
-                        ForEach(Weekday.allCases) { day in
-                            let isSel = schedule.crossTrainDay == day
-                            let isDis = taken.contains(day)
-                                && schedule.crossTrainDay != day
-                            Button {
-                                guard !isDis else { return }
-                                schedule.crossTrainDay = day
-                            } label: {
-                                Text(day.name)
-                                    .font(.system(size: 11,
-                                                  weight: isSel ? .semibold : .regular,
-                                                  design: .monospaced))
-                                    .foregroundColor(
-                                        isDis ? Color(.tertiaryLabel) :
-                                        isSel ? Color(.systemBackground) :
-                                                .secondary
-                                    )
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 11)
-                                    .background(
-                                        isDis ? Color(.tertiarySystemFill) :
-                                        isSel ? Color(.label) :
-                                                Color(.tertiarySystemBackground)
-                                    )
-                                    .cornerRadius(7)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(isDis)
+                Spacer()
+                Toggle("", isOn: Binding(
+                    get: { schedule.crossTrainDay != nil },
+                    set: { on in
+                        if on {
+                            let t = Set(taken)
+                            schedule.crossTrainDay =
+                                Weekday.allCases.first { !t.contains($0) }
+                        } else {
+                            schedule.crossTrainDay = nil
                         }
                     }
-                    .padding(10)
+                ))
+                .labelsHidden()
+            }
+            if schedule.crossTrainDay != nil {
+                Divider().padding(.vertical, 12)
+                HStack(spacing: 5) {
+                    ForEach(Weekday.allCases) { day in
+                        let isSel = schedule.crossTrainDay == day
+                        let isDis = taken.contains(day)
+                            && schedule.crossTrainDay != day
+                        Button {
+                            guard !isDis else { return }
+                            schedule.crossTrainDay = day
+                        } label: {
+                            Text(day.name)
+                                .font(.system(
+                                    size: 11,
+                                    weight: isSel ? .semibold : .regular,
+                                    design: .monospaced))
+                                .foregroundColor(
+                                    isDis ? Color(.tertiaryLabel) :
+                                    isSel ? Color(.systemBackground) :
+                                            .secondary
+                                )
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(
+                                    isDis ? Color(.tertiarySystemFill) :
+                                    isSel ? Color(.label) :
+                                            Color(.systemFill)
+                                )
+                                .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isDis)
+                    }
                 }
             }
         }
+        .padding(16)
+        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+    }
+}
+
+struct CreateLabel: View {
+    let title: String
+    init(_ t: String) { title = t }
+    var body: some View {
+        Text(title)
+            .font(.system(size: 10, weight: .semibold,
+                          design: .monospaced))
+            .foregroundColor(.secondary)
+            .kerning(3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 20)
+            .padding(.bottom, 8)
+    }
+}
+
+struct CreateScheduleLabel: View {
+    let title: String
+    init(_ t: String) { title = t }
+    var body: some View {
+        Text(title)
+            .font(.system(size: 10, weight: .semibold,
+                          design: .monospaced))
+            .foregroundColor(.secondary)
+            .kerning(3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 20)
+            .padding(.bottom, 8)
     }
 }
