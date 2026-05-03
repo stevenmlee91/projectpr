@@ -38,6 +38,9 @@
 		B08F59DD2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59DC2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift */; };
 		B08F59DF2FA6487A00BFFC53 /* NearbyAmenitiesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F59DE2FA6487A00BFFC53 /* NearbyAmenitiesService.swift */; };
 		B08F5A1C2FA70E0700BFFC53 /* OnBoardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A1B2FA70E0700BFFC53 /* OnBoardingView.swift */; };
+		B08F5A1E2FA7F4F300BFFC53 /* DailyInsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A1D2FA7F4F300BFFC53 /* DailyInsightEngine.swift */; };
+		B08F5A202FA7F50E00BFFC53 /* DailyInsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A1F2FA7F50E00BFFC53 /* DailyInsightCard.swift */; };
+		B08F5A222FA7F64600BFFC53 /* WorkoutCompletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A212FA7F64600BFFC53 /* WorkoutCompletionView.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -104,6 +107,9 @@
 		B08F59DC2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedRouteLibraryView.swift; sourceTree = "<group>"; };
 		B08F59DE2FA6487A00BFFC53 /* NearbyAmenitiesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyAmenitiesService.swift; sourceTree = "<group>"; };
 		B08F5A1B2FA70E0700BFFC53 /* OnBoardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnBoardingView.swift; sourceTree = "<group>"; };
+		B08F5A1D2FA7F4F300BFFC53 /* DailyInsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyInsightEngine.swift; sourceTree = "<group>"; };
+		B08F5A1F2FA7F50E00BFFC53 /* DailyInsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyInsightCard.swift; sourceTree = "<group>"; };
+		B08F5A212FA7F64600BFFC53 /* WorkoutCompletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCompletionView.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -175,6 +181,8 @@
 				B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */,
 				B08F5A1B2FA70E0700BFFC53 /* OnBoardingView.swift */,
 				B075261A2F9EC478008F9552 /* SettingsView.swift */,
+				B08F5A1D2FA7F4F300BFFC53 /* DailyInsightEngine.swift */,
+				B08F5A1F2FA7F50E00BFFC53 /* DailyInsightCard.swift */,
 				B08F59C32FA4695C00BFFC53 /* NoteEditorSheet.swift */,
 				B08F59C52FA46ADB00BFFC53 /* RouteBuilderViewModel.swift */,
 				B08F59C72FA46AE800BFFC53 /* RouteMapView.swift */,
@@ -204,6 +212,7 @@
 				B07526062F9B0CB4008F9552 /* SavedPlanView.swift */,
 				B07526182F9EC44E008F9552 /* AppearanceManager.swift */,
 				B07526142F9E6FF4008F9552 /* TodayView.swift */,
+				B08F5A212FA7F64600BFFC53 /* WorkoutCompletionView.swift */,
 				B07526082F9B0CD2008F9552 /* PDFExporter.swift */,
 				B075260A2F9B0CE6008F9552 /* ICSexporter.swift */,
 				B0A62DAA2F9862490093719D /* SetupView.swift */,
@@ -381,9 +390,12 @@
 				B08F59D92FA5BBB100BFFC53 /* RouteSnapshotGenerator.swift in Sources */,
 				B08F59C62FA46ADB00BFFC53 /* RouteBuilderViewModel.swift in Sources */,
 				B08F59BC2FA1B9BB00BFFC53 /* NotificationsManager.swift in Sources */,
+				B08F5A222FA7F64600BFFC53 /* WorkoutCompletionView.swift in Sources */,
 				B0A62DB42F9862AD0093719D /* MinitabView.swift in Sources */,
 				B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */,
 				B08F59C82FA46AE800BFFC53 /* RouteMapView.swift in Sources */,
+				B08F5A1E2FA7F4F300BFFC53 /* DailyInsightEngine.swift in Sources */,
+				B08F5A202FA7F50E00BFFC53 /* DailyInsightCard.swift in Sources */,
 				B08F59CF2FA565B400BFFC53 /* ElevationChartView.swift in Sources */,
 				B08F59CA2FA46B0000BFFC53 /* RouteBuilderView.swift in Sources */,
 				B08F5A1C2FA70E0700BFFC53 /* OnBoardingView.swift in Sources */,
@@ -582,7 +594,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -615,7 +627,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

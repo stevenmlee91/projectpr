@@ -5,40 +5,81 @@ import SwiftUI
 struct TodayView: View {
     @EnvironmentObject var store: PlanStore
 
+    @State private var dailyInsight      : DailyInsight?     = nil
+    @State private var completionContext : CompletionContext?  = nil
+    @State private var showCompletion    : Bool               = false
+
     private var todayContext: TodayContext? {
         TodayContext.find(in: store.plans, primaryID: store.primaryPlanID)
     }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(.systemBackground).ignoresSafeArea()
+
                 ScrollView {
                     VStack(spacing: 20) {
                         if let ctx = todayContext {
                             todayHeader(ctx: ctx)
-                            TodayWorkoutCard(ctx: ctx)
-                                .environmentObject(store)
+
+                            if let insight = dailyInsight {
+                                DailyInsightCard(insight: insight)
+                            }
+
+                            TodayWorkoutCard(
+                                ctx: ctx,
+                                onComplete: { day in
+                                    let c = CompletionContext.make(from: day)
+                                    WorkoutHaptics.fire(for: c)
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        completionContext = c
+                                        showCompletion    = true
+                                    }
+                                    refreshInsight()
+                                }
+                            )
+                            .environmentObject(store)
+
                             WeekProgressCard(ctx: ctx)
                                 .environmentObject(store)
-                            if let livePlan = store.plans.first(where: { $0.id == ctx.plan.id }) {
+
+                            if let livePlan = store.plans.first(
+                                where: { $0.id == ctx.plan.id }) {
                                 WeeklyMileageChartView(
                                     plan:           livePlan,
                                     currentWeekNum: ctx.weekNumber
                                 )
-                                .id(livePlan.weeks.map { "\($0.id)\($0.actualTotalMiles)" }.joined())
+                                .id(livePlan.weeks.map {
+                                    "\($0.id)\($0.actualTotalMiles)"
+                                }.joined())
                             }
+
                             RaceCountdownCard(ctx: ctx)
+
                         } else {
                             emptyState
                         }
+
                         Spacer().frame(height: 32)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
                 }
+
+                // Completion overlay
+                if showCompletion, let ctx = completionContext {
+                    WorkoutCompletionView(context: ctx) {
+                        withAnimation(.easeIn(duration: 0.2)) {
+                            showCompletion    = false
+                            completionContext = nil
+                        }
+                    }
+                    .transition(.opacity)
+                    .zIndex(999)
+                }
             }
             .navigationBarTitleDisplayMode(.inline)
-
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("TODAY")
@@ -49,8 +90,26 @@ struct TodayView: View {
                 }
             }
         }
-
+        .onAppear { refreshInsight() }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIApplication.didBecomeActiveNotification)
+        ) { _ in refreshInsight() }
+        .onChange(of: store.plans) { _ in refreshInsight() }
+        .animation(.easeInOut(duration: 0.2), value: showCompletion)
     }
+
+    // MARK: - Insight
+
+    private func refreshInsight() {
+        guard let plan = store.primaryPlan else {
+            dailyInsight = nil
+            return
+        }
+        dailyInsight = DailyInsightEngine.generate(for: plan)
+    }
+
+    // MARK: - Header
 
     private func todayHeader(ctx: TodayContext) -> some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -75,6 +134,8 @@ struct TodayView: View {
         return f.string(from: Date()).uppercased()
     }
 
+    // MARK: - Empty State
+
     private var emptyState: some View {
         VStack(spacing: 24) {
             Spacer().frame(height: 60)
@@ -83,7 +144,8 @@ struct TodayView: View {
                 .foregroundColor(Color(.tertiarySystemBackground))
             VStack(spacing: 8) {
                 Text("No active plan")
-                    .font(.system(size: 20, weight: .light, design: .serif))
+                    .font(.system(size: 20, weight: .light,
+                                  design: .serif))
                     .foregroundColor(.secondary)
                 Text("Create a training plan to see\nyour daily workouts here.")
                     .font(.system(size: 13))
@@ -97,12 +159,22 @@ struct TodayView: View {
 // MARK: - Today Workout Card
 
 struct TodayWorkoutCard: View {
-    let ctx: TodayContext
+    let ctx        : TodayContext
+    let onComplete : ((SavedDay) -> Void)?
+
     @EnvironmentObject var store: PlanStore
 
     @State private var showingActualMiles = false
     @State private var actualMilesInput   = ""
-    @State private var showingNoteSheet   = false
+    @State private var isEditingNote      = false
+    @State private var noteInput          = ""
+    @FocusState private var noteFocused   : Bool
+
+    init(ctx: TodayContext,
+         onComplete: ((SavedDay) -> Void)? = nil) {
+        self.ctx        = ctx
+        self.onComplete = onComplete
+    }
 
     private var liveDay: SavedDay {
         store.plans
@@ -120,32 +192,9 @@ struct TodayWorkoutCard: View {
             VStack(alignment: .leading, spacing: 16) {
                 milesAndPace
                 descriptionText
-                if !liveDay.paceNote.isEmpty && liveDay.paceNote != "—" {
+                if !liveDay.paceNote.isEmpty
+                    && liveDay.paceNote != "—" {
                     paceNote
-                }
-                if let note = liveDay.completionNote, !note.isEmpty {
-                    Button {
-                        showingNoteSheet = true
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "note.text")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                            Text(note)
-                                .font(.system(size: 12))
-                                .foregroundColor(Color(hex: "6A6A6A"))
-                                .lineLimit(2)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            Image(systemName: "pencil")
-                                .font(.system(size: 10))
-                                .foregroundColor(Color(hex: "3A3A3A"))
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(Color(.tertiarySystemBackground))
-                        .cornerRadius(10)
-                    }
-                    .buttonStyle(.plain)
                 }
                 completionControls
                 if showingActualMiles { actualMilesRow }
@@ -158,14 +207,6 @@ struct TodayWorkoutCard: View {
                 .stroke(cardBorder, lineWidth: 1.5)
         )
         .cornerRadius(16)
-        .sheet(isPresented: $showingNoteSheet) {
-            NoteEditorSheet(
-                day:    liveDay,
-                planID: ctx.plan.id,
-                weekID: ctx.week.id
-            )
-            .environmentObject(store)
-        }
     }
 
     // MARK: Type Bar
@@ -176,7 +217,8 @@ struct TodayWorkoutCard: View {
                 .fill(workoutColor)
                 .frame(width: 8, height: 8)
             Text(liveDay.workoutType.uppercased())
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .font(.system(size: 10, weight: .bold,
+                              design: .monospaced))
                 .foregroundColor(workoutColor)
                 .kerning(2)
             Spacer()
@@ -192,15 +234,18 @@ struct TodayWorkoutCard: View {
             switch status {
             case .completed:
                 Label("DONE", systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(.system(size: 10, weight: .bold,
+                                  design: .monospaced))
                     .foregroundColor(Color(hex: "30D158"))
             case .skipped:
                 Label("SKIPPED", systemImage: "xmark.circle.fill")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(.system(size: 10, weight: .bold,
+                                  design: .monospaced))
                     .foregroundColor(Color(hex: "FF453A"))
             case .modified:
                 Label("MODIFIED", systemImage: "pencil.circle.fill")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(.system(size: 10, weight: .bold,
+                                  design: .monospaced))
                     .foregroundColor(Color(hex: "0A84FF"))
             case .notStarted:
                 if liveDay.workoutType == "Rest" {
@@ -230,7 +275,8 @@ struct TodayWorkoutCard: View {
                                           design: .monospaced))
                             .foregroundColor(.primary)
                         Text("miles")
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(.system(size: 12,
+                                          design: .monospaced))
                             .foregroundColor(.secondary)
                     }
                 } else if liveDay.workoutType == "Rest" {
@@ -258,13 +304,15 @@ struct TodayWorkoutCard: View {
                                           design: .monospaced))
                             .foregroundColor(.yellow)
                         Text("miles — RACE DAY")
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(.system(size: 12,
+                                          design: .monospaced))
                             .foregroundColor(.yellow)
                     }
                 }
             }
             Spacer()
-            if let actual = liveDay.actualMiles, status == .modified {
+            if let actual = liveDay.actualMiles,
+               status == .modified {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(String(format: "%.1f", actual))
                         .font(.system(size: 28, weight: .thin,
@@ -310,80 +358,261 @@ struct TodayWorkoutCard: View {
                 || liveDay.workoutType == "Race Day 🏁" {
                 EmptyView()
             } else {
-                HStack(spacing: 10) {
-                    Button {
-                        let next: CompletionStatus =
-                            status == .completed ? .notStarted : .completed
-                        store.updateCompletion(
-                            planID: ctx.plan.id,
-                            weekID: ctx.week.id,
-                            dayID:  liveDay.id,
-                            status: next
-                        )
-                        if next == .completed {
-                            DispatchQueue.main.asyncAfter(
-                                deadline: .now() + 0.4) {
-                                showingNoteSheet = true
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: status == .completed
-                                  ? "checkmark.circle.fill" : "circle")
-                                .font(.system(size: 18))
-                            Text(status == .completed
-                                 ? "Completed" : "Mark Complete")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .foregroundColor(status == .completed ? .white : .primary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(status == .completed
-                                    ? Color(hex: "30D158")
-                                    : Color(.systemFill))
-                        .cornerRadius(12)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
+                VStack(spacing: 10) {
 
-                    Button {
-                        let next: CompletionStatus =
-                            status == .skipped ? .notStarted : .skipped
-                        store.updateCompletion(
-                            planID: ctx.plan.id,
-                            weekID: ctx.week.id,
-                            dayID:  liveDay.id,
-                            status: next
-                        )
-                    } label: {
-                        Image(systemName: status == .skipped
-                              ? "xmark.circle.fill" : "minus.circle")
-                            .font(.system(size: 20))
-                            .foregroundColor(status == .skipped
-                                             ? Color(hex: "FF453A")
-                                             : Color(hex: "3A3A3A"))
-                            .frame(width: 48, height: 48)
-                            .contentShape(Rectangle())
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(12)
-                    }
-                    .buttonStyle(.plain)
+                    // Action row
+                    HStack(spacing: 10) {
 
-                    if liveDay.miles > 0 {
+                        // Mark complete
                         Button {
-                            actualMilesInput = liveDay.actualMiles
-                                .map { String(format: "%.1f", $0) } ?? ""
-                            showingActualMiles.toggle()
+                            let next: CompletionStatus =
+                                status == .completed
+                                    ? .notStarted : .completed
+                            store.updateCompletion(
+                                planID: ctx.plan.id,
+                                weekID: ctx.week.id,
+                                dayID:  liveDay.id,
+                                status: next
+                            )
+                            if next == .completed {
+                                onComplete?(liveDay)
+                            }
+                            if next == .notStarted {
+                                isEditingNote = false
+                                noteInput     = ""
+                            }
                         } label: {
-                            Image(systemName: "pencil.circle")
+                            HStack(spacing: 8) {
+                                Image(systemName: status == .completed
+                                      ? "checkmark.circle.fill"
+                                      : "circle")
+                                    .font(.system(size: 18))
+                                Text(status == .completed
+                                     ? "Completed"
+                                     : "Mark Complete")
+                                    .font(.system(size: 13,
+                                                  weight: .semibold))
+                            }
+                            .foregroundColor(status == .completed
+                                             ? .white : .primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(status == .completed
+                                        ? Color(hex: "30D158")
+                                        : Color(.systemFill))
+                            .cornerRadius(12)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        // Skip
+                        Button {
+                            let next: CompletionStatus =
+                                status == .skipped
+                                    ? .notStarted : .skipped
+                            store.updateCompletion(
+                                planID: ctx.plan.id,
+                                weekID: ctx.week.id,
+                                dayID:  liveDay.id,
+                                status: next
+                            )
+                            if next == .notStarted {
+                                isEditingNote = false
+                                noteInput     = ""
+                            }
+                        } label: {
+                            Image(systemName: status == .skipped
+                                  ? "xmark.circle.fill"
+                                  : "minus.circle")
                                 .font(.system(size: 20))
-                                .foregroundColor(Color(hex: "3A3A3A"))
+                                .foregroundColor(status == .skipped
+                                                 ? Color(hex: "FF453A")
+                                                 : Color(hex: "3A3A3A"))
                                 .frame(width: 48, height: 48)
                                 .contentShape(Rectangle())
-                                .background(Color(.secondarySystemBackground))
+                                .background(
+                                    Color(.secondarySystemBackground))
                                 .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
+
+                        // Actual miles
+                        if liveDay.miles > 0 {
+                            Button {
+                                actualMilesInput = liveDay.actualMiles
+                                    .map { String(format: "%.1f", $0) }
+                                    ?? ""
+                                showingActualMiles.toggle()
+                            } label: {
+                                Image(systemName: "pencil.circle")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(Color(hex: "3A3A3A"))
+                                    .frame(width: 48, height: 48)
+                                    .contentShape(Rectangle())
+                                    .background(
+                                        Color(.secondarySystemBackground))
+                                    .cornerRadius(12)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    // Note section — only after completion or skip
+                    if status == .completed
+                        || status == .modified
+                        || status == .skipped {
+                        noteSection
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: Note Section
+
+    private var noteSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+
+            if let note = liveDay.completionNote,
+               !note.isEmpty,
+               !isEditingNote {
+                // Existing note — tap to edit
+                Button {
+                    noteInput     = note
+                    isEditingNote = true
+                    noteFocused   = true
+                } label: {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "note.text")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .padding(.top, 1)
+                        Text(note)
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(hex: "6A6A6A"))
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity,
+                                   alignment: .leading)
+                        Image(systemName: "pencil")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color(.tertiarySystemBackground))
+                    .cornerRadius(10)
+                }
+                .buttonStyle(.plain)
+
+            } else if !isEditingNote {
+                // Add note link — subtle and optional
+                Button {
+                    noteInput     = ""
+                    isEditingNote = true
+                    noteFocused   = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("Add note")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Inline editor
+            if isEditingNote {
+                VStack(spacing: 8) {
+                    TextField("How did it go?",
+                              text: $noteInput,
+                              axis: .vertical)
+                        .font(.system(size: 13))
+                        .foregroundColor(.primary)
+                        .lineLimit(3...6)
+                        .focused($noteFocused)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Color(.tertiarySystemBackground))
+                        .cornerRadius(10)
+
+                    HStack(spacing: 10) {
+                        // Cancel
+                        Button {
+                            isEditingNote = false
+                            noteInput     = ""
+                            noteFocused   = false
+                        } label: {
+                            Text("Cancel")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(Color(.systemFill))
+                                .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+
+                        Spacer()
+
+                        // Clear (only if note exists)
+                        if let existing = liveDay.completionNote,
+                           !existing.isEmpty {
+                            Button {
+                                store.saveNote(
+                                    planID: ctx.plan.id,
+                                    weekID: ctx.week.id,
+                                    dayID:  liveDay.id,
+                                    note:   ""
+                                )
+                                noteInput     = ""
+                                isEditingNote = false
+                                noteFocused   = false
+                            } label: {
+                                Text("Clear")
+                                    .font(.system(size: 12,
+                                                  weight: .medium))
+                                    .foregroundColor(Color(hex: "FF453A"))
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        Color(hex: "FF453A").opacity(0.08))
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        // Save
+                        Button {
+                            let trimmed = noteInput.trimmingCharacters(
+                                in: .whitespacesAndNewlines)
+                            store.saveNote(
+                                planID: ctx.plan.id,
+                                weekID: ctx.week.id,
+                                dayID:  liveDay.id,
+                                note:   trimmed
+                            )
+                            isEditingNote = false
+                            noteFocused   = false
+                            UIImpactFeedbackGenerator(style: .light)
+                                .impactOccurred()
+                        } label: {
+                            Text("Save")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(Color(hex: "30D158"))
+                                .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(
+                            noteInput.trimmingCharacters(
+                                in: .whitespacesAndNewlines).isEmpty
+                            && liveDay.completionNote == nil
+                        )
                     }
                 }
             }
@@ -440,10 +669,10 @@ struct TodayWorkoutCard: View {
              "Marathon Pace":                          return Color(hex: "FF9F0A")
         case "Lactate Threshold", "Cruise Intervals",
              "Speed Work", "Interval Work",
-             "Repetition Work":                       return Color(hex: "FF453A")
-        case "Cross-Training":                        return Color(hex: "BF5AF2")
-        case "Race Day 🏁":                           return .yellow
-        default:                                      return Color(hex: "5E5E5E")
+             "Repetition Work":                        return Color(hex: "FF453A")
+        case "Cross-Training":                         return Color(hex: "BF5AF2")
+        case "Race Day 🏁":                            return .yellow
+        default:                                       return Color(hex: "5E5E5E")
         }
     }
 
@@ -505,7 +734,8 @@ struct WeekProgressCard: View {
                 Spacer()
                 ZStack {
                     Circle()
-                        .stroke(Color(.tertiarySystemBackground), lineWidth: 3)
+                        .stroke(Color(.tertiarySystemBackground),
+                                lineWidth: 3)
                     Circle()
                         .trim(from: 0, to: pct)
                         .stroke(Color(hex: "30D158"),
@@ -528,7 +758,8 @@ struct WeekProgressCard: View {
             }
 
             HStack {
-                Text(String(format: "%.0f mi planned", liveWeek.totalMiles))
+                Text(String(format: "%.0f mi planned",
+                            liveWeek.totalMiles))
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(Color(hex: "4A4A4A"))
                 Spacer()
@@ -596,8 +827,8 @@ struct WeekProgressCard: View {
     }
 
     func sortedDays(_ days: [SavedDay]) -> [SavedDay] {
-        let order = ["Monday","Tuesday","Wednesday",
-                     "Thursday","Friday","Saturday","Sunday"]
+        let order = ["Monday", "Tuesday", "Wednesday",
+                     "Thursday", "Friday", "Saturday", "Sunday"]
         return days.sorted { a, b in
             let i0 = order.firstIndex(of: a.weekday) ?? 7
             let i1 = order.firstIndex(of: b.weekday) ?? 7
@@ -613,7 +844,8 @@ struct RaceCountdownCard: View {
 
     private var daysUntilRace: Int {
         max(0, Calendar.current.dateComponents(
-            [.day], from: Date(), to: ctx.plan.raceDate).day ?? 0)
+            [.day], from: Date(),
+            to: ctx.plan.raceDate).day ?? 0)
     }
 
     private var label: String {
@@ -666,14 +898,11 @@ struct TodayContext {
     let weekNumber : Int
     let totalWeeks : Int
 
-    // Now reads from primary plan only.
-    // Pass the store so we can read primaryPlan directly.
     static func find(in plans: [SavedPlan],
                      primaryID: UUID?) -> TodayContext? {
         let cal   = Calendar.current
         let today = cal.startOfDay(for: Date())
 
-        // Use primary plan if set, otherwise fall back to first active plan
         let plan: SavedPlan?
         if let id = primaryID,
            let primary = plans.first(where: { $0.id == id }) {
@@ -689,7 +918,9 @@ struct TodayContext {
         guard let plan = plan else { return nil }
 
         guard let week = plan.weeks.first(where: { week in
-            week.days.contains { cal.isDate($0.date, inSameDayAs: today) }
+            week.days.contains {
+                cal.isDate($0.date, inSameDayAs: today)
+            }
         }) else { return nil }
 
         guard let day = week.days.first(where: {

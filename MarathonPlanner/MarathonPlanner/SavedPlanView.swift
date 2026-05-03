@@ -30,7 +30,8 @@ struct SavedPlanView: View {
             .filter { $0.workoutType != "Rest" }
         guard !trackable.isEmpty else { return 0 }
         let done = trackable.filter {
-            $0.completionStatus == .completed || $0.completionStatus == .modified
+            $0.completionStatus == .completed
+                || $0.completionStatus == .modified
         }.count
         return Double(done) / Double(trackable.count)
     }
@@ -39,7 +40,9 @@ struct SavedPlanView: View {
         let cal   = Calendar.current
         let today = cal.startOfDay(for: Date())
         return livePlan.weeks.first { week in
-            week.days.contains { cal.isDate($0.date, inSameDayAs: today) }
+            week.days.contains {
+                cal.isDate($0.date, inSameDayAs: today)
+            }
         }?.weekNumber ?? 1
     }
 
@@ -78,7 +81,6 @@ struct SavedPlanView: View {
                         Image(systemName: "bolt.fill")
                             .foregroundColor(.primary)
                     }
-
                     Button { showingEdit = true } label: {
                         Image(systemName: "pencil")
                             .foregroundColor(.primary)
@@ -104,13 +106,15 @@ struct SavedPlanView: View {
                 .foregroundColor(.secondary)
                 .kerning(3)
             Text(livePlan.name)
-                .font(.system(size: 28, weight: .light, design: .serif))
+                .font(.system(size: 28, weight: .light,
+                              design: .serif))
                 .foregroundColor(.primary)
             HStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("STARTS")
                         .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(Color(hex: "3E3E3E")).kerning(2)
+                        .foregroundColor(Color(hex: "3E3E3E"))
+                        .kerning(2)
                     Text(dateFormatter.string(from: livePlan.startDate))
                         .font(.system(size: 13))
                         .foregroundColor(Color(hex: "9A9A9A"))
@@ -118,7 +122,8 @@ struct SavedPlanView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("RACE DAY")
                         .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(Color(hex: "3E3E3E")).kerning(2)
+                        .foregroundColor(Color(hex: "3E3E3E"))
+                        .kerning(2)
                     Text(dateFormatter.string(from: livePlan.raceDate))
                         .font(.system(size: 13))
                         .foregroundColor(.primary)
@@ -140,7 +145,8 @@ struct SavedPlanView: View {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .stroke(Color(.tertiarySystemBackground), lineWidth: 4)
+                        .stroke(Color(.tertiarySystemBackground),
+                                lineWidth: 4)
                     Circle()
                         .trim(from: 0, to: pct)
                         .stroke(Color(hex: "30D158"),
@@ -203,9 +209,7 @@ struct SavedPlanView: View {
         let captured = livePlan
         DispatchQueue.global(qos: .userInitiated).async {
             let url = PDFExporter.exportPlan(captured)
-            DispatchQueue.main.async {
-                shareURL = url
-            }
+            DispatchQueue.main.async { shareURL = url }
         }
     }
 
@@ -213,9 +217,7 @@ struct SavedPlanView: View {
         let captured = livePlan
         DispatchQueue.global(qos: .userInitiated).async {
             let url = ICSExporter.exportPlan(captured)
-            DispatchQueue.main.async {
-                shareURL = url
-            }
+            DispatchQueue.main.async { shareURL = url }
         }
     }
 
@@ -306,7 +308,8 @@ struct SPVWeekRow: View {
                     .foregroundColor(isRaceWeek ? Color.orange : .secondary)
                 Spacer()
                 if let s = weekStart, let e = weekEnd {
-                    Text("\(shortDate.string(from: s)) – \(shortDate.string(from: e))")
+                    Text("\(shortDate.string(from: s)) – "
+                         + "\(shortDate.string(from: e))")
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(Color(.secondaryLabel))
                 }
@@ -401,26 +404,20 @@ struct DotView: View {
 
     var baseDotColor: Color {
         switch day.workoutType {
-        case "Rest":
-            return Color(.tertiarySystemBackground)
-        case "Recovery Run":
-            return Color(hex: "34C759")
-        case "Easy Run", "Easy + Strides", "Shakeout Run":
-            return Color(hex: "30D158")
+        case "Rest":                                  return Color(.tertiarySystemBackground)
+        case "Recovery Run":                          return Color(hex: "34C759")
+        case "Easy Run", "Easy + Strides",
+             "Shakeout Run":                          return Color(hex: "30D158")
         case "Long Run", "Long Run w/ MP Finish",
-             "Medium-Long Run", "Midweek Longer Run":
-            return Color(hex: "0A84FF")
-        case "Tempo Run", "Strength (MP)", "Marathon Pace":
-            return Color(hex: "FF9F0A")
+             "Medium-Long Run", "Midweek Longer Run": return Color(hex: "0A84FF")
+        case "Tempo Run", "Strength (MP)",
+             "Marathon Pace":                         return Color(hex: "FF9F0A")
         case "Lactate Threshold", "Cruise Intervals",
-             "Speed Work", "Interval Work", "Repetition Work":
-            return Color(hex: "FF453A")
-        case "Cross-Training":
-            return Color(hex: "BF5AF2")
-        case "Race Day 🏁":
-            return Color.yellow
-        default:
-            return Color(.systemFill)
+             "Speed Work", "Interval Work",
+             "Repetition Work":                       return Color(hex: "FF453A")
+        case "Cross-Training":                        return Color(hex: "BF5AF2")
+        case "Race Day 🏁":                           return Color.yellow
+        default:                                      return Color(.systemFill)
         }
     }
 }
@@ -466,9 +463,9 @@ struct SPVWeekDetailView: View {
                             SPVRaceDayRow(day: day,
                                          dateFormatter: dateFormatter)
                         } else {
-                            SPVDayRow(day: day,
-                                      planID: planID,
-                                      weekID: liveWeek.id,
+                            SPVDayRow(day:           day,
+                                      planID:        planID,
+                                      weekID:        liveWeek.id,
                                       dateFormatter: dateFormatter)
                                 .environmentObject(store)
                         }
@@ -508,9 +505,11 @@ struct SPVWeekDetailView: View {
                 Spacer()
                 ZStack {
                     Circle()
-                        .stroke(Color(.tertiarySystemBackground), lineWidth: 3)
+                        .stroke(Color(.tertiarySystemBackground),
+                                lineWidth: 3)
                     Circle()
-                        .trim(from: 0, to: liveWeek.completionPercentage)
+                        .trim(from: 0,
+                              to: liveWeek.completionPercentage)
                         .stroke(Color(hex: "30D158"),
                                 style: StrokeStyle(lineWidth: 3,
                                                    lineCap: .round))
@@ -551,28 +550,25 @@ struct SPVDayRow: View {
 
     @State private var showingActualMiles = false
     @State private var actualMilesInput   = ""
-    @State private var showingNoteSheet   = false
+    @State private var isEditingNote      = false
+    @State private var noteInput          = ""
+    @FocusState private var noteFocused   : Bool
 
     var dotColor: Color {
         switch day.workoutType {
-        case "Rest":
-            return .gray
-        case "Recovery Run":
-            return Color(hex: "34C759")
-        case "Easy Run", "Easy + Strides", "Shakeout Run":
-            return Color(hex: "30D158")
+        case "Rest":                                  return .gray
+        case "Recovery Run":                          return Color(hex: "34C759")
+        case "Easy Run", "Easy + Strides",
+             "Shakeout Run":                          return Color(hex: "30D158")
         case "Long Run", "Long Run w/ MP Finish",
-             "Medium-Long Run", "Midweek Longer Run":
-            return Color(hex: "0A84FF")
-        case "Tempo Run", "Strength (MP)", "Marathon Pace":
-            return Color(hex: "FF9F0A")
+             "Medium-Long Run", "Midweek Longer Run": return Color(hex: "0A84FF")
+        case "Tempo Run", "Strength (MP)",
+             "Marathon Pace":                         return Color(hex: "FF9F0A")
         case "Lactate Threshold", "Cruise Intervals",
-             "Speed Work", "Interval Work", "Repetition Work":
-            return Color(hex: "FF453A")
-        case "Cross-Training":
-            return Color(hex: "BF5AF2")
-        default:
-            return Color(hex: "3A3A3A")
+             "Speed Work", "Interval Work",
+             "Repetition Work":                       return Color(hex: "FF453A")
+        case "Cross-Training":                        return Color(hex: "BF5AF2")
+        default:                                      return Color(hex: "3A3A3A")
         }
     }
 
@@ -620,27 +616,11 @@ struct SPVDayRow: View {
                             .foregroundColor(Color(hex: "0A84FF"))
                     }
 
-                    if let note = day.completionNote, !note.isEmpty {
-                        Button {
-                            showingNoteSheet = true
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "note.text")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
-                                Text(note)
-                                    .font(.system(size: 11))
-                                    .foregroundColor(Color(hex: "6A6A6A"))
-                                    .lineLimit(2)
-                                    .frame(maxWidth: .infinity,
-                                           alignment: .leading)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 7)
-                            .background(Color(.tertiarySystemBackground))
-                            .cornerRadius(8)
-                        }
-                        .buttonStyle(.plain)
+                    // Note section — only after completion/skip
+                    if day.completionStatus == .completed
+                        || day.completionStatus == .modified
+                        || day.completionStatus == .skipped {
+                        noteSection
                     }
                 }
 
@@ -649,7 +629,8 @@ struct SPVDayRow: View {
             }
             .padding(14)
 
-            if day.completionStatus == .modified || showingActualMiles {
+            if day.completionStatus == .modified
+                || showingActualMiles {
                 actualMilesRow
             }
         }
@@ -657,15 +638,140 @@ struct SPVDayRow: View {
         .cornerRadius(12)
         .contentShape(Rectangle())
         .id(day.id)
-        .sheet(isPresented: $showingNoteSheet) {
-            NoteEditorSheet(
-                day:    day,
-                planID: planID,
-                weekID: weekID
-            )
-            .environmentObject(store)
-        }
     }
+
+    // MARK: Note Section
+
+    private var noteSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+
+            if let note = day.completionNote,
+               !note.isEmpty,
+               !isEditingNote {
+                // Preview — tap to edit
+                Button {
+                    noteInput     = note
+                    isEditingNote = true
+                    noteFocused   = true
+                } label: {
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "note.text")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                        Text(note)
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(hex: "6A6A6A"))
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity,
+                                   alignment: .leading)
+                        Image(systemName: "pencil")
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(Color(.tertiarySystemBackground))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+
+            } else if !isEditingNote {
+                // Add note — quiet and optional
+                Button {
+                    noteInput     = ""
+                    isEditingNote = true
+                    noteFocused   = true
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("Add note")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 3)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Inline editor
+            if isEditingNote {
+                VStack(spacing: 6) {
+                    TextField("How did it go?",
+                              text: $noteInput,
+                              axis: .vertical)
+                        .font(.system(size: 12))
+                        .lineLimit(2...4)
+                        .focused($noteFocused)
+                        .padding(10)
+                        .background(Color(.tertiarySystemBackground))
+                        .cornerRadius(8)
+
+                    HStack(spacing: 8) {
+                        Button {
+                            isEditingNote = false
+                            noteFocused   = false
+                        } label: {
+                            Text("Cancel")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+
+                        Spacer()
+
+                        if let existing = day.completionNote,
+                           !existing.isEmpty {
+                            Button {
+                                store.saveNote(
+                                    planID: planID,
+                                    weekID: weekID,
+                                    dayID:  day.id,
+                                    note:   ""
+                                )
+                                noteInput     = ""
+                                isEditingNote = false
+                                noteFocused   = false
+                            } label: {
+                                Text("Clear")
+                                    .font(.system(size: 11,
+                                                  weight: .medium))
+                                    .foregroundColor(Color(hex: "FF453A"))
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Button {
+                            let trimmed = noteInput.trimmingCharacters(
+                                in: .whitespacesAndNewlines)
+                            store.saveNote(
+                                planID: planID,
+                                weekID: weekID,
+                                dayID:  day.id,
+                                note:   trimmed
+                            )
+                            isEditingNote = false
+                            noteFocused   = false
+                            UIImpactFeedbackGenerator(style: .light)
+                                .impactOccurred()
+                        } label: {
+                            Text("Save")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color(hex: "30D158"))
+                                .cornerRadius(7)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(.top, 2)
+    }
+
+    // MARK: Miles View
 
     private var milesView: some View {
         Group {
@@ -687,17 +793,23 @@ struct SPVDayRow: View {
         }
     }
 
+    // MARK: Completion Buttons
+
     private var completionButtons: some View {
         VStack(spacing: 4) {
             Button {
                 let next: CompletionStatus =
-                    day.completionStatus == .completed ? .notStarted : .completed
-                store.updateCompletion(planID: planID, weekID: weekID,
-                                       dayID: day.id, status: next)
-                if next == .completed {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        showingNoteSheet = true
-                    }
+                    day.completionStatus == .completed
+                        ? .notStarted : .completed
+                store.updateCompletion(
+                    planID: planID,
+                    weekID: weekID,
+                    dayID:  day.id,
+                    status: next
+                )
+                if next == .notStarted {
+                    isEditingNote = false
+                    noteInput     = ""
                 }
             } label: {
                 Image(systemName: day.completionStatus == .completed
@@ -713,9 +825,18 @@ struct SPVDayRow: View {
 
             Button {
                 let next: CompletionStatus =
-                    day.completionStatus == .skipped ? .notStarted : .skipped
-                store.updateCompletion(planID: planID, weekID: weekID,
-                                       dayID: day.id, status: next)
+                    day.completionStatus == .skipped
+                        ? .notStarted : .skipped
+                store.updateCompletion(
+                    planID: planID,
+                    weekID: weekID,
+                    dayID:  day.id,
+                    status: next
+                )
+                if next == .notStarted {
+                    isEditingNote = false
+                    noteInput     = ""
+                }
             } label: {
                 Image(systemName: day.completionStatus == .skipped
                       ? "xmark.circle.fill" : "minus.circle")
@@ -745,6 +866,8 @@ struct SPVDayRow: View {
         }
     }
 
+    // MARK: Actual Miles Row
+
     private var actualMilesRow: some View {
         HStack(spacing: 12) {
             Text("Actual miles:")
@@ -761,9 +884,13 @@ struct SPVDayRow: View {
                 .cornerRadius(6)
             Button("Save") {
                 if let miles = Double(actualMilesInput) {
-                    store.updateCompletion(planID: planID, weekID: weekID,
-                                          dayID: day.id, status: .modified,
-                                          actual: miles)
+                    store.updateCompletion(
+                        planID: planID,
+                        weekID: weekID,
+                        dayID:  day.id,
+                        status: .modified,
+                        actual: miles
+                    )
                 }
                 showingActualMiles = false
             }
@@ -775,6 +902,8 @@ struct SPVDayRow: View {
         .padding(.horizontal, 14)
         .padding(.bottom, 12)
     }
+
+    // MARK: Styling
 
     private var rowBackground: Color {
         switch day.completionStatus {
@@ -872,7 +1001,9 @@ struct SPVRaceDayRow: View {
 
 struct SPVShareSheet: UIViewControllerRepresentable {
     let items: [Any]
-    func makeUIViewController(context: Context) -> UIActivityViewController {
+    func makeUIViewController(
+        context: Context
+    ) -> UIActivityViewController {
         UIActivityViewController(activityItems: items,
                                  applicationActivities: nil)
     }
