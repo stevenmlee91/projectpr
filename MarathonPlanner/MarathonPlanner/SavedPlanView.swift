@@ -46,6 +46,16 @@ struct SavedPlanView: View {
         }?.weekNumber ?? 1
     }
 
+    private var currentWeekID: UUID? {
+        let cal   = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        return livePlan.weeks.first { week in
+            week.days.contains {
+                cal.isDate($0.date, inSameDayAs: today)
+            }
+        }?.id
+    }
+
     var body: some View {
         ZStack {
             Color(.systemBackground).ignoresSafeArea()
@@ -227,7 +237,10 @@ struct SavedPlanView: View {
         VStack(spacing: 8) {
             ForEach(livePlan.weeks) { week in
                 NavigationLink(value: WeekNavID(id: week.id)) {
-                    SPVWeekRow(week: week)
+                    SPVWeekRow(
+                        week:          week,
+                        isCurrentWeek: week.id == currentWeekID
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -267,7 +280,8 @@ struct SPVExportButton: View {
 // MARK: - Week Row
 
 struct SPVWeekRow: View {
-    let week: SavedWeek
+    let week          : SavedWeek
+    var isCurrentWeek : Bool = false
 
     private var isRaceWeek: Bool { week.phase.contains("Race Week") }
 
@@ -278,13 +292,30 @@ struct SPVWeekRow: View {
     var weekStart: Date? { sortedDays(week.days).first?.date }
     var weekEnd:   Date? { sortedDays(week.days).last?.date  }
 
+    // Accent color for current week highlight
+    private var currentWeekAccent: Color { Color(hex: "0A84FF") }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+
+            // MARK: Top row
             HStack {
                 HStack(spacing: 8) {
                     Text("Week \(week.weekNumber)")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(isCurrentWeek
+                                         ? currentWeekAccent
+                                         : .primary)
+                    if isCurrentWeek && !isRaceWeek {
+                        Text("THIS WEEK")
+                            .font(.system(size: 9, weight: .bold,
+                                          design: .monospaced))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(currentWeekAccent)
+                            .cornerRadius(4)
+                    }
                     if isRaceWeek {
                         Text("RACE WEEK")
                             .font(.system(size: 9, weight: .bold,
@@ -302,10 +333,15 @@ struct SPVWeekRow: View {
                     .font(.system(size: 13))
             }
 
+            // MARK: Phase + date range
             HStack {
                 Text(week.phase)
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(isRaceWeek ? Color.orange : .secondary)
+                    .foregroundColor(
+                        isRaceWeek    ? Color.orange :
+                        isCurrentWeek ? currentWeekAccent.opacity(0.8) :
+                                        .secondary
+                    )
                 Spacer()
                 if let s = weekStart, let e = weekEnd {
                     Text("\(shortDate.string(from: s)) – "
@@ -315,6 +351,7 @@ struct SPVWeekRow: View {
                 }
             }
 
+            // MARK: Day dots
             HStack(spacing: 5) {
                 ForEach(sortedDays(week.days)) { day in
                     DotView(day: day)
@@ -324,15 +361,23 @@ struct SPVWeekRow: View {
             completionBar
         }
         .padding(16)
-        .background(isRaceWeek
+        .background(
+            isCurrentWeek && !isRaceWeek
+                ? currentWeekAccent.opacity(0.06)
+                : isRaceWeek
                     ? Color.yellow.opacity(0.08)
-                    : Color(.secondarySystemBackground))
+                    : Color(.secondarySystemBackground)
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(isRaceWeek
-                        ? Color.yellow.opacity(0.5)
-                        : Color.clear,
-                        lineWidth: 1.5)
+                .stroke(
+                    isCurrentWeek && !isRaceWeek
+                        ? currentWeekAccent.opacity(0.35)
+                        : isRaceWeek
+                            ? Color.yellow.opacity(0.5)
+                            : Color.clear,
+                    lineWidth: 1.5
+                )
         )
         .cornerRadius(12)
     }
@@ -369,8 +414,8 @@ struct SPVWeekRow: View {
     }
 
     func sortedDays(_ days: [SavedDay]) -> [SavedDay] {
-        let order = ["Monday","Tuesday","Wednesday",
-                     "Thursday","Friday","Saturday","Sunday"]
+        let order = ["Monday", "Tuesday", "Wednesday",
+                     "Thursday", "Friday", "Saturday", "Sunday"]
         return days.sorted { a, b in
             let i0 = order.firstIndex(of: a.weekday) ?? 7
             let i1 = order.firstIndex(of: b.weekday) ?? 7
@@ -404,20 +449,26 @@ struct DotView: View {
 
     var baseDotColor: Color {
         switch day.workoutType {
-        case "Rest":                                  return Color(.tertiarySystemBackground)
-        case "Recovery Run":                          return Color(hex: "34C759")
-        case "Easy Run", "Easy + Strides",
-             "Shakeout Run":                          return Color(hex: "30D158")
+        case "Rest":
+            return Color(.tertiarySystemBackground)
+        case "Recovery Run":
+            return Color(hex: "34C759")
+        case "Easy Run", "Easy + Strides", "Shakeout Run":
+            return Color(hex: "30D158")
         case "Long Run", "Long Run w/ MP Finish",
-             "Medium-Long Run", "Midweek Longer Run": return Color(hex: "0A84FF")
-        case "Tempo Run", "Strength (MP)",
-             "Marathon Pace":                         return Color(hex: "FF9F0A")
+             "Medium-Long Run", "Midweek Longer Run":
+            return Color(hex: "0A84FF")
+        case "Tempo Run", "Strength (MP)", "Marathon Pace":
+            return Color(hex: "FF9F0A")
         case "Lactate Threshold", "Cruise Intervals",
-             "Speed Work", "Interval Work",
-             "Repetition Work":                       return Color(hex: "FF453A")
-        case "Cross-Training":                        return Color(hex: "BF5AF2")
-        case "Race Day 🏁":                           return Color.yellow
-        default:                                      return Color(.systemFill)
+             "Speed Work", "Interval Work", "Repetition Work":
+            return Color(hex: "FF453A")
+        case "Cross-Training":
+            return Color(hex: "BF5AF2")
+        case "Race Day 🏁":
+            return Color.yellow
+        default:
+            return Color(.systemFill)
         }
     }
 }
@@ -487,7 +538,8 @@ struct SPVWeekDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
                         Text(liveWeek.phase)
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(.system(size: 12,
+                                          design: .monospaced))
                             .foregroundColor(isRaceWeek
                                              ? .yellow
                                              : Color(.secondaryLabel))
@@ -529,8 +581,8 @@ struct SPVWeekDetailView: View {
     }
 
     func sortedDays(_ days: [SavedDay]) -> [SavedDay] {
-        let order = ["Monday","Tuesday","Wednesday",
-                     "Thursday","Friday","Saturday","Sunday"]
+        let order = ["Monday", "Tuesday", "Wednesday",
+                     "Thursday", "Friday", "Saturday", "Sunday"]
         return days.sorted { a, b in
             let i0 = order.firstIndex(of: a.weekday) ?? 7
             let i1 = order.firstIndex(of: b.weekday) ?? 7
@@ -554,49 +606,79 @@ struct SPVDayRow: View {
     @State private var noteInput          = ""
     @FocusState private var noteFocused   : Bool
 
+    private var isToday: Bool {
+        Calendar.current.isDateInToday(day.date)
+    }
+
     var dotColor: Color {
         switch day.workoutType {
-        case "Rest":                                  return .gray
-        case "Recovery Run":                          return Color(hex: "34C759")
-        case "Easy Run", "Easy + Strides",
-             "Shakeout Run":                          return Color(hex: "30D158")
+        case "Rest":
+            return .gray
+        case "Recovery Run":
+            return Color(hex: "34C759")
+        case "Easy Run", "Easy + Strides", "Shakeout Run":
+            return Color(hex: "30D158")
         case "Long Run", "Long Run w/ MP Finish",
-             "Medium-Long Run", "Midweek Longer Run": return Color(hex: "0A84FF")
-        case "Tempo Run", "Strength (MP)",
-             "Marathon Pace":                         return Color(hex: "FF9F0A")
+             "Medium-Long Run", "Midweek Longer Run":
+            return Color(hex: "0A84FF")
+        case "Tempo Run", "Strength (MP)", "Marathon Pace":
+            return Color(hex: "FF9F0A")
         case "Lactate Threshold", "Cruise Intervals",
-             "Speed Work", "Interval Work",
-             "Repetition Work":                       return Color(hex: "FF453A")
-        case "Cross-Training":                        return Color(hex: "BF5AF2")
-        default:                                      return Color(hex: "3A3A3A")
+             "Speed Work", "Interval Work", "Repetition Work":
+            return Color(hex: "FF453A")
+        case "Cross-Training":
+            return Color(hex: "BF5AF2")
+        default:
+            return Color(hex: "3A3A3A")
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
+            // TODAY indicator bar at top of row
+            if isToday {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color(hex: "0A84FF"))
+                        .frame(width: 6, height: 6)
+                    Text("TODAY")
+                        .font(.system(size: 9, weight: .bold,
+                                      design: .monospaced))
+                        .foregroundColor(Color(hex: "0A84FF"))
+                        .kerning(1.5)
+                    Spacer()
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 10)
+                .padding(.bottom, 2)
+            }
+
             HStack(alignment: .top, spacing: 14) {
-                Circle()
-                    .fill(dotColor)
-                    .frame(width: 10, height: 10)
-                    .padding(.top, 4)
+                // Dot — glowing ring on today
+                ZStack {
+                    if isToday {
+                        Circle()
+                            .stroke(dotColor.opacity(0.25),
+                                    lineWidth: 3)
+                            .frame(width: 18, height: 18)
+                    }
+                    Circle()
+                        .fill(dotColor)
+                        .frame(width: 10, height: 10)
+                }
+                .frame(width: 18, height: 18)
+                .padding(.top, 2)
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text(dateFormatter.string(from: day.date))
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(day.isToday
+                            .font(.system(
+                                size: 14,
+                                weight: isToday ? .bold : .semibold
+                            ))
+                            .foregroundColor(isToday
                                              ? Color(hex: "0A84FF")
                                              : .primary)
-                        if day.isToday {
-                            Text("TODAY")
-                                .font(.system(size: 9, weight: .bold,
-                                              design: .monospaced))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(Color(hex: "0A84FF"))
-                                .cornerRadius(3)
-                        }
                         Spacer()
                         milesView
                     }
@@ -616,7 +698,6 @@ struct SPVDayRow: View {
                             .foregroundColor(Color(hex: "0A84FF"))
                     }
 
-                    // Note section — only after completion/skip
                     if day.completionStatus == .completed
                         || day.completionStatus == .modified
                         || day.completionStatus == .skipped {
@@ -627,7 +708,8 @@ struct SPVDayRow: View {
                 completionButtons
                     .contentShape(Rectangle())
             }
-            .padding(14)
+            .padding(.horizontal, 14)
+            .padding(.vertical, isToday ? 10 : 14)
 
             if day.completionStatus == .modified
                 || showingActualMiles {
@@ -635,6 +717,15 @@ struct SPVDayRow: View {
             }
         }
         .background(rowBackground)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    isToday
+                        ? Color(hex: "0A84FF").opacity(0.35)
+                        : Color.clear,
+                    lineWidth: 1.5
+                )
+        )
         .cornerRadius(12)
         .contentShape(Rectangle())
         .id(day.id)
@@ -644,11 +735,9 @@ struct SPVDayRow: View {
 
     private var noteSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-
             if let note = day.completionNote,
                !note.isEmpty,
                !isEditingNote {
-                // Preview — tap to edit
                 Button {
                     noteInput     = note
                     isEditingNote = true
@@ -676,7 +765,6 @@ struct SPVDayRow: View {
                 .buttonStyle(.plain)
 
             } else if !isEditingNote {
-                // Add note — quiet and optional
                 Button {
                     noteInput     = ""
                     isEditingNote = true
@@ -694,7 +782,6 @@ struct SPVDayRow: View {
                 .buttonStyle(.plain)
             }
 
-            // Inline editor
             if isEditingNote {
                 VStack(spacing: 6) {
                     TextField("How did it go?",
@@ -736,7 +823,8 @@ struct SPVDayRow: View {
                                 Text("Clear")
                                     .font(.system(size: 11,
                                                   weight: .medium))
-                                    .foregroundColor(Color(hex: "FF453A"))
+                                    .foregroundColor(
+                                        Color(hex: "FF453A"))
                             }
                             .buttonStyle(.plain)
                         }
@@ -756,7 +844,8 @@ struct SPVDayRow: View {
                                 .impactOccurred()
                         } label: {
                             Text("Save")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.system(size: 11,
+                                              weight: .semibold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
@@ -906,13 +995,14 @@ struct SPVDayRow: View {
     // MARK: Styling
 
     private var rowBackground: Color {
+        if isToday && day.completionStatus == .notStarted {
+            return Color(hex: "0A84FF").opacity(0.06)
+        }
         switch day.completionStatus {
         case .completed:  return Color(.systemGreen).opacity(0.10)
         case .skipped:    return Color(.systemRed).opacity(0.08)
         case .modified:   return Color(.systemBlue).opacity(0.10)
-        case .notStarted: return day.isToday
-            ? Color(.systemBlue).opacity(0.08)
-            : Color(.secondarySystemBackground)
+        case .notStarted: return Color(.secondarySystemBackground)
         }
     }
 
