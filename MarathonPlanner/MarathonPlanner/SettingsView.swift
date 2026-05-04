@@ -25,6 +25,9 @@ struct SettingsView: View {
                 // MARK: About
                 aboutSection
             }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
         }
@@ -62,6 +65,7 @@ struct SettingsView: View {
         } header: {
             Text("Appearance")
         }
+        .listRowBackground(Color(.secondarySystemGroupedBackground))
     }
 
     // MARK: - Onboarding
@@ -93,6 +97,7 @@ struct SettingsView: View {
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
         }
+        .listRowBackground(Color(.secondarySystemGroupedBackground))
     }
 
     // MARK: - About
@@ -154,5 +159,6 @@ struct SettingsView: View {
         } header: {
             Text("About")
         }
+        .listRowBackground(Color(.secondarySystemGroupedBackground))
     }
 }

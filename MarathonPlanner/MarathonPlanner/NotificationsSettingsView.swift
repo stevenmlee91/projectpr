@@ -1,40 +1,70 @@
 import SwiftUI
 import UserNotifications
 
-// MARK: - Notification Settings View
-//
-// Embedded inside SettingsView as a section.
-// Can also be used standalone.
-
 struct NotificationSettingsView: View {
     @ObservedObject var nm: NotificationManager
     @EnvironmentObject var store: PlanStore
 
-    // Local state mirrors UserDefaults via the manager
-    @State private var enabled = false
+    @State private var enabled      = false
     @State private var reminderTime = Date()
-    @State private var showDeniedAlert = false
 
     var body: some View {
         Section {
-            // Enable / disable toggle
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Daily Workout Reminder")
-                        .foregroundColor(.primary)
-                    Text(statusSubtitle)
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-                Toggle("", isOn: $enabled)
-                    .labelsHidden()
-                    .onChange(of: enabled) { newValue in
-                        handleToggle(newValue)
-                    }
-            }
 
-            // Time picker — only shown when enabled and authorized
+            // MARK: Toggle row — fully custom, no system Toggle
+            Button {
+                handleToggle(!enabled)
+            } label: {
+                HStack(spacing: 14) {
+                    // Icon badge
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 7)
+                            .fill(enabled
+                                  ? Color(hex: "30D158")
+                                  : Color(.systemGray4))
+                            .frame(width: 28, height: 28)
+                        Image(systemName: enabled
+                              ? "bell.fill"
+                              : "bell.slash.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+
+                    // Labels
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Daily Workout Reminder")
+                            .foregroundColor(.primary)
+                            .font(.system(size: 16))
+                        Text(statusSubtitle)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    // Custom pill toggle
+                    ZStack(alignment: enabled ? .trailing : .leading) {
+                        Capsule()
+                            .fill(enabled
+                                  ? Color(hex: "30D158")
+                                  : Color(.systemGray4))
+                            .frame(width: 48, height: 28)
+                        Circle()
+                            .fill(Color.white)
+                            .shadow(color: .black.opacity(0.15),
+                                    radius: 2, y: 1)
+                            .frame(width: 24, height: 24)
+                            .padding(2)
+                    }
+                    .animation(.spring(response: 0.3,
+                                       dampingFraction: 0.7),
+                               value: enabled)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // MARK: Time picker
             if enabled && nm.authorizationStatus == .authorized {
                 DatePicker(
                     "Reminder Time",
@@ -53,13 +83,13 @@ struct NotificationSettingsView: View {
                 }
             }
 
-            // Denied state — link to Settings
+            // MARK: Denied banner
             if nm.authorizationStatus == .denied {
                 Button {
                     nm.openSystemSettings()
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle")
+                        Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
                         Text("Notifications blocked — tap to open Settings")
                             .font(.system(size: 13))
@@ -77,6 +107,7 @@ struct NotificationSettingsView: View {
                     .font(.system(size: 11))
             }
         }
+        .listRowBackground(Color(.secondarySystemGroupedBackground))
         .onAppear {
             syncStateFromManager()
         }
@@ -87,7 +118,7 @@ struct NotificationSettingsView: View {
     private var statusSubtitle: String {
         switch nm.authorizationStatus {
         case .authorized:
-            return enabled ? "Reminders are on" : "Reminders are off"
+            return enabled ? "Reminders on" : "Reminders off"
         case .denied:
             return "Blocked in iOS Settings"
         case .notDetermined:
@@ -98,20 +129,23 @@ struct NotificationSettingsView: View {
     }
 
     private func syncStateFromManager() {
-        enabled = nm.notificationsEnabled && nm.authorizationStatus == .authorized
+        enabled = nm.notificationsEnabled
+            && nm.authorizationStatus == .authorized
 
-        // Reconstruct the Date from stored hour/minute
-        var components        = Calendar.current.dateComponents([.year,.month,.day],
-                                                                from: Date())
-        components.hour       = nm.reminderHour
-        components.minute     = nm.reminderMinute
-        reminderTime = Calendar.current.date(from: components) ?? Date()
+        var components    = Calendar.current.dateComponents(
+            [.year, .month, .day], from: Date())
+        components.hour   = nm.reminderHour
+        components.minute = nm.reminderMinute
+        reminderTime      = Calendar.current.date(from: components) ?? Date()
     }
 
     private func handleToggle(_ isOn: Bool) {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
         if isOn {
             switch nm.authorizationStatus {
             case .authorized:
+                enabled                 = true
                 nm.notificationsEnabled = true
                 nm.scheduleWorkoutReminders(
                     for:       store.plans,
@@ -120,13 +154,13 @@ struct NotificationSettingsView: View {
             case .notDetermined:
                 nm.requestPermission { granted in
                     if granted {
+                        enabled                 = true
                         nm.notificationsEnabled = true
                         nm.scheduleWorkoutReminders(
                             for:       store.plans,
                             primaryID: store.primaryPlanID
                         )
                     } else {
-                        // Permission denied — flip toggle back
                         enabled = false
                     }
                 }
@@ -137,6 +171,7 @@ struct NotificationSettingsView: View {
                 enabled = false
             }
         } else {
+            enabled                 = false
             nm.notificationsEnabled = false
             nm.cancelAll()
         }
