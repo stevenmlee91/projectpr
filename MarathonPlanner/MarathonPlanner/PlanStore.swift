@@ -39,7 +39,8 @@ struct SavedWeek: Identifiable, Codable {
     let phase      : String
     var days       : [SavedDay]
 
-    init(id: UUID = UUID(), weekNumber: Int, phase: String, days: [SavedDay]) {
+    init(id: UUID = UUID(), weekNumber: Int,
+         phase: String, days: [SavedDay]) {
         self.id         = id
         self.weekNumber = weekNumber
         self.phase      = phase
@@ -53,10 +54,10 @@ struct SavedWeek: Identifiable, Codable {
     var actualTotalMiles: Double {
         days.reduce(0) { sum, day in
             switch day.completionStatus {
-            case .completed: return sum + (day.actualMiles ?? day.miles)
-            case .modified:  return sum + (day.actualMiles ?? day.miles)
-            case .skipped:   return sum + 0
-            case .notStarted: return sum + 0
+            case .completed:  return sum + (day.actualMiles ?? day.miles)
+            case .modified:   return sum + (day.actualMiles ?? day.miles)
+            case .skipped:    return sum
+            case .notStarted: return sum
             }
         }
     }
@@ -64,8 +65,8 @@ struct SavedWeek: Identifiable, Codable {
     var hasAnyActualMiles: Bool {
         days.contains {
             $0.completionStatus == .completed
-            || $0.completionStatus == .modified
-            || $0.completionStatus == .skipped
+                || $0.completionStatus == .modified
+                || $0.completionStatus == .skipped
         }
     }
 
@@ -78,7 +79,7 @@ struct SavedWeek: Identifiable, Codable {
         guard !trackable.isEmpty else { return 1.0 }
         let done = trackable.filter {
             $0.completionStatus == .completed
-            || $0.completionStatus == .modified
+                || $0.completionStatus == .modified
         }.count
         return Double(done) / Double(trackable.count)
     }
@@ -86,7 +87,7 @@ struct SavedWeek: Identifiable, Codable {
     var completedDayCount: Int {
         days.filter {
             $0.completionStatus == .completed
-            || $0.completionStatus == .modified
+                || $0.completionStatus == .modified
         }.count
     }
 
@@ -109,8 +110,10 @@ struct SavedDay: Identifiable, Codable {
 
     init(id: UUID = UUID(), date: Date, weekday: String,
          workoutType: String, miles: Double, description: String,
-         paceNote: String, completionStatus: CompletionStatus = .notStarted,
-         actualMiles: Double? = nil, completionNote: String? = nil) {
+         paceNote: String,
+         completionStatus: CompletionStatus = .notStarted,
+         actualMiles: Double? = nil,
+         completionNote: String? = nil) {
         self.id               = id
         self.date             = date
         self.weekday          = weekday
@@ -123,49 +126,123 @@ struct SavedDay: Identifiable, Codable {
         self.completionNote   = completionNote
     }
 
-    var isToday: Bool { Calendar.current.isDateInToday(date) }
-    var isPast: Bool  { date < Calendar.current.startOfDay(for: Date()) }
+    var isToday: Bool {
+        Calendar.current.isDateInToday(date)
+    }
+    var isPast: Bool {
+        date < Calendar.current.startOfDay(for: Date())
+    }
+}
+
+// MARK: - Monday Calendar
+
+/// Shared Monday-first calendar used for all plan date arithmetic.
+private var mondayCalendar: Calendar = {
+    var cal = Calendar(identifier: .gregorian)
+    cal.firstWeekday = 2          // Monday = 2 in Gregorian
+    cal.timeZone     = .current
+    cal.locale       = .current
+    return cal
+}()
+
+// MARK: - Day Offset Helper
+
+/// Returns the number of days from Monday for a given weekday name.
+/// Monday = 0, Tuesday = 1, … Sunday = 6
+private func mondayOffset(for weekdayName: String) -> Int {
+    switch weekdayName.lowercased() {
+    case "monday":    return 0
+    case "tuesday":   return 1
+    case "wednesday": return 2
+    case "thursday":  return 3
+    case "friday":    return 4
+    case "saturday":  return 5
+    case "sunday":    return 6
+    default:          return 0
+    }
+}
+
+// MARK: - Nearest Monday
+
+/// Snaps any date back to the Monday of its week.
+private func nearestMonday(to date: Date) -> Date {
+    let cal     = mondayCalendar
+    let weekday = cal.component(.weekday, from: date)
+    // Gregorian: Sun=1, Mon=2, Tue=3 … Sat=7
+    // Days since Monday: Mon=0, Tue=1 … Sun=6
+    let daysSinceMonday = (weekday + 5) % 7
+    return cal.date(
+        byAdding: .day,
+        value:    -daysSinceMonday,
+        to:       cal.startOfDay(for: date)
+    ) ?? cal.startOfDay(for: date)
 }
 
 // MARK: - Plan Creation
 
-func createSavedPlan(name: String, raceDate: Date,
+func createSavedPlan(name: String,
+                     raceDate: Date,
                      settings: UserSettings) -> SavedPlan {
-    let cal = Calendar.current
-    guard let startDate = cal.date(
+
+    // Step 1: go back planLength weeks from race date
+    guard let rawStart = mondayCalendar.date(
         byAdding: .weekOfYear,
-        value: -settings.planLength.rawValue,
-        to: raceDate
+        value:    -settings.planLength.rawValue,
+        to:       raceDate
     ) else { fatalError("Could not calculate plan start date") }
 
+    // Step 2: snap to Monday
+    let startDate = nearestMonday(to: rawStart)
+
+    // Step 3: generate and build
     let trainingWeeks = PlanGenerator.generate(settings: settings)
-    let savedWeeks    = buildSavedWeeks(from: trainingWeeks,
-                                        startDate: startDate, cal: cal)
-    return SavedPlan(name: name, raceDate: raceDate,
-                     startDate: startDate,
-                     planType: settings.planType.rawValue,
-                     weeks: savedWeeks, settings: settings)
+    let savedWeeks    = buildSavedWeeks(from:      trainingWeeks,
+                                        startDate: startDate)
+
+    return SavedPlan(
+        name:      name,
+        raceDate:  raceDate,
+        startDate: startDate,
+        planType:  settings.planType.rawValue,
+        weeks:     savedWeeks,
+        settings:  settings
+    )
 }
 
 func buildSavedWeeks(from trainingWeeks: [TrainingWeek],
-                     startDate: Date, cal: Calendar) -> [SavedWeek] {
-    trainingWeeks.map { week in
+                     startDate: Date) -> [SavedWeek] {
+
+    // Always snap startDate to Monday before building
+    let monday = nearestMonday(to: startDate)
+
+    return trainingWeeks.map { week in
         let savedDays: [SavedDay] = week.days.map { day in
+            // weekNumber is 1-based so week 1 offset = 0
             let weekOffset  = week.weekNumber - 1
-            let dayOffset   = day.weekday.calendarOffset
+            // dayOffset: Mon=0 … Sun=6
+            let dayOffset   = mondayOffset(for: day.weekday.fullName)
             let totalOffset = weekOffset * 7 + dayOffset
-            let realDate    = cal.date(byAdding: .day,
-                                       value: totalOffset,
-                                       to: startDate) ?? startDate
-            return SavedDay(date: realDate,
-                            weekday: day.weekday.fullName,
-                            workoutType: day.workoutType.rawValue,
-                            miles: day.miles,
-                            description: day.description,
-                            paceNote: day.paceNote)
+
+            let realDate = mondayCalendar.date(
+                byAdding: .day,
+                value:    totalOffset,
+                to:       monday
+            ) ?? monday
+
+            return SavedDay(
+                date:        realDate,
+                weekday:     day.weekday.fullName,
+                workoutType: day.workoutType.rawValue,
+                miles:       day.miles,
+                description: day.description,
+                paceNote:    day.paceNote
+            )
         }
-        return SavedWeek(weekNumber: week.weekNumber,
-                         phase: week.phase, days: savedDays)
+        return SavedWeek(
+            weekNumber: week.weekNumber,
+            phase:      week.phase,
+            days:       savedDays
+        )
     }
 }
 
@@ -177,7 +254,8 @@ class PlanStore: ObservableObject {
     @Published private(set) var primaryPlanID: UUID? {
         didSet {
             if let id = primaryPlanID {
-                UserDefaults.standard.set(id.uuidString, forKey: primaryKey)
+                UserDefaults.standard.set(id.uuidString,
+                                          forKey: primaryKey)
             } else {
                 UserDefaults.standard.removeObject(forKey: primaryKey)
             }
@@ -249,11 +327,13 @@ class PlanStore: ObservableObject {
     // MARK: - Completion
 
     func updateCompletion(planID: UUID, weekID: UUID, dayID: UUID,
-                          status: CompletionStatus, actual: Double? = nil) {
+                          status: CompletionStatus,
+                          actual: Double? = nil) {
         guard
             let pi = plans.firstIndex(where: { $0.id == planID }),
             let wi = plans[pi].weeks.firstIndex(where: { $0.id == weekID }),
-            let di = plans[pi].weeks[wi].days.firstIndex(where: { $0.id == dayID })
+            let di = plans[pi].weeks[wi].days.firstIndex(
+                where: { $0.id == dayID })
         else { return }
 
         plans[pi].weeks[wi].days[di].completionStatus = status
@@ -267,24 +347,29 @@ class PlanStore: ObservableObject {
         let snapshot = plans
         DispatchQueue.global(qos: .utility).async {
             if let data = try? JSONEncoder().encode(snapshot) {
-                UserDefaults.standard.set(data, forKey: "saved_training_plans_v2")
+                UserDefaults.standard.set(
+                    data, forKey: "saved_training_plans_v2")
             }
         }
     }
 
-    func saveNote(planID: UUID, weekID: UUID, dayID: UUID, note: String) {
+    func saveNote(planID: UUID, weekID: UUID, dayID: UUID,
+                  note: String) {
         guard
             let pi = plans.firstIndex(where: { $0.id == planID }),
             let wi = plans[pi].weeks.firstIndex(where: { $0.id == weekID }),
-            let di = plans[pi].weeks[wi].days.firstIndex(where: { $0.id == dayID })
+            let di = plans[pi].weeks[wi].days.firstIndex(
+                where: { $0.id == dayID })
         else { return }
 
-        plans[pi].weeks[wi].days[di].completionNote = note.isEmpty ? nil : note
+        plans[pi].weeks[wi].days[di].completionNote =
+            note.isEmpty ? nil : note
 
         let snapshot = plans
         DispatchQueue.global(qos: .utility).async {
             if let data = try? JSONEncoder().encode(snapshot) {
-                UserDefaults.standard.set(data, forKey: "saved_training_plans_v2")
+                UserDefaults.standard.set(
+                    data, forKey: "saved_training_plans_v2")
             }
         }
     }
@@ -295,28 +380,38 @@ class PlanStore: ObservableObject {
                         newSchedule: UserSchedule) -> SavedPlan {
         var newSettings      = plan.settings
         newSettings.schedule = newSchedule
-        let cal              = Calendar.current
         let trainingWeeks    = PlanGenerator.generate(settings: newSettings)
-        let saved            = buildSavedWeeks(from: trainingWeeks,
-                                               startDate: plan.startDate,
-                                               cal: cal)
-        return SavedPlan(id: plan.id, name: plan.name,
-                         raceDate: plan.raceDate, startDate: plan.startDate,
-                         planType: newSettings.planType.rawValue,
-                         weeks: saved, settings: newSettings)
+        let saved            = buildSavedWeeks(
+            from:      trainingWeeks,
+            startDate: plan.startDate
+        )
+        return SavedPlan(
+            id:        plan.id,
+            name:      plan.name,
+            raceDate:  plan.raceDate,
+            startDate: plan.startDate,
+            planType:  newSettings.planType.rawValue,
+            weeks:     saved,
+            settings:  newSettings
+        )
     }
 
     func regeneratePlan(_ plan: SavedPlan,
                         newSettings: UserSettings) -> SavedPlan {
-        let cal           = Calendar.current
         let trainingWeeks = PlanGenerator.generate(settings: newSettings)
-        let saved         = buildSavedWeeks(from: trainingWeeks,
-                                            startDate: plan.startDate,
-                                            cal: cal)
-        return SavedPlan(id: plan.id, name: plan.name,
-                         raceDate: plan.raceDate, startDate: plan.startDate,
-                         planType: newSettings.planType.rawValue,
-                         weeks: saved, settings: newSettings)
+        let saved         = buildSavedWeeks(
+            from:      trainingWeeks,
+            startDate: plan.startDate
+        )
+        return SavedPlan(
+            id:        plan.id,
+            name:      plan.name,
+            raceDate:  plan.raceDate,
+            startDate: plan.startDate,
+            planType:  newSettings.planType.rawValue,
+            weeks:     saved,
+            settings:  newSettings
+        )
     }
 
     // MARK: - Persistence
@@ -330,7 +425,8 @@ class PlanStore: ObservableObject {
     private func loadPlans() {
         guard
             let data  = UserDefaults.standard.data(forKey: key),
-            let saved = try? JSONDecoder().decode([SavedPlan].self, from: data)
+            let saved = try? JSONDecoder().decode(
+                [SavedPlan].self, from: data)
         else { return }
         plans = saved
     }
@@ -351,16 +447,22 @@ class PlanStore: ObservableObject {
 // MARK: - Conformances
 
 extension SavedPlan: Equatable, Hashable {
-    static func == (lhs: SavedPlan, rhs: SavedPlan) -> Bool { lhs.id == rhs.id }
+    static func == (lhs: SavedPlan, rhs: SavedPlan) -> Bool {
+        lhs.id == rhs.id
+    }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
 extension SavedWeek: Equatable, Hashable {
-    static func == (lhs: SavedWeek, rhs: SavedWeek) -> Bool { lhs.id == rhs.id }
+    static func == (lhs: SavedWeek, rhs: SavedWeek) -> Bool {
+        lhs.id == rhs.id
+    }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
 extension SavedDay: Equatable, Hashable {
-    static func == (lhs: SavedDay, rhs: SavedDay) -> Bool { lhs.id == rhs.id }
+    static func == (lhs: SavedDay, rhs: SavedDay) -> Bool {
+        lhs.id == rhs.id
+    }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
