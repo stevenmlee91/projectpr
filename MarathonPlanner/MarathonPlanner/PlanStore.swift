@@ -134,21 +134,19 @@ struct SavedDay: Identifiable, Codable {
     }
 }
 
-// MARK: - Monday Calendar
+// MARK: - Monday-first Calendar
 
-/// Shared Monday-first calendar used for all plan date arithmetic.
 private var mondayCalendar: Calendar = {
     var cal = Calendar(identifier: .gregorian)
-    cal.firstWeekday = 2          // Monday = 2 in Gregorian
+    cal.firstWeekday = 2
     cal.timeZone     = .current
     cal.locale       = .current
     return cal
 }()
 
-// MARK: - Day Offset Helper
+// MARK: - Date Helpers
 
-/// Returns the number of days from Monday for a given weekday name.
-/// Monday = 0, Tuesday = 1, … Sunday = 6
+/// Days from Monday for a weekday name. Mon=0 … Sun=6
 private func mondayOffset(for weekdayName: String) -> Int {
     switch weekdayName.lowercased() {
     case "monday":    return 0
@@ -162,20 +160,17 @@ private func mondayOffset(for weekdayName: String) -> Int {
     }
 }
 
-// MARK: - Nearest Monday
-
-/// Snaps any date back to the Monday of its week.
-private func nearestMonday(to date: Date) -> Date {
-    let cal     = mondayCalendar
-    let weekday = cal.component(.weekday, from: date)
-    // Gregorian: Sun=1, Mon=2, Tue=3 … Sat=7
-    // Days since Monday: Mon=0, Tue=1 … Sun=6
-    let daysSinceMonday = (weekday + 5) % 7
-    return cal.date(
+/// Returns the Monday that starts the week containing `date`.
+/// Gregorian weekday: Sun=1, Mon=2 … Sat=7
+/// daysSinceMonday:   Mon=0, Tue=1 … Sun=6
+private func mondayOfWeek(containing date: Date) -> Date {
+    let weekday         = mondayCalendar.component(.weekday, from: date)
+    let daysSinceMonday = (weekday + 5) % 7   // Mon=0 … Sun=6
+    return mondayCalendar.date(
         byAdding: .day,
         value:    -daysSinceMonday,
-        to:       cal.startOfDay(for: date)
-    ) ?? cal.startOfDay(for: date)
+        to:       mondayCalendar.startOfDay(for: date)
+    ) ?? mondayCalendar.startOfDay(for: date)
 }
 
 // MARK: - Plan Creation
@@ -184,20 +179,23 @@ func createSavedPlan(name: String,
                      raceDate: Date,
                      settings: UserSettings) -> SavedPlan {
 
-    // Step 1: go back planLength weeks from race date
-    guard let rawStart = mondayCalendar.date(
+    // Find the Monday of the week that contains the race date.
+    // For race date Sun Aug 30 → raceWeekMonday = Mon Aug 24.
+    let raceWeekMonday = mondayOfWeek(containing: raceDate)
+
+    // Go back (planLength - 1) weeks to get the plan start Monday.
+    // Week 1 starts here, week N ends on race Sunday.
+    guard let startDate = mondayCalendar.date(
         byAdding: .weekOfYear,
-        value:    -settings.planLength.rawValue,
-        to:       raceDate
+        value:    -(settings.planLength.rawValue - 1),
+        to:       raceWeekMonday
     ) else { fatalError("Could not calculate plan start date") }
 
-    // Step 2: snap to Monday
-    let startDate = nearestMonday(to: rawStart)
-
-    // Step 3: generate and build
     let trainingWeeks = PlanGenerator.generate(settings: settings)
-    let savedWeeks    = buildSavedWeeks(from:      trainingWeeks,
-                                        startDate: startDate)
+    let savedWeeks    = buildSavedWeeks(
+        from:      trainingWeeks,
+        startDate: startDate
+    )
 
     return SavedPlan(
         name:      name,
@@ -212,14 +210,12 @@ func createSavedPlan(name: String,
 func buildSavedWeeks(from trainingWeeks: [TrainingWeek],
                      startDate: Date) -> [SavedWeek] {
 
-    // Always snap startDate to Monday before building
-    let monday = nearestMonday(to: startDate)
+    // Ensure startDate is always a Monday
+    let monday = mondayOfWeek(containing: startDate)
 
     return trainingWeeks.map { week in
         let savedDays: [SavedDay] = week.days.map { day in
-            // weekNumber is 1-based so week 1 offset = 0
-            let weekOffset  = week.weekNumber - 1
-            // dayOffset: Mon=0 … Sun=6
+            let weekOffset  = week.weekNumber - 1          // week 1 → 0
             let dayOffset   = mondayOffset(for: day.weekday.fullName)
             let totalOffset = weekOffset * 7 + dayOffset
 
@@ -331,7 +327,8 @@ class PlanStore: ObservableObject {
                           actual: Double? = nil) {
         guard
             let pi = plans.firstIndex(where: { $0.id == planID }),
-            let wi = plans[pi].weeks.firstIndex(where: { $0.id == weekID }),
+            let wi = plans[pi].weeks.firstIndex(
+                where: { $0.id == weekID }),
             let di = plans[pi].weeks[wi].days.firstIndex(
                 where: { $0.id == dayID })
         else { return }
@@ -357,7 +354,8 @@ class PlanStore: ObservableObject {
                   note: String) {
         guard
             let pi = plans.firstIndex(where: { $0.id == planID }),
-            let wi = plans[pi].weeks.firstIndex(where: { $0.id == weekID }),
+            let wi = plans[pi].weeks.firstIndex(
+                where: { $0.id == weekID }),
             let di = plans[pi].weeks[wi].days.firstIndex(
                 where: { $0.id == dayID })
         else { return }

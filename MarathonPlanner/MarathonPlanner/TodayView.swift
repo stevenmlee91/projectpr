@@ -271,7 +271,7 @@ struct TodayWorkoutCard: View {
                 if liveDay.miles > 0 {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(String(format: "%.1f", liveDay.miles))
-                            .font(.system(size: 52, weight: .thin,
+                            .font(.system(size: 38, weight: .thin,
                                           design: .monospaced))
                             .foregroundColor(.primary)
                         Text("miles")
@@ -300,7 +300,7 @@ struct TodayWorkoutCard: View {
                 } else if liveDay.workoutType == "Race Day 🏁" {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("26.2")
-                            .font(.system(size: 52, weight: .thin,
+                            .font(.system(size: 38, weight: .thin,
                                           design: .monospaced))
                             .foregroundColor(.yellow)
                         Text("miles — RACE DAY")
