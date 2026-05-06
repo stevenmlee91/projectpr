@@ -53,7 +53,7 @@ struct PlanGenerator {
     static func generate(settings: UserSettings) -> [TrainingWeek] {
         let tier        = determineMileageTier(settings.baseMileage)
         let constraints = getMethodConstraints(for: settings.planType)
-        let peaks = calculatePeakTargets(
+        let peaks       = calculatePeakTargets(
             method:        settings.planType,
             planLength:    settings.planLength.rawValue,
             taperDuration: settings.taperDuration
@@ -68,7 +68,8 @@ struct PlanGenerator {
         )
 
         guard !blueprints.isEmpty else {
-            print("⚠️ PlanGenerator: buildBlueprints returned empty for \(settings.planType)")
+            print("⚠️ PlanGenerator: buildBlueprints returned empty " +
+                  "for \(settings.planType)")
             return []
         }
 
@@ -79,11 +80,12 @@ struct PlanGenerator {
                 planType:    settings.planType,
                 schedule:    schedule,
                 goalMinutes: settings.goalTimeMinutes,
+                raceType:    settings.raceType,
                 tier:        tier,
                 constraints: constraints
             )}
 
-        weeks = injectRaceDay(into: weeks,
+        weeks = injectRaceDay(into:     weeks,
                               schedule: schedule,
                               raceType: settings.raceType)
         return weeks
@@ -91,9 +93,11 @@ struct PlanGenerator {
 
     // MARK: - Race Day Injection
 
-    static func injectRaceDay(into weeks: [TrainingWeek],
-                               schedule: UserSchedule,
-                               raceType: RaceType = .marathon) -> [TrainingWeek] {
+    static func injectRaceDay(
+        into weeks : [TrainingWeek],
+        schedule   : UserSchedule,
+        raceType   : RaceType = .marathon
+    ) -> [TrainingWeek] {
         guard !weeks.isEmpty else { return weeks }
 
         var allWeeks  = weeks
@@ -102,7 +106,6 @@ struct PlanGenerator {
 
         let raceDayWeekday  : Weekday = .sunday
         let shakeoutWeekday : Weekday = .saturday
-
         let isHalf = raceType == .halfMarathon
 
         let newDays: [TrainingDay] = lastWeek.days.map { day in
@@ -112,8 +115,11 @@ struct PlanGenerator {
                     workoutType: .raceDay,
                     miles:       raceType.distance,
                     description: isHalf
-                        ? "Race Day. 13.1 miles. Everything you have trained for. Run free and trust your fitness."
-                        : "Race Day. Everything you have trained for comes down to this. Run your own race, trust your pacing, and enjoy every mile.",
+                        ? "Race Day. 13.1 miles. Everything you have " +
+                          "trained for. Run free and trust your fitness."
+                        : "Race Day. Everything you have trained for " +
+                          "comes down to this. Run your own race, trust " +
+                          "your pacing, and enjoy every mile.",
                     paceNote: isHalf
                         ? "Goal half marathon pace — trust your training"
                         : "Goal marathon pace — trust your training"
@@ -125,8 +131,10 @@ struct PlanGenerator {
                     workoutType: .shakeout,
                     miles:       isHalf ? 2.0 : 3.0,
                     description: isHalf
-                        ? "Shakeout Run. Easy 2 miles to stay loose. Save everything for tomorrow."
-                        : "Shakeout Run. Easy relaxed 3 miles with a few short strides. Stay loose and fresh.",
+                        ? "Shakeout Run. Easy 2 miles to stay loose. " +
+                          "Save everything for tomorrow."
+                        : "Shakeout Run. Easy relaxed 3 miles with a " +
+                          "few short strides. Stay loose and fresh.",
                     paceNote: "Very easy — fully conversational"
                 )
             }
@@ -154,7 +162,8 @@ struct PlanGenerator {
         constraints  : MethodConstraints
     ) -> [Double] {
         guard weeks > 0, peakWeek > 0, peakWeek <= weeks else {
-            print("⚠️ weeklyMileage: invalid input weeks=\(weeks) peakWeek=\(peakWeek)")
+            print("⚠️ weeklyMileage: invalid input " +
+                  "weeks=\(weeks) peakWeek=\(peakWeek)")
             return Array(repeating: baseMileage, count: max(weeks, 1))
         }
 
@@ -164,7 +173,9 @@ struct PlanGenerator {
 
         var nonCutCount = 0
         for w in 1...peakWeek {
-            if !(cutbackEvery < 99 && w % cutbackEvery == 0) { nonCutCount += 1 }
+            if !(cutbackEvery < 99 && w % cutbackEvery == 0) {
+                nonCutCount += 1
+            }
         }
 
         let backCalc = nonCutCount > 0
@@ -172,7 +183,8 @@ struct PlanGenerator {
             : peakMileage * 0.6
 
         let week1 = min(
-            max(max(backCalc, min(baseMileage, peakMileage * 0.65)), minW),
+            max(max(backCalc, min(baseMileage, peakMileage * 0.65)),
+                minW),
             maxW
         )
 
@@ -186,7 +198,9 @@ struct PlanGenerator {
 
         for week in 1...weeks {
             let isTaper   = week >= taperStart
-            let isCutback = !isTaper && cutbackEvery < 99 && week % cutbackEvery == 0
+            let isCutback = !isTaper
+                && cutbackEvery < 99
+                && week % cutbackEvery == 0
 
             if isTaper {
                 let w = week - taperStart
@@ -198,17 +212,18 @@ struct PlanGenerator {
                 result.append(peakMileage.rounded(toPlaces: 0))
             } else if isCutback {
                 let val = min(
-                    max((current * cutbackFactor).rounded(toPlaces: 0), minW),
+                    max((current * cutbackFactor).rounded(toPlaces: 0),
+                        minW),
                     peakMileage
                 )
                 result.append(val.isFinite ? val : current)
             } else {
                 let progress = peakWeek > 1
-                    ? Double(week - 1) / Double(peakWeek - 1)
-                    : 1.0
+                    ? Double(week - 1) / Double(peakWeek - 1) : 1.0
                 let curved = week1 + (peakMileage - week1) * progress
                 let capped = min(curved, current * 1.10)
-                let val    = min(max(capped, minW), maxW).rounded(toPlaces: 0)
+                let val    = min(max(capped, minW), maxW)
+                    .rounded(toPlaces: 0)
                 let safe   = val.isFinite ? val : current
                 result.append(safe)
                 current = safe
@@ -233,7 +248,8 @@ struct PlanGenerator {
         let taperStart = peakWeek + 1
         let isTaper    = week >= taperStart
         let startLong  = min(
-            max(min(baseMileage * 0.40, peak * 0.55), constraints.minLongRunMiles),
+            max(min(baseMileage * 0.40, peak * 0.55),
+                constraints.minLongRunMiles),
             peak
         )
 
@@ -241,8 +257,7 @@ struct PlanGenerator {
 
         if isTaper {
             let weeksIntoPeak = week - taperStart
-            // Half marathon taper drops 2 miles/week, marathon drops 3
-            let drop: Double = method.isHalfMarathon ? 2.0 : 3.0
+            let drop: Double  = method.isHalfMarathon ? 2.0 : 3.0
             lm = peak - Double(weeksIntoPeak + 1) * drop
         } else if week == peakWeek {
             lm = peak
@@ -256,7 +271,8 @@ struct PlanGenerator {
             lm = startLong + (peak - startLong) * p
         }
 
-        lm = min(max(lm, constraints.minLongRunMiles), constraints.maxLongRunMiles)
+        lm = min(max(lm, constraints.minLongRunMiles),
+                 constraints.maxLongRunMiles)
 
         if method == .jackDaniels && weeklyMileage > 0 {
             lm = min(lm, weeklyMileage * constraints.longRunAsPercentage)
@@ -281,10 +297,11 @@ struct PlanGenerator {
         totalWeeks : Int,
         constraints: MethodConstraints
     ) -> (primary: WorkoutType, secondary: WorkoutType) {
-        let taperCutoff = method == .pfitz ? totalWeeks - 3 : totalWeeks - 2
-        let isTaper     = week >= taperCutoff
-        let tooEarly    = week < max(tier.qualityIntroWeek,
-                                     constraints.earliestQualityWeek)
+        let taperCutoff = method == .pfitz
+            ? totalWeeks - 3 : totalWeeks - 2
+        let isTaper  = week >= taperCutoff
+        let tooEarly = week < max(tier.qualityIntroWeek,
+                                   constraints.earliestQualityWeek)
 
         if isTaper || tooEarly { return (.easy, .easy) }
 
@@ -293,32 +310,26 @@ struct PlanGenerator {
             return week <= 5
                 ? (.speedWork, .marathonPace)
                 : (.strengthMP, .marathonPace)
-
         case .hansonsHalf:
-            // Half uses shorter speed phases
             return week <= 4
                 ? (.speedWork, .marathonPace)
                 : (.strengthMP, .marathonPace)
-
         case .pfitz:
             return (.lactateThreshold, .easy)
-
         case .higdon:
             return (.easy, .easy)
-
         case .higdonHalfNovice:
             return (.easy, .easy)
-
         case .higdonIntermediate, .higdonHalfIntermediate:
             return (week >= 3 ? .tempoRun : .easy, .easy)
-
         case .jackDaniels:
             if week <= 4 {
                 return (.repetitionWork,
                         tier == .low ? .easy : .repetitionWork)
             } else {
                 return (.cruiseIntervals,
-                        (tier == .low && week < 8) ? .easy : .intervalWork)
+                        (tier == .low && week < 8)
+                            ? .easy : .intervalWork)
             }
         }
     }
@@ -337,7 +348,8 @@ struct PlanGenerator {
                            constraints.absoluteMaxWeekly)
 
         if b.phase.contains("Taper") {
-            b.totalMiles = max(b.totalMiles, constraints.absoluteMinWeekly * 0.4)
+            b.totalMiles = max(b.totalMiles,
+                               constraints.absoluteMinWeekly * 0.4)
         }
 
         if constraints.requiresMediumLong
@@ -359,13 +371,18 @@ struct PlanGenerator {
         if !b.phase.contains("Taper")
             && b.weekNumber >= constraints.earliestQualityWeek
             && b.primaryWorkout == .easy
-            && constraints.requiredWorkouts.contains(where: { qualTypes.contains($0) }) {
+            && constraints.requiredWorkouts.contains(
+                where: { qualTypes.contains($0) }) {
             b.primaryWorkout = constraints.requiredWorkouts
                 .first { qualTypes.contains($0) } ?? .easy
         }
 
-        if !b.totalMiles.isFinite { b.totalMiles = constraints.absoluteMinWeekly }
-        if !b.longMiles.isFinite  { b.longMiles  = constraints.minLongRunMiles   }
+        if !b.totalMiles.isFinite {
+            b.totalMiles = constraints.absoluteMinWeekly
+        }
+        if !b.longMiles.isFinite {
+            b.longMiles = constraints.minLongRunMiles
+        }
 
         return b
     }
@@ -379,21 +396,31 @@ struct PlanGenerator {
         peaks       : PeakTargets
     ) -> [WeekBlueprint] {
         switch settings.planType {
-        case .hansons:                return hansons(settings, tier, constraints, peaks)
-        case .pfitz:                  return pfitz(settings, tier, constraints, peaks)
-        case .higdon:                 return higdon(settings, tier, constraints, peaks)
-        case .higdonIntermediate:     return higdonInt(settings, tier, constraints, peaks)
-        case .jackDaniels:            return daniels(settings, tier, constraints, peaks)
-        case .higdonHalfNovice:       return higdonHalfNovice(settings, tier, constraints, peaks)
-        case .higdonHalfIntermediate: return higdonHalfInt(settings, tier, constraints, peaks)
-        case .hansonsHalf:            return hansonsHalf(settings, tier, constraints, peaks)
+        case .hansons:
+            return hansons(settings, tier, constraints, peaks)
+        case .pfitz:
+            return pfitz(settings, tier, constraints, peaks)
+        case .higdon:
+            return higdon(settings, tier, constraints, peaks)
+        case .higdonIntermediate:
+            return higdonInt(settings, tier, constraints, peaks)
+        case .jackDaniels:
+            return daniels(settings, tier, constraints, peaks)
+        case .higdonHalfNovice:
+            return higdonHalfNovice(settings, tier, constraints, peaks)
+        case .higdonHalfIntermediate:
+            return higdonHalfInt(settings, tier, constraints, peaks)
+        case .hansonsHalf:
+            return hansonsHalf(settings, tier, constraints, peaks)
         }
     }
 
     // MARK: - Marathon Blueprints
 
-    static func hansons(_ s: UserSettings, _ t: MileageTier,
-                         _ c: MethodConstraints, _ p: PeakTargets) -> [WeekBlueprint] {
+    static func hansons(
+        _ s: UserSettings, _ t: MileageTier,
+        _ c: MethodConstraints, _ p: PeakTargets
+    ) -> [WeekBlueprint] {
         let n  = s.planLength.rawValue
         let mi = weeklyMileage(baseMileage: s.baseMileage,
                                peakMileage: p.peakWeeklyMiles,
@@ -403,7 +430,8 @@ struct PlanGenerator {
         return (0..<n).map { i in
             let wk       = i + 1
             let (pr, sc) = workoutTypes(week: wk, method: .hansons,
-                                         tier: t, totalWeeks: n, constraints: c)
+                                         tier: t, totalWeeks: n,
+                                         constraints: c)
             let lm = longRunDistance(week: wk, method: .hansons,
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
@@ -416,12 +444,15 @@ struct PlanGenerator {
             return WeekBlueprint(weekNumber: wk, phase: phase,
                 totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: pr, secondaryWorkout: sc,
-                isCutback: false, includesMediumLong: false, mediumLongMiles: 0)
+                isCutback: false, includesMediumLong: false,
+                mediumLongMiles: 0)
         }
     }
 
-    static func pfitz(_ s: UserSettings, _ t: MileageTier,
-                       _ c: MethodConstraints, _ p: PeakTargets) -> [WeekBlueprint] {
+    static func pfitz(
+        _ s: UserSettings, _ t: MileageTier,
+        _ c: MethodConstraints, _ p: PeakTargets
+    ) -> [WeekBlueprint] {
         let n  = s.planLength.rawValue
         let mi = weeklyMileage(baseMileage: s.baseMileage,
                                peakMileage: p.peakWeeklyMiles,
@@ -435,7 +466,8 @@ struct PlanGenerator {
             let isCut = wk % 4 == 0 && wk <= p.peakWeekNumber
             let isTap = wk > p.peakWeekNumber
             let (pr, _) = workoutTypes(week: wk, method: .pfitz,
-                                        tier: t, totalWeeks: n, constraints: c)
+                                        tier: t, totalWeeks: n,
+                                        constraints: c)
             let lm = longRunDistance(week: wk, method: .pfitz,
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
@@ -447,7 +479,8 @@ struct PlanGenerator {
             else             { phase = "Race-Specific" }
 
             let useML   = !isTap && !isCut
-            let mlMiles = useML ? max(10.0, (lm * 0.65).rounded(toPlaces: 0)) : 0.0
+            let mlMiles = useML
+                ? max(10.0, (lm * 0.65).rounded(toPlaces: 0)) : 0.0
             let useLRMP = !isTap && wk >= n - 7 && lm >= 18
 
             return WeekBlueprint(weekNumber: wk, phase: phase,
@@ -458,8 +491,10 @@ struct PlanGenerator {
         }
     }
 
-    static func higdon(_ s: UserSettings, _ t: MileageTier,
-                        _ c: MethodConstraints, _ p: PeakTargets) -> [WeekBlueprint] {
+    static func higdon(
+        _ s: UserSettings, _ t: MileageTier,
+        _ c: MethodConstraints, _ p: PeakTargets
+    ) -> [WeekBlueprint] {
         let n  = s.planLength.rawValue
         let mi = weeklyMileage(baseMileage: s.baseMileage,
                                peakMileage: p.peakWeeklyMiles,
@@ -475,15 +510,19 @@ struct PlanGenerator {
                                      constraints: c, weeklyMileage: mi[i],
                                      isCutback: isCut)
             return WeekBlueprint(weekNumber: wk,
-                phase: isTap ? "Taper" : (isCut ? "Recovery Week" : "Base Building"),
+                phase: isTap ? "Taper"
+                             : (isCut ? "Recovery Week" : "Base Building"),
                 totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: .easy, secondaryWorkout: .easy,
-                isCutback: isCut, includesMediumLong: false, mediumLongMiles: 0)
+                isCutback: isCut, includesMediumLong: false,
+                mediumLongMiles: 0)
         }
     }
 
-    static func higdonInt(_ s: UserSettings, _ t: MileageTier,
-                           _ c: MethodConstraints, _ p: PeakTargets) -> [WeekBlueprint] {
+    static func higdonInt(
+        _ s: UserSettings, _ t: MileageTier,
+        _ c: MethodConstraints, _ p: PeakTargets
+    ) -> [WeekBlueprint] {
         let n  = s.planLength.rawValue
         let mi = weeklyMileage(baseMileage: s.baseMileage,
                                peakMileage: p.peakWeeklyMiles,
@@ -494,22 +533,29 @@ struct PlanGenerator {
             let wk    = i + 1
             let isCut = wk % 4 == 0 && wk <= p.peakWeekNumber
             let isTap = wk > p.peakWeekNumber
-            let (pr, _) = workoutTypes(week: wk, method: .higdonIntermediate,
-                                        tier: t, totalWeeks: n, constraints: c)
-            let lm = longRunDistance(week: wk, method: .higdonIntermediate,
+            let (pr, _) = workoutTypes(week: wk,
+                                        method: .higdonIntermediate,
+                                        tier: t, totalWeeks: n,
+                                        constraints: c)
+            let lm = longRunDistance(week: wk,
+                                     method: .higdonIntermediate,
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
                                      isCutback: isCut)
             return WeekBlueprint(weekNumber: wk,
-                phase: isTap ? "Taper" : (isCut ? "Recovery Week" : "Building"),
+                phase: isTap ? "Taper"
+                             : (isCut ? "Recovery Week" : "Building"),
                 totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: pr, secondaryWorkout: .easy,
-                isCutback: isCut, includesMediumLong: false, mediumLongMiles: 0)
+                isCutback: isCut, includesMediumLong: false,
+                mediumLongMiles: 0)
         }
     }
 
-    static func daniels(_ s: UserSettings, _ t: MileageTier,
-                         _ c: MethodConstraints, _ p: PeakTargets) -> [WeekBlueprint] {
+    static func daniels(
+        _ s: UserSettings, _ t: MileageTier,
+        _ c: MethodConstraints, _ p: PeakTargets
+    ) -> [WeekBlueprint] {
         let n  = s.planLength.rawValue
         let mi = weeklyMileage(baseMileage: s.baseMileage,
                                peakMileage: p.peakWeeklyMiles,
@@ -521,7 +567,8 @@ struct PlanGenerator {
             let isCut = wk % 4 == 0 && wk <= p.peakWeekNumber
             let isTap = wk > p.peakWeekNumber
             let (pr, sc) = workoutTypes(week: wk, method: .jackDaniels,
-                                         tier: t, totalWeeks: n, constraints: c)
+                                         tier: t, totalWeeks: n,
+                                         constraints: c)
             let lm = longRunDistance(week: wk, method: .jackDaniels,
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
@@ -535,15 +582,17 @@ struct PlanGenerator {
             return WeekBlueprint(weekNumber: wk, phase: phase,
                 totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: pr, secondaryWorkout: sc,
-                isCutback: isCut, includesMediumLong: false, mediumLongMiles: 0)
+                isCutback: isCut, includesMediumLong: false,
+                mediumLongMiles: 0)
         }
     }
 
     // MARK: - Half Marathon Blueprints
 
-    static func higdonHalfNovice(_ s: UserSettings, _ t: MileageTier,
-                                   _ c: MethodConstraints,
-                                   _ p: PeakTargets) -> [WeekBlueprint] {
+    static func higdonHalfNovice(
+        _ s: UserSettings, _ t: MileageTier,
+        _ c: MethodConstraints, _ p: PeakTargets
+    ) -> [WeekBlueprint] {
         let n  = s.planLength.rawValue
         let mi = weeklyMileage(baseMileage: s.baseMileage,
                                peakMileage: p.peakWeeklyMiles,
@@ -554,21 +603,25 @@ struct PlanGenerator {
             let wk    = i + 1
             let isCut = wk % 3 == 0 && wk <= p.peakWeekNumber
             let isTap = wk > p.peakWeekNumber
-            let lm = longRunDistance(week: wk, method: .higdonHalfNovice,
+            let lm = longRunDistance(week: wk,
+                                     method: .higdonHalfNovice,
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
                                      isCutback: isCut)
             return WeekBlueprint(weekNumber: wk,
-                phase: isTap ? "Taper" : (isCut ? "Recovery Week" : "Base Building"),
+                phase: isTap ? "Taper"
+                             : (isCut ? "Recovery Week" : "Base Building"),
                 totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: .easy, secondaryWorkout: .easy,
-                isCutback: isCut, includesMediumLong: false, mediumLongMiles: 0)
+                isCutback: isCut, includesMediumLong: false,
+                mediumLongMiles: 0)
         }
     }
 
-    static func higdonHalfInt(_ s: UserSettings, _ t: MileageTier,
-                                _ c: MethodConstraints,
-                                _ p: PeakTargets) -> [WeekBlueprint] {
+    static func higdonHalfInt(
+        _ s: UserSettings, _ t: MileageTier,
+        _ c: MethodConstraints, _ p: PeakTargets
+    ) -> [WeekBlueprint] {
         let n  = s.planLength.rawValue
         let mi = weeklyMileage(baseMileage: s.baseMileage,
                                peakMileage: p.peakWeeklyMiles,
@@ -579,23 +632,29 @@ struct PlanGenerator {
             let wk    = i + 1
             let isCut = wk % 3 == 0 && wk <= p.peakWeekNumber
             let isTap = wk > p.peakWeekNumber
-            let (pr, _) = workoutTypes(week: wk, method: .higdonHalfIntermediate,
-                                        tier: t, totalWeeks: n, constraints: c)
-            let lm = longRunDistance(week: wk, method: .higdonHalfIntermediate,
+            let (pr, _) = workoutTypes(week: wk,
+                                        method: .higdonHalfIntermediate,
+                                        tier: t, totalWeeks: n,
+                                        constraints: c)
+            let lm = longRunDistance(week: wk,
+                                     method: .higdonHalfIntermediate,
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
                                      isCutback: isCut)
             return WeekBlueprint(weekNumber: wk,
-                phase: isTap ? "Taper" : (isCut ? "Recovery Week" : "Building"),
+                phase: isTap ? "Taper"
+                             : (isCut ? "Recovery Week" : "Building"),
                 totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: pr, secondaryWorkout: .easy,
-                isCutback: isCut, includesMediumLong: false, mediumLongMiles: 0)
+                isCutback: isCut, includesMediumLong: false,
+                mediumLongMiles: 0)
         }
     }
 
-    static func hansonsHalf(_ s: UserSettings, _ t: MileageTier,
-                              _ c: MethodConstraints,
-                              _ p: PeakTargets) -> [WeekBlueprint] {
+    static func hansonsHalf(
+        _ s: UserSettings, _ t: MileageTier,
+        _ c: MethodConstraints, _ p: PeakTargets
+    ) -> [WeekBlueprint] {
         let n  = s.planLength.rawValue
         let mi = weeklyMileage(baseMileage: s.baseMileage,
                                peakMileage: p.peakWeeklyMiles,
@@ -605,7 +664,8 @@ struct PlanGenerator {
         return (0..<n).map { i in
             let wk       = i + 1
             let (pr, sc) = workoutTypes(week: wk, method: .hansonsHalf,
-                                         tier: t, totalWeeks: n, constraints: c)
+                                         tier: t, totalWeeks: n,
+                                         constraints: c)
             let lm = longRunDistance(week: wk, method: .hansonsHalf,
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
@@ -618,7 +678,8 @@ struct PlanGenerator {
             return WeekBlueprint(weekNumber: wk, phase: phase,
                 totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: pr, secondaryWorkout: sc,
-                isCutback: false, includesMediumLong: false, mediumLongMiles: 0)
+                isCutback: false, includesMediumLong: false,
+                mediumLongMiles: 0)
         }
     }
 
@@ -629,16 +690,20 @@ struct PlanGenerator {
         planType    : PlanType,
         schedule    : UserSchedule,
         goalMinutes : Int,
+        raceType    : RaceType,
         tier        : MileageTier,
         constraints : MethodConstraints
     ) -> TrainingWeek {
-        let paces  = PaceEngine(goalMinutes: goalMinutes)
-        let lrDay  = schedule.longRunDay
-        let q1Day  = schedule.workoutDay1
-        let q2Day  = schedule.workoutDay2
-        let rest   = schedule.restDays
-        let ctDay  = schedule.crossTrainDay
-        let mwDay  = schedule.midweekLongDay
+
+        let paces = PaceEngine(goalMinutes: goalMinutes,
+                               distance:    raceType.distance)
+
+        let lrDay = schedule.longRunDay
+        let q1Day = schedule.workoutDay1
+        let q2Day = schedule.workoutDay2
+        let rest  = schedule.restDays
+        let ctDay = schedule.crossTrainDay
+        let mwDay = schedule.midweekLongDay
 
         let pfitzMLDay: Weekday? = blueprint.includesMediumLong
             ? Weekday.allCases.first {
@@ -659,19 +724,29 @@ struct PlanGenerator {
             if rest.contains(day) {
                 td = makeRest(day)
             } else if day == lrDay {
-                td = makeLongRun(day, blueprint, paces)
+                td = makeLongRun(day, blueprint, paces,
+                                 raceType: raceType)
             } else if planType.usesMidweekLongRun && day == mwDay {
                 td = makeMidweekLong(day, miles: mwMiles, paces: paces)
-            } else if planType.usesCrossTraining, let ct = ctDay, day == ct {
+            } else if planType.usesCrossTraining,
+                      let ct = ctDay, day == ct {
                 td = makeCrossTrain(day)
             } else if day == q1Day {
-                td = makeQuality(day, workoutType: blueprint.primaryWorkout,
-                                 blueprint: blueprint, paces: paces, tier: tier)
+                td = makeQuality(day,
+                                 workoutType: blueprint.primaryWorkout,
+                                 blueprint:   blueprint,
+                                 paces:       paces,
+                                 tier:        tier,
+                                 raceType:    raceType)
             } else if planType.requiresTwoWorkoutDays
                         && day == q2Day
                         && blueprint.secondaryWorkout != .easy {
-                td = makeQuality(day, workoutType: blueprint.secondaryWorkout,
-                                 blueprint: blueprint, paces: paces, tier: tier)
+                td = makeQuality(day,
+                                 workoutType: blueprint.secondaryWorkout,
+                                 blueprint:   blueprint,
+                                 paces:       paces,
+                                 tier:        tier,
+                                 raceType:    raceType)
             } else if let ml = pfitzMLDay, day == ml {
                 td = makeMediumLong(day, blueprint, paces)
             } else {
@@ -692,58 +767,87 @@ struct PlanGenerator {
 
     static func makeRest(_ day: Weekday) -> TrainingDay {
         TrainingDay(weekday: day, workoutType: .rest, miles: 0,
-            description: "Full rest or gentle cross-training (swimming, cycling, yoga).",
+            description: "Full rest or gentle cross-training " +
+                         "(swimming, cycling, yoga).",
             paceNote: "—")
     }
 
-    static func makeLongRun(_ day: Weekday, _ bp: WeekBlueprint,
-                              _ paces: PaceEngine) -> TrainingDay {
-        let miles = bp.longMiles
+    static func makeLongRun(
+        _ day      : Weekday,
+        _ bp       : WeekBlueprint,
+        _ paces    : PaceEngine,
+        raceType   : RaceType = .marathon
+    ) -> TrainingDay {
+        let miles      = bp.longMiles
+        let isHalf     = raceType == .halfMarathon
+        let paceLabel  = isHalf ? "HMP" : "MP"
+        let raceLabel  = isHalf
+            ? "goal half marathon pace" : "goal marathon pace"
+
         if bp.primaryWorkout == .longRunWithMP {
             let mp   = max(4, Int(miles / 3))
             let easy = Int(miles) - mp
             return TrainingDay(weekday: day, workoutType: .longRunWithMP,
                 miles: miles,
-                description: "Long run with MP finish. First \(easy) mi easy, final \(mp) mi at goal marathon pace.",
-                paceNote: "Easy: \(paces.rangeString(paces.longRun)) → MP: \(paces.singleString(paces.MP))")
+                description: "Long run with pace finish. First \(easy) mi " +
+                             "easy, final \(mp) mi at \(raceLabel).",
+                paceNote: "Easy: \(paces.rangeString(paces.longRun)) " +
+                          "→ \(paceLabel): \(paces.singleString(paces.MP))")
         }
         let desc = bp.phase.contains("Taper")
             ? "Taper long run. Easy and relaxed — trust your training."
-            : "Long run at fully conversational effort. Speak in full sentences throughout."
-        return TrainingDay(weekday: day, workoutType: .longRun, miles: miles,
-            description: desc, paceNote: paces.rangeString(paces.longRun))
+            : "Long run at fully conversational effort. " +
+              "Speak in full sentences throughout."
+        return TrainingDay(weekday: day, workoutType: .longRun,
+            miles: miles, description: desc,
+            paceNote: paces.rangeString(paces.longRun))
     }
 
-    static func makeMidweekLong(_ day: Weekday, miles: Double,
-                                  paces: PaceEngine) -> TrainingDay {
+    static func makeMidweekLong(
+        _ day  : Weekday,
+        miles  : Double,
+        paces  : PaceEngine
+    ) -> TrainingDay {
         TrainingDay(weekday: day, workoutType: .midweekLong, miles: miles,
-            description: "Midweek longer run — longer than easy days, shorter than long run. Easy effort throughout.",
+            description: "Midweek longer run — longer than easy days, " +
+                         "shorter than long run. Easy effort throughout.",
             paceNote: paces.rangeString(paces.easy))
     }
 
     static func makeCrossTrain(_ day: Weekday) -> TrainingDay {
         TrainingDay(weekday: day, workoutType: .crossTrain, miles: 0,
-            description: "Cross-training: 45–60 min low-impact aerobic — cycling, swimming, elliptical, or yoga.",
+            description: "Cross-training: 45–60 min low-impact aerobic " +
+                         "— cycling, swimming, elliptical, or yoga.",
             paceNote: "Aerobic effort")
     }
 
-    static func makeMediumLong(_ day: Weekday, _ bp: WeekBlueprint,
-                                 _ paces: PaceEngine) -> TrainingDay {
+    static func makeMediumLong(
+        _ day  : Weekday,
+        _ bp   : WeekBlueprint,
+        _ paces: PaceEngine
+    ) -> TrainingDay {
         TrainingDay(weekday: day, workoutType: .mediumLong,
             miles: bp.mediumLongMiles,
-            description: "Medium-long run — a Pfitz signature. General aerobic effort. Not a jog, not a hard workout.",
+            description: "Medium-long run — a Pfitz signature. General " +
+                         "aerobic effort. Not a jog, not a hard workout.",
             paceNote: paces.rangeString(paces.generalAero))
     }
 
-    static func makeEasy(_ day: Weekday, paces: PaceEngine,
-                           longRunDay: Weekday) -> TrainingDay {
+    static func makeEasy(
+        _ day      : Weekday,
+        paces      : PaceEngine,
+        longRunDay : Weekday
+    ) -> TrainingDay {
         if day == longRunDay.next {
-            return TrainingDay(weekday: day, workoutType: .recovery, miles: 0,
-                description: "Recovery run. Go slower than feels necessary. Adaptation happens here.",
+            return TrainingDay(weekday: day, workoutType: .recovery,
+                miles: 0,
+                description: "Recovery run. Go slower than feels " +
+                             "necessary. Adaptation happens here.",
                 paceNote: paces.singleString(paces.recovery))
         }
         return TrainingDay(weekday: day, workoutType: .easy, miles: 0,
-            description: "Easy aerobic run. If you cannot speak in full sentences, slow down.",
+            description: "Easy aerobic run. If you cannot speak in " +
+                         "full sentences, slow down.",
             paceNote: paces.rangeString(paces.easy))
     }
 
@@ -752,31 +856,41 @@ struct PlanGenerator {
         workoutType : WorkoutType,
         blueprint   : WeekBlueprint,
         paces       : PaceEngine,
-        tier        : MileageTier
+        tier        : MileageTier,
+        raceType    : RaceType = .marathon
     ) -> TrainingDay {
-        let maxQ = (blueprint.totalMiles * tier.maxQualityFraction)
+        let maxQ      = (blueprint.totalMiles * tier.maxQualityFraction)
             .rounded(toPlaces: 1)
+        let isHalf    = raceType == .halfMarathon
+        let paceLabel = isHalf ? "HMP" : "MP"
+        let raceLabel = isHalf
+            ? "goal half marathon pace" : "goal marathon pace"
 
         switch workoutType {
         case .speedWork:
             let r = tier == .low ? 6 : tier == .moderate ? 8 : 10
             return TrainingDay(weekday: day, workoutType: .speedWork,
                 miles: min(maxQ, 9),
-                description: "1.5 mi warm-up. \(r) × 600m at 10K pace with 90 sec jog rest. 1.5 mi cool-down.",
-                paceNote: "10K pace: \(paces.singleString(paces.hansonsSpeed))")
+                description: "1.5 mi warm-up. \(r) × 600m at 10K pace " +
+                             "with 90 sec jog rest. 1.5 mi cool-down.",
+                paceNote: "10K pace: " +
+                          "\(paces.singleString(paces.hansonsSpeed))")
 
         case .strengthMP:
             let mp: Int
             switch tier {
-            case .low:      mp = max(3, min(5,  blueprint.weekNumber - 2))
-            case .moderate: mp = max(4, min(6,  blueprint.weekNumber - 2))
-            case .high:     mp = max(5, min(7,  blueprint.weekNumber - 2))
-            case .advanced: mp = max(6, min(8,  blueprint.weekNumber - 2))
+            case .low:      mp = max(3, min(5, blueprint.weekNumber - 2))
+            case .moderate: mp = max(4, min(6, blueprint.weekNumber - 2))
+            case .high:     mp = max(5, min(7, blueprint.weekNumber - 2))
+            case .advanced: mp = max(6, min(8, blueprint.weekNumber - 2))
             }
             return TrainingDay(weekday: day, workoutType: .strengthMP,
                 miles: Double(mp + 2),
-                description: "1 mi warm-up. \(mp) mi at exactly race pace. 1 mi cool-down. Arrive tired — that is the point.",
-                paceNote: "Race pace: \(paces.rangeString(paces.hansonsStrength))")
+                description: "1 mi warm-up. \(mp) mi at exactly " +
+                             "\(raceLabel). 1 mi cool-down. " +
+                             "Arrive tired — that is the point.",
+                paceNote: "\(paceLabel): " +
+                          "\(paces.rangeString(paces.hansonsStrength))")
 
         case .marathonPace:
             let mpMiles: Int
@@ -788,8 +902,10 @@ struct PlanGenerator {
             }
             return TrainingDay(weekday: day, workoutType: .marathonPace,
                 miles: Double(mpMiles + 3),
-                description: "1.5 mi warm-up. \(mpMiles) mi at goal race pace. 1.5 mi cool-down. Controlled and confident.",
-                paceNote: "Race pace: \(paces.singleString(paces.MP))")
+                description: "1.5 mi warm-up. \(mpMiles) mi at " +
+                             "\(raceLabel). 1.5 mi cool-down. " +
+                             "Controlled and confident.",
+                paceNote: "\(paceLabel): \(paces.singleString(paces.MP))")
 
         case .lactateThreshold:
             let lt: Int
@@ -801,29 +917,35 @@ struct PlanGenerator {
             }
             return TrainingDay(weekday: day, workoutType: .lactateThreshold,
                 miles: min(maxQ, Double(lt + 3)),
-                description: "1.5 mi warm-up. \(lt) mi at lactate threshold — comfortably hard, 15K–HM effort. 1.5 mi cool-down.",
+                description: "1.5 mi warm-up. \(lt) mi at lactate " +
+                             "threshold — comfortably hard, 15K–HM effort. " +
+                             "1.5 mi cool-down.",
                 paceNote: "LT: \(paces.singleString(paces.pfitzLT))")
 
         case .cruiseIntervals:
             let r = tier == .low ? 3 : tier == .moderate ? 4 : 5
             return TrainingDay(weekday: day, workoutType: .cruiseIntervals,
                 miles: min(maxQ, 10),
-                description: "2 mi warm-up. \(r) × 1 mile at T pace with 60 sec standing rest. 2 mi cool-down.",
+                description: "2 mi warm-up. \(r) × 1 mile at T pace " +
+                             "with 60 sec standing rest. 2 mi cool-down.",
                 paceNote: "T pace: \(paces.singleString(paces.dThreshold))")
 
         case .intervalWork:
             let r = tier == .low ? 3 : tier == .moderate ? 4 : 5
             return TrainingDay(weekday: day, workoutType: .intervalWork,
                 miles: min(maxQ, 10),
-                description: "2 mi warm-up. \(r) × 1000m at interval pace with 90 sec jog rest. 2 mi cool-down.",
+                description: "2 mi warm-up. \(r) × 1000m at interval " +
+                             "pace with 90 sec jog rest. 2 mi cool-down.",
                 paceNote: "I pace: \(paces.singleString(paces.dInterval))")
 
         case .repetitionWork:
             let r = tier == .low ? 5 : tier == .moderate ? 6 : 8
             return TrainingDay(weekday: day, workoutType: .repetitionWork,
                 miles: min(maxQ, 8),
-                description: "2 mi warm-up. \(r) × 200m at R pace with full recovery. 2 mi cool-down.",
-                paceNote: "R pace: \(paces.singleString(paces.dRepetition))")
+                description: "2 mi warm-up. \(r) × 200m at R pace " +
+                             "with full recovery. 2 mi cool-down.",
+                paceNote: "R pace: " +
+                          "\(paces.singleString(paces.dRepetition))")
 
         case .tempoRun:
             let tm: Int
@@ -835,7 +957,8 @@ struct PlanGenerator {
             }
             return TrainingDay(weekday: day, workoutType: .tempoRun,
                 miles: min(maxQ, Double(tm + 2)),
-                description: "1 mi warm-up. \(tm) mi comfortably hard. 1 mi cool-down.",
+                description: "1 mi warm-up. \(tm) mi comfortably hard. " +
+                             "1 mi cool-down.",
                 paceNote: "Tempo: \(paces.singleString(paces.higdonTempo))")
 
         default:
@@ -866,7 +989,8 @@ struct PlanGenerator {
         let remaining = max(0.0, bp.totalMiles - fixedTotal)
 
         let flex = days.indices.filter {
-            !fixed.contains(days[$0].workoutType) && days[$0].workoutType != .rest
+            !fixed.contains(days[$0].workoutType)
+                && days[$0].workoutType != .rest
         }
 
         guard !flex.isEmpty else { return days }

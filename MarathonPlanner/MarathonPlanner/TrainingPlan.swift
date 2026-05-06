@@ -52,26 +52,15 @@ enum TaperDuration: Int, Codable, CaseIterable, Identifiable {
         }
     }
 
-    // Default taper for each plan type
     static func defaultFor(_ planType: PlanType) -> TaperDuration {
         switch planType {
-        case .pfitz:              return .threeWeeks
-        case .hansons,
-             .higdon,
-             .higdonIntermediate,
-             .jackDaniels,
-             .higdonHalfNovice,
-             .higdonHalfIntermediate,
-             .hansonsHalf:        return .twoWeeks
+        case .pfitz: return .threeWeeks
+        default:     return .twoWeeks
         }
     }
 
-    // Allowed taper options per plan type
     static func options(for planType: PlanType) -> [TaperDuration] {
-        switch planType {
-        case .pfitz:   return [.twoWeeks, .threeWeeks]
-        default:       return [.twoWeeks, .threeWeeks]
-        }
+        [.twoWeeks, .threeWeeks]
     }
 }
 
@@ -79,14 +68,12 @@ enum TaperDuration: Int, Codable, CaseIterable, Identifiable {
 
 enum PlanType: String, CaseIterable, Identifiable, Codable {
 
-    // MARK: Marathon
     case pfitz              = "Pfitz"
     case hansons            = "Hansons"
     case higdon             = "Higdon Novice"
     case higdonIntermediate = "Higdon Intermediate"
     case jackDaniels        = "Jack Daniels"
 
-    // MARK: Half Marathon
     case higdonHalfNovice       = "Higdon Half Novice"
     case higdonHalfIntermediate = "Higdon Half Intermediate"
     case hansonsHalf            = "Hansons Half"
@@ -178,7 +165,7 @@ enum PlanLength: Int, CaseIterable, Identifiable, Codable {
     case sixteenWeek  = 16
     case eighteenWeek = 18
 
-    var id: Int { rawValue }
+    var id: Int    { rawValue }
     var label: String { "\(rawValue) Weeks" }
 
     static func options(for raceType: RaceType) -> [PlanLength] {
@@ -233,7 +220,8 @@ enum Weekday: Int, CaseIterable, Identifiable, Codable, Hashable {
     }
 
     static var displayOrder: [Weekday] {
-        [.monday, .tuesday, .wednesday, .thursday, .friday, .saturday, .sunday]
+        [.monday, .tuesday, .wednesday,
+         .thursday, .friday, .saturday, .sunday]
     }
 }
 
@@ -293,8 +281,9 @@ enum WorkoutType: String, Codable {
 
     var isQualityWorkout: Bool {
         switch self {
-        case .speedWork, .strengthMP, .lactateThreshold, .cruiseIntervals,
-             .intervalWork, .repetitionWork, .tempoRun, .longRunWithMP:
+        case .speedWork, .strengthMP, .lactateThreshold,
+             .cruiseIntervals, .intervalWork, .repetitionWork,
+             .tempoRun, .longRunWithMP:
             return true
         default:
             return false
@@ -312,8 +301,10 @@ struct TrainingDay: Identifiable, Codable {
     let description : String
     let paceNote    : String
 
-    init(id: UUID = UUID(), weekday: Weekday, workoutType: WorkoutType,
-         miles: Double, description: String, paceNote: String) {
+    init(id: UUID = UUID(), weekday: Weekday,
+         workoutType: WorkoutType,
+         miles: Double, description: String,
+         paceNote: String) {
         self.id          = id
         self.weekday     = weekday
         self.workoutType = workoutType
@@ -331,8 +322,8 @@ struct TrainingWeek: Identifiable, Codable {
     let phase      : String
     let days       : [TrainingDay]
 
-    init(id: UUID = UUID(), weekNumber: Int, phase: String,
-         days: [TrainingDay]) {
+    init(id: UUID = UUID(), weekNumber: Int,
+         phase: String, days: [TrainingDay]) {
         self.id         = id
         self.weekNumber = weekNumber
         self.phase      = phase
@@ -340,7 +331,7 @@ struct TrainingWeek: Identifiable, Codable {
     }
 
     var totalMiles: Double { days.reduce(0) { $0 + $1.miles } }
-    var label: String { "Week \(weekNumber)" }
+    var label: String      { "Week \(weekNumber)" }
 }
 
 // MARK: - User Schedule
@@ -356,25 +347,30 @@ struct UserSchedule: Codable, Equatable {
     static func defaultFor(_ planType: PlanType) -> UserSchedule {
         switch planType {
         case .higdon, .higdonHalfNovice:
-            return UserSchedule(longRunDay: .sunday,   workoutDay1: .tuesday,
-                                workoutDay2: .thursday, restDays: [.monday, .friday],
-                                crossTrainDay: nil,     midweekLongDay: .wednesday)
+            return UserSchedule(
+                longRunDay: .sunday, workoutDay1: .tuesday,
+                workoutDay2: .thursday, restDays: [.monday, .friday],
+                crossTrainDay: nil, midweekLongDay: .wednesday)
         case .higdonIntermediate, .higdonHalfIntermediate:
-            return UserSchedule(longRunDay: .sunday,   workoutDay1: .tuesday,
-                                workoutDay2: .thursday, restDays: [.monday],
-                                crossTrainDay: .saturday, midweekLongDay: .wednesday)
+            return UserSchedule(
+                longRunDay: .sunday, workoutDay1: .tuesday,
+                workoutDay2: .thursday, restDays: [.monday],
+                crossTrainDay: .saturday, midweekLongDay: .wednesday)
         case .hansons, .hansonsHalf:
-            return UserSchedule(longRunDay: .sunday,   workoutDay1: .tuesday,
-                                workoutDay2: .thursday, restDays: [.monday],
-                                crossTrainDay: nil,     midweekLongDay: .wednesday)
+            return UserSchedule(
+                longRunDay: .sunday, workoutDay1: .tuesday,
+                workoutDay2: .thursday, restDays: [.monday],
+                crossTrainDay: nil, midweekLongDay: .wednesday)
         case .pfitz:
-            return UserSchedule(longRunDay: .saturday, workoutDay1: .tuesday,
-                                workoutDay2: .thursday, restDays: [.friday],
-                                crossTrainDay: nil,     midweekLongDay: .wednesday)
+            return UserSchedule(
+                longRunDay: .saturday, workoutDay1: .tuesday,
+                workoutDay2: .thursday, restDays: [.friday],
+                crossTrainDay: nil, midweekLongDay: .wednesday)
         case .jackDaniels:
-            return UserSchedule(longRunDay: .sunday,   workoutDay1: .tuesday,
-                                workoutDay2: .thursday, restDays: [.friday],
-                                crossTrainDay: nil,     midweekLongDay: .wednesday)
+            return UserSchedule(
+                longRunDay: .sunday, workoutDay1: .tuesday,
+                workoutDay2: .thursday, restDays: [.friday],
+                crossTrainDay: nil, midweekLongDay: .wednesday)
         }
     }
 
@@ -383,11 +379,15 @@ struct UserSchedule: Codable, Equatable {
         var taken = Set<Weekday>()
 
         taken.insert(s.longRunDay)
-        if taken.contains(s.workoutDay1) { s.workoutDay1 = firstFree(taken) }
+        if taken.contains(s.workoutDay1) {
+            s.workoutDay1 = firstFree(taken)
+        }
         taken.insert(s.workoutDay1)
 
         if planType.requiresTwoWorkoutDays {
-            if taken.contains(s.workoutDay2) { s.workoutDay2 = firstFree(taken) }
+            if taken.contains(s.workoutDay2) {
+                s.workoutDay2 = firstFree(taken)
+            }
             taken.insert(s.workoutDay2)
         }
 
@@ -400,7 +400,9 @@ struct UserSchedule: Codable, Equatable {
 
         if planType.usesCrossTraining {
             if let ct = s.crossTrainDay {
-                if taken.contains(ct) { s.crossTrainDay = firstFreeOptional(taken) }
+                if taken.contains(ct) {
+                    s.crossTrainDay = firstFreeOptional(taken)
+                }
                 if let c = s.crossTrainDay { taken.insert(c) }
             }
         } else {
@@ -414,6 +416,7 @@ struct UserSchedule: Codable, Equatable {
     private func firstFree(_ taken: Set<Weekday>) -> Weekday {
         Weekday.displayOrder.first { !taken.contains($0) } ?? .monday
     }
+
     private func firstFreeOptional(_ taken: Set<Weekday>) -> Weekday? {
         Weekday.displayOrder.first { !taken.contains($0) }
     }
@@ -422,14 +425,14 @@ struct UserSchedule: Codable, Equatable {
 // MARK: - User Settings
 
 struct UserSettings: Codable {
-    var goalTimeMinutes : Int            = 210
-    var baseMileage     : Double         = 25
-    var planType        : PlanType       = .higdon
-    var planLength      : PlanLength     = .sixteenWeek
-    var schedule        : UserSchedule   = UserSchedule.defaultFor(.higdon)
-    // taperDuration has a default so existing saved data decodes safely
-    var taperDuration   : TaperDuration  = .twoWeeks
+    var goalTimeMinutes : Int          = 210
+    var baseMileage     : Double       = 25
+    var planType        : PlanType     = .higdon
+    var planLength      : PlanLength   = .sixteenWeek
+    var schedule        : UserSchedule = UserSchedule.defaultFor(.higdon)
+    var taperDuration   : TaperDuration = .twoWeeks
 
+    // Derived — always comes from planType, never stored separately
     var raceType: RaceType { planType.raceType }
 
     var goalTimeFormatted: String {
@@ -445,11 +448,11 @@ struct UserSettings: Codable {
 
     func onlyScheduleDiffers(from other: UserSettings) -> Bool {
         goalTimeMinutes == other.goalTimeMinutes
-            && baseMileage    == other.baseMileage
-            && planType       == other.planType
-            && planLength     == other.planLength
-            && taperDuration  == other.taperDuration
-            && schedule       != other.schedule
+            && baseMileage   == other.baseMileage
+            && planType      == other.planType
+            && planLength    == other.planLength
+            && taperDuration == other.taperDuration
+            && schedule      != other.schedule
     }
 }
 
@@ -467,9 +470,20 @@ extension UserSettings: Equatable {
 // MARK: - Pace Engine
 
 struct PaceEngine {
-    let goalMinutes: Int
+    let goalMinutes : Int
+    let distance    : Double   // race distance in miles
 
-    var MP: Int { (goalMinutes * 60) / 26 }
+    /// Convenience init — defaults to marathon distance
+    init(goalMinutes: Int, distance: Double = 26.2) {
+        self.goalMinutes = goalMinutes
+        self.distance    = distance
+    }
+
+    /// Seconds per mile at goal race pace
+    var MP: Int {
+        guard distance > 0 else { return 480 }
+        return Int(Double(goalMinutes * 60) / distance)
+    }
 
     var easy            : (low: Int, high: Int) { (MP + 90,  MP + 120) }
     var longRun         : (low: Int, high: Int) { (MP + 60,  MP + 90)  }
@@ -484,11 +498,14 @@ struct PaceEngine {
     var higdonTempo     : Int                   { MP - 15  }
 
     static func format(_ s: Int) -> String {
-        String(format: "%d:%02d", s / 60, s % 60)
+        let safe = max(s, 60)
+        return String(format: "%d:%02d", safe / 60, safe % 60)
     }
+
     func rangeString(_ r: (low: Int, high: Int)) -> String {
         "\(PaceEngine.format(r.high))–\(PaceEngine.format(r.low))/mi"
     }
+
     func singleString(_ s: Int) -> String {
         "\(PaceEngine.format(s))/mi"
     }
@@ -504,8 +521,10 @@ struct TrainingPaces {
     let interval : Int
     let recovery : Int
 
-    static func calculate(goalMinutes: Int) -> TrainingPaces {
-        let e = PaceEngine(goalMinutes: goalMinutes)
+    static func calculate(goalMinutes: Int,
+                          distance: Double = 26.2) -> TrainingPaces {
+        let e = PaceEngine(goalMinutes: goalMinutes,
+                           distance:    distance)
         return TrainingPaces(
             easy:     (e.easy.high, e.easy.low),
             longRun:  (e.longRun.high, e.longRun.low),
@@ -515,13 +534,11 @@ struct TrainingPaces {
             recovery: e.recovery
         )
     }
+
     static func format(_ s: Int) -> String { PaceEngine.format(s) }
 }
 
 // MARK: - Peak Targets
-//
-// peakWeekNumber is now derived from planLength - taperDuration
-// so the taper respects the user's choice exactly.
 
 struct PeakTargets {
     let peakLongRun     : Double
@@ -533,39 +550,41 @@ struct PeakTargets {
 func calculatePeakTargets(method: PlanType,
                            planLength: Int,
                            taperDuration: TaperDuration) -> PeakTargets {
-    // Peak week = last week before taper starts
-    // Race week is always the final week, so:
-    // peakWeek = planLength - taperDuration (taper) - 1 (race week) + 1
-    // Simplified: planLength - taperDuration.rawValue
     let pw = planLength - taperDuration.rawValue
 
     switch method {
-    // Marathon
     case .hansons:
         return PeakTargets(peakLongRun: 16, peakWeeklyMiles: 55,
-                           peakWeekNumber: pw, taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw,
+                           taperWeeks: taperDuration.rawValue)
     case .pfitz:
         return PeakTargets(peakLongRun: 22, peakWeeklyMiles: 70,
-                           peakWeekNumber: pw, taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw,
+                           taperWeeks: taperDuration.rawValue)
     case .higdon:
         return PeakTargets(peakLongRun: 20, peakWeeklyMiles: 40,
-                           peakWeekNumber: pw, taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw,
+                           taperWeeks: taperDuration.rawValue)
     case .higdonIntermediate:
         return PeakTargets(peakLongRun: 22, peakWeeklyMiles: 48,
-                           peakWeekNumber: pw, taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw,
+                           taperWeeks: taperDuration.rawValue)
     case .jackDaniels:
         return PeakTargets(peakLongRun: 18, peakWeeklyMiles: 60,
-                           peakWeekNumber: pw, taperWeeks: taperDuration.rawValue)
-    // Half Marathon
+                           peakWeekNumber: pw,
+                           taperWeeks: taperDuration.rawValue)
     case .higdonHalfNovice:
         return PeakTargets(peakLongRun: 10, peakWeeklyMiles: 28,
-                           peakWeekNumber: pw, taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw,
+                           taperWeeks: taperDuration.rawValue)
     case .higdonHalfIntermediate:
         return PeakTargets(peakLongRun: 12, peakWeeklyMiles: 35,
-                           peakWeekNumber: pw, taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw,
+                           taperWeeks: taperDuration.rawValue)
     case .hansonsHalf:
         return PeakTargets(peakLongRun: 10, peakWeeklyMiles: 45,
-                           peakWeekNumber: pw, taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw,
+                           taperWeeks: taperDuration.rawValue)
     }
 }
 
@@ -593,60 +612,76 @@ struct MethodConstraints {
 func getMethodConstraints(for planType: PlanType) -> MethodConstraints {
     switch planType {
     case .hansons:
-        return MethodConstraints(maxLongRunMiles: 16, minLongRunMiles: 8,
+        return MethodConstraints(
+            maxLongRunMiles: 16, minLongRunMiles: 8,
             longRunAsPercentage: 0.30, minRunDays: 5, maxRunDays: 6,
             requiredWorkouts: [.speedWork, .strengthMP, .longRun],
-            progressionStyle: .cumulativeFatigue, requiresMediumLong: false,
-            earliestQualityWeek: 1, allowsConsecutiveHard: false,
+            progressionStyle: .cumulativeFatigue,
+            requiresMediumLong: false, earliestQualityWeek: 1,
+            allowsConsecutiveHard: false,
             absoluteMinWeekly: 25, absoluteMaxWeekly: 65)
     case .pfitz:
-        return MethodConstraints(maxLongRunMiles: 23, minLongRunMiles: 12,
+        return MethodConstraints(
+            maxLongRunMiles: 23, minLongRunMiles: 12,
             longRunAsPercentage: 0.35, minRunDays: 5, maxRunDays: 6,
             requiredWorkouts: [.lactateThreshold, .mediumLong, .longRun],
-            progressionStyle: .periodicCutback, requiresMediumLong: true,
-            earliestQualityWeek: 1, allowsConsecutiveHard: false,
+            progressionStyle: .periodicCutback,
+            requiresMediumLong: true, earliestQualityWeek: 1,
+            allowsConsecutiveHard: false,
             absoluteMinWeekly: 35, absoluteMaxWeekly: 85)
     case .higdon:
-        return MethodConstraints(maxLongRunMiles: 20, minLongRunMiles: 6,
+        return MethodConstraints(
+            maxLongRunMiles: 20, minLongRunMiles: 6,
             longRunAsPercentage: 0.40, minRunDays: 4, maxRunDays: 5,
             requiredWorkouts: [.longRun, .midweekLong],
-            progressionStyle: .periodicCutback, requiresMediumLong: false,
-            earliestQualityWeek: 99, allowsConsecutiveHard: false,
+            progressionStyle: .periodicCutback,
+            requiresMediumLong: false, earliestQualityWeek: 99,
+            allowsConsecutiveHard: false,
             absoluteMinWeekly: 15, absoluteMaxWeekly: 45)
     case .higdonIntermediate:
-        return MethodConstraints(maxLongRunMiles: 22, minLongRunMiles: 8,
+        return MethodConstraints(
+            maxLongRunMiles: 22, minLongRunMiles: 8,
             longRunAsPercentage: 0.40, minRunDays: 4, maxRunDays: 6,
             requiredWorkouts: [.tempoRun, .longRun, .midweekLong, .crossTrain],
-            progressionStyle: .periodicCutback, requiresMediumLong: false,
-            earliestQualityWeek: 3, allowsConsecutiveHard: false,
+            progressionStyle: .periodicCutback,
+            requiresMediumLong: false, earliestQualityWeek: 3,
+            allowsConsecutiveHard: false,
             absoluteMinWeekly: 20, absoluteMaxWeekly: 55)
     case .jackDaniels:
-        return MethodConstraints(maxLongRunMiles: 22, minLongRunMiles: 8,
+        return MethodConstraints(
+            maxLongRunMiles: 22, minLongRunMiles: 8,
             longRunAsPercentage: 0.25, minRunDays: 4, maxRunDays: 6,
             requiredWorkouts: [.repetitionWork, .cruiseIntervals, .intervalWork],
-            progressionStyle: .phasedQuality, requiresMediumLong: false,
-            earliestQualityWeek: 1, allowsConsecutiveHard: false,
+            progressionStyle: .phasedQuality,
+            requiresMediumLong: false, earliestQualityWeek: 1,
+            allowsConsecutiveHard: false,
             absoluteMinWeekly: 25, absoluteMaxWeekly: 75)
     case .higdonHalfNovice:
-        return MethodConstraints(maxLongRunMiles: 10, minLongRunMiles: 4,
+        return MethodConstraints(
+            maxLongRunMiles: 10, minLongRunMiles: 4,
             longRunAsPercentage: 0.40, minRunDays: 3, maxRunDays: 4,
             requiredWorkouts: [.longRun],
-            progressionStyle: .periodicCutback, requiresMediumLong: false,
-            earliestQualityWeek: 99, allowsConsecutiveHard: false,
+            progressionStyle: .periodicCutback,
+            requiresMediumLong: false, earliestQualityWeek: 99,
+            allowsConsecutiveHard: false,
             absoluteMinWeekly: 12, absoluteMaxWeekly: 32)
     case .higdonHalfIntermediate:
-        return MethodConstraints(maxLongRunMiles: 12, minLongRunMiles: 5,
+        return MethodConstraints(
+            maxLongRunMiles: 12, minLongRunMiles: 5,
             longRunAsPercentage: 0.40, minRunDays: 4, maxRunDays: 5,
             requiredWorkouts: [.tempoRun, .longRun],
-            progressionStyle: .periodicCutback, requiresMediumLong: false,
-            earliestQualityWeek: 3, allowsConsecutiveHard: false,
+            progressionStyle: .periodicCutback,
+            requiresMediumLong: false, earliestQualityWeek: 3,
+            allowsConsecutiveHard: false,
             absoluteMinWeekly: 15, absoluteMaxWeekly: 40)
     case .hansonsHalf:
-        return MethodConstraints(maxLongRunMiles: 10, minLongRunMiles: 5,
+        return MethodConstraints(
+            maxLongRunMiles: 10, minLongRunMiles: 5,
             longRunAsPercentage: 0.30, minRunDays: 5, maxRunDays: 6,
             requiredWorkouts: [.speedWork, .strengthMP, .longRun],
-            progressionStyle: .cumulativeFatigue, requiresMediumLong: false,
-            earliestQualityWeek: 1, allowsConsecutiveHard: false,
+            progressionStyle: .cumulativeFatigue,
+            requiresMediumLong: false, earliestQualityWeek: 1,
+            allowsConsecutiveHard: false,
             absoluteMinWeekly: 20, absoluteMaxWeekly: 50)
     }
 }

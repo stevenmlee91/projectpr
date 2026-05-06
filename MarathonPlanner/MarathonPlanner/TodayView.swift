@@ -216,7 +216,9 @@ struct TodayWorkoutCard: View {
             Circle()
                 .fill(workoutColor)
                 .frame(width: 8, height: 8)
-            Text(liveDay.workoutType.uppercased())
+            // ← Uses displayWorkoutType for correct HMP/MP label
+            Text(liveDay.displayWorkoutType(
+                    raceType: ctx.plan.settings.raceType).uppercased())
                 .font(.system(size: 10, weight: .bold,
                               design: .monospaced))
                 .foregroundColor(workoutColor)

@@ -464,3 +464,16 @@ extension SavedDay: Equatable, Hashable {
     }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
+// MARK: - Workout Display Helpers
+
+extension SavedDay {
+    func displayWorkoutType(raceType: RaceType) -> String {
+        guard raceType == .halfMarathon else { return workoutType }
+        switch workoutType {
+        case "Strength (MP)":          return "Strength (HMP)"
+        case "Marathon Pace":          return "Half Marathon Pace"
+        case "Long Run w/ MP Finish":  return "Long Run w/ HMP Finish"
+        default:                       return workoutType
+        }
+    }
+}
