@@ -36,13 +36,29 @@ struct CreatePlanView: View {
         selectedRaceType == .halfMarathon
             ? Array(1...3) : Array(2...6)
     }
+
+    /// Mirrors createSavedPlan exactly so the displayed date
+    /// always matches what is actually generated.
     var startDate: Date {
-        Calendar.current.date(
+        var cal          = Calendar(identifier: .gregorian)
+        cal.firstWeekday = 2
+        cal.timeZone     = .current
+
+        let weekday         = cal.component(.weekday, from: raceDate)
+        let daysSinceMonday = (weekday + 5) % 7
+        guard let raceWeekMonday = cal.date(
+            byAdding: .day,
+            value:    -daysSinceMonday,
+            to:       cal.startOfDay(for: raceDate)
+        ) else { return raceDate }
+
+        return cal.date(
             byAdding: .weekOfYear,
-            value: -settings.planLength.rawValue,
-            to: raceDate
+            value:    -(settings.planLength.rawValue - 1),
+            to:       raceWeekMonday
         ) ?? raceDate
     }
+
     private var isReadyToGenerate: Bool {
         !planName.trimmingCharacters(in: .whitespaces).isEmpty
     }
@@ -100,7 +116,6 @@ struct CreatePlanView: View {
                 .foregroundColor(.primary)
                 .padding(.bottom, 20)
 
-            // Plan name input
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 12) {
                     TextField(planNamePlaceholder, text: $planName)
@@ -250,14 +265,16 @@ struct CreatePlanView: View {
                                     if settings.taperDuration == option {
                                         Circle()
                                             .fill(Color.accentColor)
-                                            .frame(width: 10, height: 10)
+                                            .frame(width: 10,
+                                                   height: 10)
                                     }
                                 }
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(option.label)
                                         .font(.system(
                                             size: 14,
-                                            weight: settings.taperDuration == option
+                                            weight: settings.taperDuration
+                                                == option
                                                 ? .semibold : .regular
                                         ))
                                         .foregroundColor(.primary)
@@ -363,7 +380,7 @@ struct CreatePlanView: View {
         }
     }
 
-    // MARK: - Generate Button (inline, scrolls with content)
+    // MARK: - Generate Button
 
     private var generateButton: some View {
         Button(action: generatePlan) {
@@ -376,7 +393,9 @@ struct CreatePlanView: View {
                     Image(systemName: "figure.run")
                         .font(.system(size: 14, weight: .medium))
                 }
-                Text(isGenerating ? "GENERATING..." : "GENERATE PLAN")
+                Text(isGenerating
+                     ? "GENERATING..."
+                     : "GENERATE PLAN")
                     .font(.system(size: 13, weight: .semibold,
                                   design: .monospaced))
                     .kerning(1.5)
@@ -713,8 +732,8 @@ struct CreatePlanView: View {
         if p.usesCrossTraining, let ct = s.crossTrainDay {
             hardBlocked.insert(ct)
         }
-        let maxRestDays = 7 - minimumRunDays(for: p)
-        let currentRest = s.restDays.filter {
+        let maxRestDays  = 7 - minimumRunDays(for: p)
+        let currentRest  = s.restDays.filter {
             !hardBlocked.contains($0)
         }.count
         var blocked = Array(hardBlocked)
@@ -763,17 +782,20 @@ struct CreatePlanView: View {
         let p = settings.planType
         if s.restDays.contains(s.longRunDay) {
             issues.append(
-                "\(s.longRunDay.fullName) is both a rest day and your long run day.")
+                "\(s.longRunDay.fullName) is both a rest day " +
+                "and your long run day.")
         }
         if p != .higdon && p != .higdonHalfNovice
             && s.restDays.contains(s.workoutDay1) {
             issues.append(
-                "\(s.workoutDay1.fullName) is both a rest day and a workout day.")
+                "\(s.workoutDay1.fullName) is both a rest day " +
+                "and a workout day.")
         }
         if p.requiresTwoWorkoutDays
             && s.restDays.contains(s.workoutDay2) {
             issues.append(
-                "\(s.workoutDay2.fullName) is both a rest day and a workout day.")
+                "\(s.workoutDay2.fullName) is both a rest day " +
+                "and a workout day.")
         }
         if p.requiresTwoWorkoutDays
             && s.workoutDay1 == s.workoutDay2 {
@@ -781,7 +803,8 @@ struct CreatePlanView: View {
         }
         if p.usesMidweekLongRun
             && s.midweekLongDay == s.longRunDay {
-            issues.append("Midweek run and long run are on the same day.")
+            issues.append(
+                "Midweek run and long run are on the same day.")
         }
         return issues
     }
@@ -789,11 +812,13 @@ struct CreatePlanView: View {
     // MARK: - Actions
 
     private func handleRaceTypeChange() {
-        if let first = PlanType.options(for: selectedRaceType).first {
+        if let first = PlanType.options(
+            for: selectedRaceType).first {
             settings.planType = first
             settings.resetScheduleForNewPlanType()
         }
-        if let first = PlanLength.options(for: selectedRaceType).first {
+        if let first = PlanLength.options(
+            for: selectedRaceType).first {
             settings.planLength = first
         }
         goalHours   = selectedRaceType == .halfMarathon ? 1 : 3
@@ -887,7 +912,8 @@ struct CreateDurationChip: View {
         Button(action: onTap) {
             Text(label)
                 .font(.system(size: 12,
-                              weight: isSelected ? .semibold : .regular,
+                              weight: isSelected
+                              ? .semibold : .regular,
                               design: .monospaced))
                 .foregroundColor(isSelected
                                  ? Color(.systemBackground)
@@ -927,7 +953,9 @@ struct CreateCrossTrainToggle: View {
                         if on {
                             let t = Set(taken)
                             schedule.crossTrainDay =
-                                Weekday.allCases.first { !t.contains($0) }
+                                Weekday.allCases.first {
+                                    !t.contains($0)
+                                }
                         } else {
                             schedule.crossTrainDay = nil
                         }
@@ -949,19 +977,24 @@ struct CreateCrossTrainToggle: View {
                             Text(day.name)
                                 .font(.system(
                                     size: 11,
-                                    weight: isSel ? .semibold : .regular,
+                                    weight: isSel
+                                        ? .semibold : .regular,
                                     design: .monospaced))
                                 .foregroundColor(
-                                    isDis ? Color(.tertiaryLabel) :
-                                    isSel ? Color(.systemBackground) :
-                                            .secondary
+                                    isDis
+                                        ? Color(.tertiaryLabel)
+                                        : isSel
+                                            ? Color(.systemBackground)
+                                            : .secondary
                                 )
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
                                 .background(
-                                    isDis ? Color(.tertiarySystemFill) :
-                                    isSel ? Color(.label) :
-                                            Color(.systemFill)
+                                    isDis
+                                        ? Color(.tertiarySystemFill)
+                                        : isSel
+                                            ? Color(.label)
+                                            : Color(.systemFill)
                                 )
                                 .cornerRadius(8)
                         }

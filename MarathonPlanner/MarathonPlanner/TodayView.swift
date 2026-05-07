@@ -5,12 +5,16 @@ import SwiftUI
 struct TodayView: View {
     @EnvironmentObject var store: PlanStore
 
-    @State private var dailyInsight      : DailyInsight?     = nil
+    @State private var dailyInsight      : DailyInsight?      = nil
     @State private var completionContext : CompletionContext?  = nil
-    @State private var showCompletion    : Bool               = false
+    @State private var showCompletion    : Bool                = false
+    @State private var pendingMilestone  : Milestone?          = nil
+    @State private var showMilestone     : Bool                = false
+    @State private var offSeasonWorkout  : SuggestedWorkout?   = nil
 
     private var todayContext: TodayContext? {
-        TodayContext.find(in: store.plans, primaryID: store.primaryPlanID)
+        TodayContext.find(in: store.plans,
+                          primaryID: store.primaryPlanID)
     }
 
     var body: some View {
@@ -28,15 +32,9 @@ struct TodayView: View {
                             }
 
                             TodayWorkoutCard(
-                                ctx: ctx,
+                                ctx:        ctx,
                                 onComplete: { day in
-                                    let c = CompletionContext.make(from: day)
-                                    WorkoutHaptics.fire(for: c)
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        completionContext = c
-                                        showCompletion    = true
-                                    }
-                                    refreshInsight()
+                                    handleCompletion(day: day, ctx: ctx)
                                 }
                             )
                             .environmentObject(store)
@@ -67,16 +65,51 @@ struct TodayView: View {
                     .padding(.top, 16)
                 }
 
-                // Completion overlay
+                // ── Completion overlay ──────────────────────────
                 if showCompletion, let ctx = completionContext {
                     WorkoutCompletionView(context: ctx) {
                         withAnimation(.easeIn(duration: 0.2)) {
                             showCompletion    = false
                             completionContext = nil
                         }
+                        if pendingMilestone != nil {
+                            DispatchQueue.main.asyncAfter(
+                                deadline: .now() + 0.35) {
+                                withAnimation(
+                                    .spring(response: 0.4,
+                                             dampingFraction: 0.8)) {
+                                    showMilestone = true
+                                }
+                            }
+                        }
                     }
-                    .transition(.opacity)
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity
+                                .combined(with: .scale(scale: 1.04)),
+                            removal:   .opacity
+                        )
+                    )
                     .zIndex(999)
+                }
+
+                // ── Milestone overlay ───────────────────────────
+                if showMilestone, let m = pendingMilestone {
+                    MilestoneOverlayView(milestone: m) {
+                        withAnimation(.easeIn(duration: 0.2)) {
+                            showMilestone    = false
+                            pendingMilestone = nil
+                        }
+                    }
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity
+                                .combined(with: .scale(scale: 1.06)),
+                            removal:   .opacity
+                                .combined(with: .scale(scale: 0.96))
+                        )
+                    )
+                    .zIndex(1000)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -90,13 +123,51 @@ struct TodayView: View {
                 }
             }
         }
-        .onAppear { refreshInsight() }
+        .onAppear {
+            refreshInsight()
+            refreshOffSeason()
+        }
         .onReceive(
             NotificationCenter.default.publisher(
                 for: UIApplication.didBecomeActiveNotification)
-        ) { _ in refreshInsight() }
-        .onChange(of: store.plans) { _ in refreshInsight() }
-        .animation(.easeInOut(duration: 0.2), value: showCompletion)
+        ) { _ in
+            refreshInsight()
+            refreshOffSeason()
+        }
+        .onChange(of: store.plans) { _ in
+            refreshInsight()
+            refreshOffSeason()
+        }
+        .animation(.easeInOut(duration: 0.25), value: showCompletion)
+        .animation(.easeInOut(duration: 0.25), value: showMilestone)
+    }
+
+    // MARK: - Completion Handler
+
+    private func handleCompletion(day: SavedDay, ctx: TodayContext) {
+        let c = CompletionContext.make(from: day)
+        WorkoutHaptics.fire(for: c)
+
+        if let livePlan = store.plans.first(where: {
+            $0.id == ctx.plan.id
+        }),
+           let liveWeek = livePlan.weeks.first(where: {
+               $0.id == ctx.week.id
+           }) {
+            pendingMilestone = MilestoneDetector.detect(
+                completedDay: day,
+                plan:         livePlan,
+                currentWeek:  liveWeek
+            )
+        }
+
+        withAnimation(.spring(response: 0.4,
+                               dampingFraction: 0.75)) {
+            completionContext = c
+            showCompletion    = true
+        }
+
+        refreshInsight()
     }
 
     // MARK: - Insight
@@ -109,6 +180,32 @@ struct TodayView: View {
         dailyInsight = DailyInsightEngine.generate(for: plan)
     }
 
+    // MARK: - Off-Season
+
+    private func refreshOffSeason() {
+        guard todayContext == nil else {
+            offSeasonWorkout = nil
+            return
+        }
+
+        let cal   = Calendar.current
+        let today = cal.startOfDay(for: Date())
+
+        let recentlyFinished = store.plans.contains { plan in
+            let raceDay = cal.startOfDay(for: plan.raceDate)
+            let diff    = cal.dateComponents([.day],
+                                             from: raceDay,
+                                             to: today).day ?? 99
+            return diff >= 0 && diff <= 14
+        }
+
+        offSeasonWorkout = OffSeasonEngine.todaySuggestion(
+            date:                today,
+            settings:            store.plans.first?.settings,
+            recentlyFinishedRace: recentlyFinished
+        )
+    }
+
     // MARK: - Header
 
     private func todayHeader(ctx: TodayContext) -> some View {
@@ -118,7 +215,8 @@ struct TodayView: View {
                 .foregroundColor(.secondary)
                 .kerning(2)
             Text(ctx.plan.name)
-                .font(.system(size: 24, weight: .light, design: .serif))
+                .font(.system(size: 24, weight: .light,
+                              design: .serif))
                 .foregroundColor(.primary)
             Text("Week \(ctx.weekNumber) of \(ctx.totalWeeks)")
                 .font(.system(size: 12, design: .monospaced))
@@ -137,22 +235,49 @@ struct TodayView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 24) {
-            Spacer().frame(height: 60)
-            Image(systemName: "figure.run")
-                .font(.system(size: 56, weight: .ultraLight))
-                .foregroundColor(Color(.tertiarySystemBackground))
-            VStack(spacing: 8) {
-                Text("No active plan")
-                    .font(.system(size: 20, weight: .light,
-                                  design: .serif))
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(formattedDate())
+                    .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(.secondary)
-                Text("Create a training plan to see\nyour daily workouts here.")
-                    .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "3A3A3A"))
-                    .multilineTextAlignment(.center)
+                    .kerning(2)
+                Text("Off-Season")
+                    .font(.system(size: 24, weight: .light,
+                                  design: .serif))
+                    .foregroundColor(.primary)
+                Text("Base building — no active plan")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(Color(hex: "4A4A4A"))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 8)
+
+            if let workout = offSeasonWorkout {
+                OffSeasonCard(workout: workout)
+            }
+
+            createPlanPrompt
         }
+    }
+
+    private var createPlanPrompt: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "calendar.badge.plus")
+                .font(.system(size: 16, weight: .light))
+                .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Ready to start training?")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.primary)
+                Text("Create a plan to unlock your full training dashboard.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+        }
+        .padding(14)
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
     }
 }
 
@@ -207,6 +332,7 @@ struct TodayWorkoutCard: View {
                 .stroke(cardBorder, lineWidth: 1.5)
         )
         .cornerRadius(16)
+        .animation(.easeInOut(duration: 0.2), value: status)
     }
 
     // MARK: Type Bar
@@ -216,7 +342,6 @@ struct TodayWorkoutCard: View {
             Circle()
                 .fill(workoutColor)
                 .frame(width: 8, height: 8)
-            // ← Uses displayWorkoutType for correct HMP/MP label
             Text(liveDay.displayWorkoutType(
                     raceType: ctx.plan.settings.raceType).uppercased())
                 .font(.system(size: 10, weight: .bold,
@@ -239,16 +364,19 @@ struct TodayWorkoutCard: View {
                     .font(.system(size: 10, weight: .bold,
                                   design: .monospaced))
                     .foregroundColor(Color(hex: "30D158"))
+                    .transition(.scale.combined(with: .opacity))
             case .skipped:
                 Label("SKIPPED", systemImage: "xmark.circle.fill")
                     .font(.system(size: 10, weight: .bold,
                                   design: .monospaced))
                     .foregroundColor(Color(hex: "FF453A"))
+                    .transition(.scale.combined(with: .opacity))
             case .modified:
                 Label("MODIFIED", systemImage: "pencil.circle.fill")
                     .font(.system(size: 10, weight: .bold,
                                   design: .monospaced))
                     .foregroundColor(Color(hex: "0A84FF"))
+                    .transition(.scale.combined(with: .opacity))
             case .notStarted:
                 if liveDay.workoutType == "Rest" {
                     Label("REST DAY", systemImage: "moon.fill")
@@ -263,6 +391,9 @@ struct TodayWorkoutCard: View {
                 }
             }
         }
+        .animation(.spring(response: 0.3,
+                            dampingFraction: 0.7),
+                   value: status)
     }
 
     // MARK: Miles and Pace
@@ -324,8 +455,13 @@ struct TodayWorkoutCard: View {
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundColor(.secondary)
                 }
+                .transition(.move(edge: .trailing)
+                    .combined(with: .opacity))
             }
         }
+        .animation(.spring(response: 0.35,
+                            dampingFraction: 0.75),
+                   value: status)
     }
 
     private var descriptionText: some View {
@@ -361,8 +497,6 @@ struct TodayWorkoutCard: View {
                 EmptyView()
             } else {
                 VStack(spacing: 10) {
-
-                    // Action row
                     HStack(spacing: 10) {
 
                         // Mark complete
@@ -389,6 +523,8 @@ struct TodayWorkoutCard: View {
                                       ? "checkmark.circle.fill"
                                       : "circle")
                                     .font(.system(size: 18))
+                                    .symbolEffect(.bounce,
+                                                  value: status)
                                 Text(status == .completed
                                      ? "Completed"
                                      : "Mark Complete")
@@ -399,13 +535,18 @@ struct TodayWorkoutCard: View {
                                              ? .white : .primary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(status == .completed
-                                        ? Color(hex: "30D158")
-                                        : Color(.systemFill))
+                            .background(
+                                status == .completed
+                                    ? Color(hex: "30D158")
+                                    : Color(.systemFill)
+                            )
                             .cornerRadius(12)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .animation(.spring(response: 0.3,
+                                            dampingFraction: 0.65),
+                                   value: status)
 
                         // Skip
                         Button {
@@ -437,6 +578,9 @@ struct TodayWorkoutCard: View {
                                 .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
+                        .animation(.spring(response: 0.3,
+                                            dampingFraction: 0.65),
+                                   value: status)
 
                         // Actual miles
                         if liveDay.miles > 0 {
@@ -444,7 +588,11 @@ struct TodayWorkoutCard: View {
                                 actualMilesInput = liveDay.actualMiles
                                     .map { String(format: "%.1f", $0) }
                                     ?? ""
-                                showingActualMiles.toggle()
+                                withAnimation(
+                                    .spring(response: 0.3,
+                                             dampingFraction: 0.7)) {
+                                    showingActualMiles.toggle()
+                                }
                             } label: {
                                 Image(systemName: "pencil.circle")
                                     .font(.system(size: 20))
@@ -459,11 +607,12 @@ struct TodayWorkoutCard: View {
                         }
                     }
 
-                    // Note section — only after completion or skip
                     if status == .completed
                         || status == .modified
                         || status == .skipped {
                         noteSection
+                            .transition(.move(edge: .top)
+                                .combined(with: .opacity))
                     }
                 }
             }
@@ -474,11 +623,8 @@ struct TodayWorkoutCard: View {
 
     private var noteSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-
             if let note = liveDay.completionNote,
-               !note.isEmpty,
-               !isEditingNote {
-                // Existing note — tap to edit
+               !note.isEmpty, !isEditingNote {
                 Button {
                     noteInput     = note
                     isEditingNote = true
@@ -507,7 +653,6 @@ struct TodayWorkoutCard: View {
                 .buttonStyle(.plain)
 
             } else if !isEditingNote {
-                // Add note link — subtle and optional
                 Button {
                     noteInput     = ""
                     isEditingNote = true
@@ -525,12 +670,10 @@ struct TodayWorkoutCard: View {
                 .buttonStyle(.plain)
             }
 
-            // Inline editor
             if isEditingNote {
                 VStack(spacing: 8) {
                     TextField("How did it go?",
-                              text: $noteInput,
-                              axis: .vertical)
+                              text: $noteInput, axis: .vertical)
                         .font(.system(size: 13))
                         .foregroundColor(.primary)
                         .lineLimit(3...6)
@@ -541,11 +684,12 @@ struct TodayWorkoutCard: View {
                         .cornerRadius(10)
 
                     HStack(spacing: 10) {
-                        // Cancel
                         Button {
-                            isEditingNote = false
-                            noteInput     = ""
-                            noteFocused   = false
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isEditingNote = false
+                                noteInput     = ""
+                                noteFocused   = false
+                            }
                         } label: {
                             Text("Cancel")
                                 .font(.system(size: 12, weight: .medium))
@@ -559,19 +703,18 @@ struct TodayWorkoutCard: View {
 
                         Spacer()
 
-                        // Clear (only if note exists)
                         if let existing = liveDay.completionNote,
                            !existing.isEmpty {
                             Button {
-                                store.saveNote(
-                                    planID: ctx.plan.id,
-                                    weekID: ctx.week.id,
-                                    dayID:  liveDay.id,
-                                    note:   ""
-                                )
-                                noteInput     = ""
-                                isEditingNote = false
-                                noteFocused   = false
+                                store.saveNote(planID: ctx.plan.id,
+                                               weekID: ctx.week.id,
+                                               dayID:  liveDay.id,
+                                               note:   "")
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    noteInput     = ""
+                                    isEditingNote = false
+                                    noteFocused   = false
+                                }
                             } label: {
                                 Text("Clear")
                                     .font(.system(size: 12,
@@ -586,18 +729,17 @@ struct TodayWorkoutCard: View {
                             .buttonStyle(.plain)
                         }
 
-                        // Save
                         Button {
                             let trimmed = noteInput.trimmingCharacters(
                                 in: .whitespacesAndNewlines)
-                            store.saveNote(
-                                planID: ctx.plan.id,
-                                weekID: ctx.week.id,
-                                dayID:  liveDay.id,
-                                note:   trimmed
-                            )
-                            isEditingNote = false
-                            noteFocused   = false
+                            store.saveNote(planID: ctx.plan.id,
+                                           weekID: ctx.week.id,
+                                           dayID:  liveDay.id,
+                                           note:   trimmed)
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isEditingNote = false
+                                noteFocused   = false
+                            }
                             UIImpactFeedbackGenerator(style: .light)
                                 .impactOccurred()
                         } label: {
@@ -613,12 +755,17 @@ struct TodayWorkoutCard: View {
                         .disabled(
                             noteInput.trimmingCharacters(
                                 in: .whitespacesAndNewlines).isEmpty
-                            && liveDay.completionNote == nil
+                                && liveDay.completionNote == nil
                         )
                     }
                 }
+                .transition(.move(edge: .top)
+                    .combined(with: .opacity))
             }
         }
+        .animation(.spring(response: 0.35,
+                            dampingFraction: 0.75),
+                   value: isEditingNote)
     }
 
     // MARK: Actual Miles Row
@@ -647,7 +794,10 @@ struct TodayWorkoutCard: View {
                         actual: miles
                     )
                 }
-                showingActualMiles = false
+                withAnimation(.spring(response: 0.3,
+                                       dampingFraction: 0.7)) {
+                    showingActualMiles = false
+                }
             }
             .font(.system(size: 12, weight: .semibold))
             .foregroundColor(Color(hex: "30D158"))
@@ -655,26 +805,33 @@ struct TodayWorkoutCard: View {
             Spacer()
         }
         .padding(.top, 4)
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     // MARK: Styling
 
     private var workoutColor: Color {
         switch liveDay.workoutType {
-        case "Rest":                                   return Color(hex: "3A3A3A")
-        case "Recovery Run":                           return Color(hex: "34C759")
-        case "Easy Run", "Easy + Strides",
-             "Shakeout Run":                           return Color(hex: "30D158")
+        case "Rest":
+            return Color(hex: "3A3A3A")
+        case "Recovery Run":
+            return Color(hex: "34C759")
+        case "Easy Run", "Easy + Strides", "Shakeout Run":
+            return Color(hex: "30D158")
         case "Long Run", "Long Run w/ MP Finish",
-             "Medium-Long Run", "Midweek Longer Run":  return Color(hex: "0A84FF")
-        case "Tempo Run", "Strength (MP)",
-             "Marathon Pace":                          return Color(hex: "FF9F0A")
+             "Medium-Long Run", "Midweek Longer Run":
+            return Color(hex: "0A84FF")
+        case "Tempo Run", "Strength (MP)", "Marathon Pace":
+            return Color(hex: "FF9F0A")
         case "Lactate Threshold", "Cruise Intervals",
-             "Speed Work", "Interval Work",
-             "Repetition Work":                        return Color(hex: "FF453A")
-        case "Cross-Training":                         return Color(hex: "BF5AF2")
-        case "Race Day 🏁":                            return .yellow
-        default:                                       return Color(hex: "5E5E5E")
+             "Speed Work", "Interval Work", "Repetition Work":
+            return Color(hex: "FF453A")
+        case "Cross-Training":
+            return Color(hex: "BF5AF2")
+        case "Race Day 🏁":
+            return .yellow
+        default:
+            return Color(hex: "5E5E5E")
         }
     }
 
@@ -744,11 +901,17 @@ struct WeekProgressCard: View {
                                 style: StrokeStyle(lineWidth: 3,
                                                    lineCap: .round))
                         .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut(duration: 0.4), value: pct)
+                        .animation(.spring(response: 0.5,
+                                            dampingFraction: 0.75),
+                                   value: pct)
                     Text("\(Int(pct * 100))%")
                         .font(.system(size: 11, weight: .semibold,
                                       design: .monospaced))
                         .foregroundColor(.primary)
+                        .contentTransition(.numericText())
+                        .animation(.spring(response: 0.4,
+                                            dampingFraction: 0.8),
+                                   value: pct)
                 }
                 .frame(width: 52, height: 52)
             }
@@ -769,6 +932,10 @@ struct WeekProgressCard: View {
                      + "\(liveWeek.trackableDayCount) workouts done")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(Color(hex: "4A4A4A"))
+                    .contentTransition(.numericText())
+                    .animation(.spring(response: 0.4,
+                                        dampingFraction: 0.8),
+                               value: liveWeek.completedDayCount)
             }
         }
         .padding(16)
@@ -782,6 +949,9 @@ struct WeekProgressCard: View {
                 Circle()
                     .fill(dotBg(day))
                     .frame(width: 28, height: 28)
+                    .animation(.spring(response: 0.35,
+                                        dampingFraction: 0.7),
+                               value: day.completionStatus)
                 if day.id == ctx.day.id {
                     Circle()
                         .stroke(Color.white, lineWidth: 2)
@@ -794,6 +964,10 @@ struct WeekProgressCard: View {
                 .foregroundColor(Color(hex: "3A3A3A"))
         }
         .frame(maxWidth: .infinity)
+        .scaleEffect(day.id == ctx.day.id ? 1.08 : 1.0)
+        .animation(.spring(response: 0.3,
+                            dampingFraction: 0.65),
+                   value: day.id == ctx.day.id)
     }
 
     @ViewBuilder
@@ -803,14 +977,17 @@ struct WeekProgressCard: View {
             Image(systemName: "checkmark")
                 .font(.system(size: 10, weight: .bold))
                 .foregroundColor(.black)
+                .transition(.scale.combined(with: .opacity))
         case .skipped:
             Image(systemName: "xmark")
                 .font(.system(size: 10, weight: .bold))
                 .foregroundColor(.primary)
+                .transition(.scale.combined(with: .opacity))
         case .modified:
             Image(systemName: "pencil")
                 .font(.system(size: 9, weight: .bold))
                 .foregroundColor(.black)
+                .transition(.scale.combined(with: .opacity))
         case .notStarted:
             EmptyView()
         }
@@ -880,6 +1057,7 @@ struct RaceCountdownCard: View {
                     .font(.system(size: 36, weight: .thin,
                                   design: .monospaced))
                     .foregroundColor(.primary)
+                    .contentTransition(.numericText())
                 Text("days")
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundColor(Color(hex: "3E3E3E"))

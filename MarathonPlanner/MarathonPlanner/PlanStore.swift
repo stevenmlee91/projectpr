@@ -286,6 +286,8 @@ class PlanStore: ObservableObject {
         primaryPlanID = plan.id
         NotificationManager.shared.scheduleWorkoutReminders(
             for: plans, primaryID: primaryPlanID)
+        WeeklySummaryManager.shared.scheduleWeeklySummary(
+                for: plans, primaryID: primaryPlanID)
     }
 
     // MARK: - CRUD
@@ -297,6 +299,8 @@ class PlanStore: ObservableObject {
         persist()
         NotificationManager.shared.scheduleWorkoutReminders(
             for: plans, primaryID: primaryPlanID)
+        WeeklySummaryManager.shared.scheduleWeeklySummary(
+            for: plans, primaryID: primaryPlanID)
     }
 
     func deletePlan(_ plan: SavedPlan) {
@@ -306,6 +310,8 @@ class PlanStore: ObservableObject {
         persist()
         NotificationManager.shared.scheduleWorkoutReminders(
             for: plans, primaryID: primaryPlanID)
+        WeeklySummaryManager.shared.scheduleWeeklySummary(
+                for: plans, primaryID: primaryPlanID)
     }
 
     func deletePlans(at offsets: IndexSet) {

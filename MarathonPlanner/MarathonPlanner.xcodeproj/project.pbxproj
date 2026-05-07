@@ -41,6 +41,12 @@
 		B08F5A1E2FA7F4F300BFFC53 /* DailyInsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A1D2FA7F4F300BFFC53 /* DailyInsightEngine.swift */; };
 		B08F5A202FA7F50E00BFFC53 /* DailyInsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A1F2FA7F50E00BFFC53 /* DailyInsightCard.swift */; };
 		B08F5A222FA7F64600BFFC53 /* WorkoutCompletionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A212FA7F64600BFFC53 /* WorkoutCompletionView.swift */; };
+		B08F5A242FAB067A00BFFC53 /* WeeklySummaryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A232FAB067A00BFFC53 /* WeeklySummaryManager.swift */; };
+		B08F5A262FAB069400BFFC53 /* WeeklySummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A252FAB069400BFFC53 /* WeeklySummaryView.swift */; };
+		B08F5A282FAB0B4F00BFFC53 /* MilestoneOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */; };
+		B08F5A2A2FAB0B6200BFFC53 /* MilestoneDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A292FAB0B6200BFFC53 /* MilestoneDetector.swift */; };
+		B08F5A2C2FAC281D00BFFC53 /* OffSeasonEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A2B2FAC281D00BFFC53 /* OffSeasonEngine.swift */; };
+		B08F5A2E2FAC283200BFFC53 /* OffSeasonCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A2D2FAC283200BFFC53 /* OffSeasonCard.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -110,6 +116,12 @@
 		B08F5A1D2FA7F4F300BFFC53 /* DailyInsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyInsightEngine.swift; sourceTree = "<group>"; };
 		B08F5A1F2FA7F50E00BFFC53 /* DailyInsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyInsightCard.swift; sourceTree = "<group>"; };
 		B08F5A212FA7F64600BFFC53 /* WorkoutCompletionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCompletionView.swift; sourceTree = "<group>"; };
+		B08F5A232FAB067A00BFFC53 /* WeeklySummaryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklySummaryManager.swift; sourceTree = "<group>"; };
+		B08F5A252FAB069400BFFC53 /* WeeklySummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklySummaryView.swift; sourceTree = "<group>"; };
+		B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MilestoneOverlayView.swift; sourceTree = "<group>"; };
+		B08F5A292FAB0B6200BFFC53 /* MilestoneDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MilestoneDetector.swift; sourceTree = "<group>"; };
+		B08F5A2B2FAC281D00BFFC53 /* OffSeasonEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffSeasonEngine.swift; sourceTree = "<group>"; };
+		B08F5A2D2FAC283200BFFC53 /* OffSeasonCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffSeasonCard.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -182,6 +194,8 @@
 				B08F5A1B2FA70E0700BFFC53 /* OnBoardingView.swift */,
 				B075261A2F9EC478008F9552 /* SettingsView.swift */,
 				B08F5A1D2FA7F4F300BFFC53 /* DailyInsightEngine.swift */,
+				B08F5A2B2FAC281D00BFFC53 /* OffSeasonEngine.swift */,
+				B08F5A2D2FAC283200BFFC53 /* OffSeasonCard.swift */,
 				B08F5A1F2FA7F50E00BFFC53 /* DailyInsightCard.swift */,
 				B08F59C32FA4695C00BFFC53 /* NoteEditorSheet.swift */,
 				B08F59C52FA46ADB00BFFC53 /* RouteBuilderViewModel.swift */,
@@ -212,6 +226,10 @@
 				B07526062F9B0CB4008F9552 /* SavedPlanView.swift */,
 				B07526182F9EC44E008F9552 /* AppearanceManager.swift */,
 				B07526142F9E6FF4008F9552 /* TodayView.swift */,
+				B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */,
+				B08F5A292FAB0B6200BFFC53 /* MilestoneDetector.swift */,
+				B08F5A232FAB067A00BFFC53 /* WeeklySummaryManager.swift */,
+				B08F5A252FAB069400BFFC53 /* WeeklySummaryView.swift */,
 				B08F5A212FA7F64600BFFC53 /* WorkoutCompletionView.swift */,
 				B07526082F9B0CD2008F9552 /* PDFExporter.swift */,
 				B075260A2F9B0CE6008F9552 /* ICSexporter.swift */,
@@ -382,10 +400,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B08F5A242FAB067A00BFFC53 /* WeeklySummaryManager.swift in Sources */,
 				B08F59BE2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift in Sources */,
 				B0A62DA92F9862340093719D /* PlanGenerator.swift in Sources */,
 				B0A62DB22F98629C0093719D /* WeekDetailView.swift in Sources */,
 				B07526172F9EB5CB008F9552 /* WeeklyMileageChart.swift in Sources */,
+				B08F5A262FAB069400BFFC53 /* WeeklySummaryView.swift in Sources */,
 				B0A62DAE2F9862780093719D /* PacesView.swift in Sources */,
 				B08F59D92FA5BBB100BFFC53 /* RouteSnapshotGenerator.swift in Sources */,
 				B08F59C62FA46ADB00BFFC53 /* RouteBuilderViewModel.swift in Sources */,
@@ -395,6 +415,7 @@
 				B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */,
 				B08F59C82FA46AE800BFFC53 /* RouteMapView.swift in Sources */,
 				B08F5A1E2FA7F4F300BFFC53 /* DailyInsightEngine.swift in Sources */,
+				B08F5A2A2FAB0B6200BFFC53 /* MilestoneDetector.swift in Sources */,
 				B08F5A202FA7F50E00BFFC53 /* DailyInsightCard.swift in Sources */,
 				B08F59CF2FA565B400BFFC53 /* ElevationChartView.swift in Sources */,
 				B08F59CA2FA46B0000BFFC53 /* RouteBuilderView.swift in Sources */,
@@ -410,16 +431,19 @@
 				B0A62DAC2F98624D0093719D /* SetupView.swift in Sources */,
 				B07526112F9DD78F008F9552 /* WeekDetailViewModel.swift in Sources */,
 				B075260F2F9D9F2B008F9552 /* EditPlanView.swift in Sources */,
+				B08F5A282FAB0B4F00BFFC53 /* MilestoneOverlayView.swift in Sources */,
 				B08F59C42FA4695C00BFFC53 /* NoteEditorSheet.swift in Sources */,
 				B0A62DB02F9862890093719D /* PlanView.swift in Sources */,
 				B08F59C02FA1BDDD00BFFC53 /* PaceCalculatorView.swift in Sources */,
 				B07526012F9B0C72008F9552 /* PlanStore.swift in Sources */,
 				B08F59DF2FA6487A00BFFC53 /* NearbyAmenitiesService.swift in Sources */,
 				B075260D2F9B1317008F9552 /* ScheduleSetupView.swift in Sources */,
+				B08F5A2E2FAC283200BFFC53 /* OffSeasonCard.swift in Sources */,
 				B0A62DA72F9862170093719D /* TrainingPlan.swift in Sources */,
 				B08F59CD2FA5659F00BFFC53 /* ElevationService.swift in Sources */,
 				B08F59D52FA5B77500BFFC53 /* MapControlsView.swift in Sources */,
 				B075260B2F9B0CE6008F9552 /* ICSexporter.swift in Sources */,
+				B08F5A2C2FAC281D00BFFC53 /* OffSeasonEngine.swift in Sources */,
 				B07526072F9B0CB4008F9552 /* SavedPlanView.swift in Sources */,
 				B07526092F9B0CD2008F9552 /* PDFExporter.swift in Sources */,
 				B075261B2F9EC478008F9552 /* SettingsView.swift in Sources */,
