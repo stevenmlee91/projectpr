@@ -40,13 +40,13 @@ struct SuggestedWorkout {
     let distance      : String
     let description   : String
     let guidance      : String
-    let reasoning     : String       // why this workout, today
+    let reasoning     : String
     let type          : OffSeasonRunType
     let optionalAddOn : String?
     let phaseLabel    : String
     let intensityNote : String?
-    let countdownText : String?      // "Training begins in 38 days"
-    let weeklyTarget  : String?      // "Target: ~28 mi this week"
+    let countdownText : String?
+    let weeklyTarget  : String?
 }
 
 // MARK: - Fitness Level
@@ -77,9 +77,10 @@ struct OffSeasonContext {
     let upcomingPlan     : SavedPlan?
     let daysUntilPlan    : Int?
     let planProximity    : PlanProximity
-    let weeklyTarget     : Double    // target mpw for this off-season week
+    let weeklyTarget     : Double
 
-    static func build(from plans: [SavedPlan]) -> OffSeasonContext {
+    static func build(from plans    : [SavedPlan],
+                      primaryID     : UUID? = nil) -> OffSeasonContext {
         let cal   = Calendar.current
         let today = cal.startOfDay(for: Date())
 
@@ -106,11 +107,24 @@ struct OffSeasonContext {
             recoveryPhase = .baseBuilding
         }
 
-        // ── Upcoming plan (starts in the future) ──────────────
-        let upcomingPlan = plans
-            .filter { cal.startOfDay(for: $0.startDate) > today }
-            .sorted { $0.startDate < $1.startDate }
-            .first
+        // ── Upcoming plan ──────────────────────────────────────
+        // Prefer the primary plan if it is a future plan.
+        // Fall back to nearest future start date only if the
+        // primary plan is already in progress or has no primary set.
+        let futurePlans = plans.filter {
+            cal.startOfDay(for: $0.raceDate)  >= today
+                && cal.startOfDay(for: $0.startDate) >= today
+        }
+
+        let upcomingPlan: SavedPlan?
+        if let id      = primaryID,
+           let primary = futurePlans.first(where: { $0.id == id }) {
+            upcomingPlan = primary
+        } else {
+            upcomingPlan = futurePlans
+                .sorted { $0.startDate < $1.startDate }
+                .first
+        }
 
         let daysUntilPlan: Int? = upcomingPlan.map { plan in
             cal.dateComponents([.day],
@@ -163,7 +177,6 @@ struct OffSeasonContext {
             .max() ?? 6.0
 
         // ── Race type ─────────────────────────────────────────
-        // Prefer upcoming plan's race type, fall back to recent
         let raceType: RaceType? =
             upcomingPlan?.settings.raceType
             ?? recentPlan?.settings.raceType
@@ -192,21 +205,17 @@ struct OffSeasonContext {
         }
 
         // ── Weekly mileage target ─────────────────────────────
-        // If there is an upcoming plan, progress toward its
-        // starting mileage. Otherwise use fitness-based defaults.
         let weeklyTarget: Double
         if let upcoming = upcomingPlan,
-           let days = daysUntilPlan,
+           let days     = daysUntilPlan,
            days > 0 {
             let planStartMileage = upcoming.settings.baseMileage
             let currentEstimate  = peakWeekly > 0
                 ? peakWeekly * 0.55
                 : planStartMileage * 0.65
-            // Linear progression from current estimate to plan start
-            // mileage over the days remaining, capped at a safe rate
             let weeksRemaining   = max(1.0, Double(days) / 7.0)
             let weeklyIncrease   = min(
-                3.0,  // never more than 3 mpw increase per week
+                3.0,
                 (planStartMileage - currentEstimate) / weeksRemaining
             )
             let weeksElapsed = max(0.0,
@@ -217,31 +226,35 @@ struct OffSeasonContext {
                     currentEstimate + weeklyIncrease * weeksElapsed)
             ).rounded(toPlaces: 0)
         } else {
-            switch (recoveryPhase, fitnessLevel) {
-            case (.activeRecovery, _):
+            switch recoveryPhase {
+            case .activeRecovery:
                 weeklyTarget = min(15, peakWeekly * 0.30)
-            case (.earlyOffSeason, .beginner):
-                weeklyTarget = min(18, peakWeekly * 0.45)
-            case (.earlyOffSeason, .intermediate):
-                weeklyTarget = min(25, peakWeekly * 0.50)
-            case (.earlyOffSeason, .advanced):
-                weeklyTarget = min(35, peakWeekly * 0.55)
-            case (.baseBuilding, .beginner):
-                weeklyTarget = min(25, max(15, peakWeekly * 0.60))
-            case (.baseBuilding, .intermediate):
-                weeklyTarget = min(35, max(20, peakWeekly * 0.65))
-            case (.baseBuilding, .advanced):
-                weeklyTarget = min(50, max(30, peakWeekly * 0.70))
+            case .earlyOffSeason:
+                switch fitnessLevel {
+                case .beginner:
+                    weeklyTarget = min(18, peakWeekly * 0.45)
+                case .intermediate:
+                    weeklyTarget = min(25, peakWeekly * 0.50)
+                case .advanced:
+                    weeklyTarget = min(35, peakWeekly * 0.55)
+                }
+            case .baseBuilding:
+                switch fitnessLevel {
+                case .beginner:
+                    weeklyTarget = min(25, max(15, peakWeekly * 0.60))
+                case .intermediate:
+                    weeklyTarget = min(35, max(20, peakWeekly * 0.65))
+                case .advanced:
+                    weeklyTarget = min(50, max(30, peakWeekly * 0.70))
+                }
             }
         }
-
-        let suggestedWeekly = weeklyTarget
 
         return OffSeasonContext(
             fitnessLevel:     fitnessLevel,
             recoveryPhase:    recoveryPhase,
             suggestedLongRun: suggestedLong.rounded(toPlaces: 0),
-            suggestedWeekly:  suggestedWeekly.rounded(toPlaces: 0),
+            suggestedWeekly:  weeklyTarget.rounded(toPlaces: 0),
             raceType:         raceType,
             daysSinceRace:    daysSinceRace,
             upcomingPlan:     upcomingPlan,
@@ -288,17 +301,16 @@ struct OffSeasonEngine {
               let plan = context.upcomingPlan else { return nil }
 
         let weeks = days / 7
-        let name  = plan.name
+        let name  = plan.name.trimmingCharacters(
+            in: .whitespacesAndNewlines).isEmpty
+            ? plan.planType
+            : plan.name
 
         switch days {
-        case 0:
-            return "\(name) begins today."
-        case 1:
-            return "\(name) begins tomorrow."
-        case 2...13:
-            return "\(name) begins in \(days) days."
-        default:
-            return "\(name) begins in \(weeks) week\(weeks == 1 ? "" : "s")."
+        case 0:       return "\(name) begins today."
+        case 1:       return "\(name) begins tomorrow."
+        case 2...13:  return "Starts in \(days) days · \(name)"
+        default:      return "Starts in \(weeks)w · \(name)"
         }
     }
 
@@ -309,7 +321,7 @@ struct OffSeasonEngine {
         return "Target: ~\(Int(context.weeklyTarget)) mi this week"
     }
 
-    // MARK: - Reasoning by proximity and workout type
+    // MARK: - Reasoning
 
     private static func reasoning(
         for type    : OffSeasonRunType,
@@ -320,39 +332,32 @@ struct OffSeasonEngine {
         let raceLabel = isHalf ? "half marathon" : "marathon"
 
         switch (type, proximity) {
-
         case (.easy, .imminent):
             return "Your \(raceLabel) training block starts soon. Easy running now keeps you fresh and healthy for week one."
         case (.easy, .approaching):
             return "Building aerobic base before your \(raceLabel) plan begins. These miles compound quietly."
         case (.easy, .far), (.easy, .none):
             return "Easy running builds the aerobic engine. The fitness you gain here is invisible — until race day."
-
         case (.recovery, _):
             return "Adaptation happens during recovery, not during the run. This is not a light day — it is a necessary one."
-
         case (.longRun, .imminent):
             return "Your last long run before \(raceLabel) training begins. Run it well — this sets the tone for what follows."
         case (.longRun, .approaching):
             return "Building your long run toward the level your \(raceLabel) plan will expect from week one."
         case (.longRun, .far), (.longRun, .none):
             return "The long run is the cornerstone of any off-season week. Time on feet at easy effort builds durability nothing else can."
-
         case (.strides, .imminent):
             return "Strides keep your leg speed sharp going into training. Your \(raceLabel) plan will include quality work — this is the bridge."
         case (.strides, .approaching):
             return "Introducing leg speed before the training block begins. Strides now mean less shock when the quality work starts."
         case (.strides, _):
             return "Strides prevent the flat, sluggish feeling that comes from too many easy miles. 20 seconds of quick running, full recovery."
-
         case (.crossTrain, .imminent):
             return "Protect your joints before training begins. Your \(raceLabel) block will ask a lot of your legs — arrive healthy."
         case (.crossTrain, _):
             return "Cross-training maintains cardiovascular fitness while giving your connective tissue a break from impact."
-
         case (.rest, _):
             return "Fitness is built during recovery. A well-rested runner trains better than a tired one every time."
-
         case (.tempo, _):
             return "Maintaining aerobic sharpness without the full cost of structured training."
         }
@@ -612,7 +617,6 @@ struct OffSeasonEngine {
         let countdown = countdownText(context)
         let target    = weeklyTargetText(context)
 
-        // When plan is imminent, introduce strides more aggressively
         let useStrides = context.planProximity == .imminent
             ? context.fitnessLevel != .beginner
             : context.fitnessLevel != .beginner && variant != 2

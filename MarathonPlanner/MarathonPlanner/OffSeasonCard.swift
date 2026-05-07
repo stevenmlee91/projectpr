@@ -3,255 +3,406 @@ import SwiftUI
 // MARK: - Off-Season Card
 
 struct OffSeasonCard: View {
-    let workout: SuggestedWorkout
+    let workout : SuggestedWorkout
+    let goal    : OffSeasonWeeklyGoal
+    let store   : OffSeasonStore
 
-    @State private var showGuidance  = false
-    @State private var showReasoning = false
+    @State private var showGuidance = false
+    @State private var showMiles    = false
+    @State private var milesInput   = ""
+
+    private var daysCompleted  : Int    { store.daysCompletedThisWeek() }
+    private var milesCompleted : Double { store.milesThisWeek() }
+    private var daysPct        : Double {
+        min(1.0, Double(daysCompleted) / Double(max(1, goal.daysTarget)))
+    }
+    private var milesPct       : Double {
+        min(1.0, milesCompleted / max(1, goal.milesTarget))
+    }
+    private var overallPct     : Double { (daysPct + milesPct) / 2.0 }
+    private var isToday        : Bool   { store.todayIsCompleted }
 
     var body: some View {
         VStack(spacing: 0) {
+            // Type bar — compact
             typeBar
-            VStack(alignment: .leading, spacing: 16) {
-                distanceRow
-                descriptionText
 
-                if let addOn = workout.optionalAddOn {
-                    addOnRow(addOn)
+            VStack(alignment: .leading, spacing: 12) {
+
+                // 1. Workout — primary answer to "what today?"
+                workoutHeader
+
+                // 2. Upcoming plan + countdown (if exists)
+                if let countdown = workout.countdownText {
+                    countdownRow(countdown)
                 }
 
-                if let intensity = workout.intensityNote {
-                    intensityRow(intensity)
-                }
-
-                // Reasoning — always visible, subtle
+                // 3. Reasoning — one line, subtle
                 reasoningRow
 
+                // 4. Guidance — hidden behind toggle
                 if showGuidance {
                     guidanceText
                         .transition(.move(edge: .top)
                             .combined(with: .opacity))
                 }
 
-                bottomRow
+                // 5. Add-on (optional)
+                if let addOn = workout.optionalAddOn {
+                    addOnRow(addOn)
+                }
+
+                Divider()
+                    .opacity(0.5)
+
+                // 6. Weekly goal progress
+                weeklyGoalSection
+
+                // 7. Log button
+                if workout.type != .rest {
+                    completeTodayButton
+                }
+
+                if showMiles {
+                    milesInputRow
+                        .transition(.move(edge: .top)
+                            .combined(with: .opacity))
+                }
+
+                // 8. Coach's note toggle
+                coachToggle
             }
-            .padding(20)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
         }
         .background(Color(.secondarySystemBackground))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(.separator), lineWidth: 1.5)
+                .stroke(Color(.separator), lineWidth: 1)
         )
         .cornerRadius(16)
-        .animation(.spring(response: 0.35,
-                            dampingFraction: 0.75),
+        .animation(.spring(response: 0.35, dampingFraction: 0.75),
                    value: showGuidance)
+        .animation(.spring(response: 0.35, dampingFraction: 0.75),
+                   value: showMiles)
+        .animation(.spring(response: 0.35, dampingFraction: 0.75),
+                   value: isToday)
     }
 
     // MARK: - Type Bar
 
     private var typeBar: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Circle()
                 .fill(accentColor)
-                .frame(width: 8, height: 8)
+                .frame(width: 7, height: 7)
             Text(workout.type.rawValue.uppercased())
-                .font(.system(size: 10, weight: .bold,
+                .font(.system(size: 9, weight: .bold,
                               design: .monospaced))
                 .foregroundColor(accentColor)
-                .kerning(2)
+                .kerning(1.5)
             Spacer()
             Text(workout.phaseLabel.uppercased())
-                .font(.system(size: 9, weight: .semibold,
+                .font(.system(size: 9, weight: .medium,
                               design: .monospaced))
                 .foregroundColor(.secondary)
-                .kerning(1.5)
+                .kerning(1)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
         .background(Color(.tertiarySystemBackground))
     }
 
-    // MARK: - Distance Row
+    // MARK: - Workout Header
 
-    private var distanceRow: some View {
-        HStack(alignment: .bottom, spacing: 0) {
-            if workout.type == .rest {
-                VStack(alignment: .leading, spacing: 4) {
-                    Image(systemName: workout.type.icon)
-                        .font(.system(size: 36, weight: .ultraLight))
-                        .foregroundColor(accentColor)
+    private var workoutHeader: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: workout.type.icon)
+                .font(.system(size: 28, weight: .ultraLight))
+                .foregroundColor(accentColor)
+                .frame(width: 36)
+
+            VStack(alignment: .leading, spacing: 2) {
+                if workout.type == .rest {
                     Text(workout.title)
-                        .font(.system(size: 18, weight: .light))
+                        .font(.system(size: 20, weight: .light,
+                                      design: .serif))
                         .foregroundColor(.primary)
-                }
-            } else if workout.type == .crossTrain {
-                VStack(alignment: .leading, spacing: 4) {
-                    Image(systemName: workout.type.icon)
-                        .font(.system(size: 36, weight: .ultraLight))
-                        .foregroundColor(accentColor)
+                } else {
                     Text(workout.distance)
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(workout.distance)
-                        .font(.system(size: 38, weight: .thin,
+                        .font(.system(size: 22, weight: .thin,
                                       design: .monospaced))
                         .foregroundColor(.primary)
-                    Text("suggested")
-                        .font(.system(size: 12,
-                                      design: .monospaced))
+                    Text(workout.title)
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
             }
+
             Spacer()
-            Image(systemName: workout.type.icon)
-                .font(.system(size: 22, weight: .ultraLight))
-                .foregroundColor(accentColor.opacity(0.4))
+
+            // Intensity badge
+            if let intensity = workout.intensityNote,
+               workout.type != .rest {
+                Text(intensity)
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundColor(accentColor)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(accentColor.opacity(0.1))
+                    .cornerRadius(6)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.trailing)
+                    .frame(maxWidth: 90, alignment: .trailing)
+            }
         }
     }
 
-    // MARK: - Description
+    // MARK: - Countdown Row
 
-    private var descriptionText: some View {
-        Text(workout.description)
-            .font(.system(size: 13))
-            .foregroundColor(Color(hex: "7A7A7A"))
-            .fixedSize(horizontal: false, vertical: true)
-            .lineSpacing(3)
-    }
-
-    // MARK: - Add-On Row
-
-    private func addOnRow(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "plus.circle")
-                .font(.system(size: 11))
-                .foregroundColor(accentColor.opacity(0.7))
-                .padding(.top, 1)
-            Text(text)
-                .font(.system(size: 12, weight: .light))
-                .foregroundColor(Color(hex: "6A6A6A"))
-                .fixedSize(horizontal: false, vertical: true)
-                .lineSpacing(3)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(accentColor.opacity(0.05))
-        .overlay(
-            RoundedRectangle(cornerRadius: 9)
-                .stroke(accentColor.opacity(0.15), lineWidth: 1)
-        )
-        .cornerRadius(9)
-    }
-
-    // MARK: - Intensity Row
-
-    private func intensityRow(_ text: String) -> some View {
+    private func countdownRow(_ text: String) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: "speedometer")
-                .font(.system(size: 10))
-                .foregroundColor(.secondary)
+            Image(systemName: "flag.checkered")
+                .font(.system(size: 9))
+                .foregroundColor(accentColor)
             Text(text)
                 .font(.system(size: 11, weight: .medium,
                               design: .monospaced))
-                .foregroundColor(.secondary)
+                .foregroundColor(accentColor)
+            Spacer()
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(accentColor.opacity(0.07))
+        .cornerRadius(8)
     }
 
-    // MARK: - Reasoning Row (always shown, subtle)
+    // MARK: - Reasoning Row
 
     private var reasoningRow: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "lightbulb")
-                .font(.system(size: 10))
-                .foregroundColor(accentColor.opacity(0.6))
-                .padding(.top, 1)
-            Text(workout.reasoning)
-                .font(.system(size: 11, weight: .light))
-                .foregroundColor(Color(hex: "6A6A6A"))
-                .fixedSize(horizontal: false, vertical: true)
-                .lineSpacing(3)
-        }
+        Text(workout.reasoning)
+            .font(.system(size: 11, weight: .light))
+            .foregroundColor(Color(hex: "7A7A7A"))
+            .fixedSize(horizontal: false, vertical: true)
+            .lineSpacing(2)
     }
 
     // MARK: - Guidance Text
 
     private var guidanceText: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "quote.opening")
-                .font(.system(size: 10))
-                .foregroundColor(accentColor)
-                .padding(.top, 2)
-            Text(workout.guidance)
-                .font(.system(size: 12, weight: .light))
-                .foregroundColor(Color(hex: "6A6A6A"))
-                .fixedSize(horizontal: false, vertical: true)
-                .lineSpacing(4)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(accentColor.opacity(0.06))
-        .cornerRadius(10)
+        Text(workout.guidance)
+            .font(.system(size: 11, weight: .light))
+            .foregroundColor(Color(hex: "6A6A6A"))
+            .fixedSize(horizontal: false, vertical: true)
+            .lineSpacing(3)
+            .padding(10)
+            .background(accentColor.opacity(0.05))
+            .cornerRadius(8)
     }
 
-    // MARK: - Bottom Row (countdown + toggle)
+    // MARK: - Add-On Row
 
-    private var bottomRow: some View {
-        HStack(alignment: .center, spacing: 0) {
+    private func addOnRow(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: "plus.circle")
+                .font(.system(size: 10))
+                .foregroundColor(accentColor.opacity(0.6))
+                .padding(.top, 1)
+            Text(text)
+                .font(.system(size: 11, weight: .light))
+                .foregroundColor(Color(hex: "7A7A7A"))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
 
-            // Countdown pill
-            if let countdown = workout.countdownText {
-                HStack(spacing: 5) {
-                    Image(systemName: "flag.checkered")
-                        .font(.system(size: 9))
-                        .foregroundColor(accentColor)
-                    Text(countdown)
-                        .font(.system(size: 10, weight: .medium,
-                                      design: .monospaced))
-                        .foregroundColor(accentColor)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(accentColor.opacity(0.08))
-                .cornerRadius(20)
-            }
+    // MARK: - Weekly Goal Section
 
-            Spacer()
+    private var weeklyGoalSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
 
-            // Weekly target
-            if let target = workout.weeklyTarget {
-                Text(target)
-                    .font(.system(size: 10, design: .monospaced))
+            HStack {
+                Text("THIS WEEK")
+                    .font(.system(size: 9, weight: .semibold,
+                                  design: .monospaced))
                     .foregroundColor(.secondary)
+                    .kerning(1.5)
+                Spacer()
+                if overallPct >= 1.0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(Color(hex: "30D158"))
+                        Text("Goal complete")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(Color(hex: "30D158"))
+                    }
+                    .transition(.scale.combined(with: .opacity))
+                } else {
+                    Text("\(Int(overallPct * 100))%")
+                        .font(.system(size: 10, weight: .semibold,
+                                      design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .contentTransition(.numericText())
+                        .animation(.spring(response: 0.4,
+                                            dampingFraction: 0.8),
+                                   value: overallPct)
+                }
             }
-        }
-        .padding(.top, 4)
 
-        // Guidance toggle below
-        .overlay(alignment: .topLeading) {
-            EmptyView()
-        }
-        return VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.spring(response: 0.35,
-                                       dampingFraction: 0.75)) {
-                    showGuidance.toggle()
+            // Days + Miles in one compact row
+            HStack(spacing: 12) {
+                // Days
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 4) {
+                        Text("Days")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("\(daysCompleted)/\(goal.daysTarget)")
+                            .font(.system(size: 9, weight: .medium,
+                                          design: .monospaced))
+                            .foregroundColor(.primary)
+                            .contentTransition(.numericText())
+                    }
+                    thinBar(pct: daysPct,
+                            color: Color(hex: "30D158"))
                 }
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: showGuidance
-                          ? "chevron.up" : "info.circle")
-                        .font(.system(size: 11))
-                    Text(showGuidance ? "Less" : "Coach's note")
-                        .font(.system(size: 12, weight: .medium))
+
+                // Miles
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 4) {
+                        Text("Miles")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(String(format: "%.0f/%.0f",
+                                    milesCompleted, goal.milesTarget))
+                            .font(.system(size: 9, weight: .medium,
+                                          design: .monospaced))
+                            .foregroundColor(.primary)
+                            .contentTransition(.numericText())
+                    }
+                    thinBar(pct: milesPct,
+                            color: Color(hex: "0A84FF"))
                 }
-                .foregroundColor(.secondary)
             }
-            .buttonStyle(.plain)
-            .padding(.top, 8)
+
+            Text(goal.subLabel)
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
         }
+    }
+
+    private func thinBar(pct: Double, color: Color) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color(.systemFill))
+                    .frame(height: 4)
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(pct >= 1.0 ? Color(hex: "30D158") : color)
+                    .frame(width: geo.size.width * pct, height: 4)
+                    .animation(.spring(response: 0.5,
+                                        dampingFraction: 0.75),
+                               value: pct)
+            }
+        }
+        .frame(height: 4)
+    }
+
+    // MARK: - Complete Today Button
+
+    private var completeTodayButton: some View {
+        Button {
+            if isToday {
+                store.unmarkToday()
+                milesInput = ""
+                showMiles  = false
+            } else {
+                withAnimation { showMiles = true }
+            }
+        } label: {
+            HStack(spacing: 7) {
+                Image(systemName: isToday
+                      ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 14))
+                    .symbolEffect(.bounce, value: isToday)
+                Text(isToday ? "Logged" : "Log today's run")
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundColor(isToday ? .white : .primary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
+            .background(
+                isToday ? Color(hex: "30D158") : Color(.systemFill)
+            )
+            .cornerRadius(10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(response: 0.3, dampingFraction: 0.65),
+                   value: isToday)
+    }
+
+    // MARK: - Miles Input Row
+
+    private var milesInputRow: some View {
+        HStack(spacing: 10) {
+            Text("Miles:")
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+            TextField("0.0", text: $milesInput)
+                .keyboardType(.decimalPad)
+                .font(.system(size: 12, design: .monospaced))
+                .frame(width: 52)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 5)
+                .background(Color(.systemBackground))
+                .cornerRadius(6)
+            Button("Save") {
+                store.markToday(miles: Double(milesInput) ?? 0)
+                milesInput = ""
+                withAnimation { showMiles = false }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundColor(Color(hex: "30D158"))
+            .buttonStyle(.plain)
+            Spacer()
+            Button("Skip") {
+                store.markToday(miles: 0)
+                milesInput = ""
+                withAnimation { showMiles = false }
+            }
+            .font(.system(size: 12))
+            .foregroundColor(.secondary)
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color(.tertiarySystemBackground))
+        .cornerRadius(8)
+    }
+
+    // MARK: - Coach Toggle
+
+    private var coachToggle: some View {
+        Button {
+            withAnimation(.spring(response: 0.35,
+                                   dampingFraction: 0.75)) {
+                showGuidance.toggle()
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: showGuidance
+                      ? "chevron.up" : "info.circle")
+                    .font(.system(size: 10))
+                Text(showGuidance ? "Less" : "Coach's note")
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .foregroundColor(.secondary)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Color

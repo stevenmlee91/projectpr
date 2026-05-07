@@ -37,13 +37,10 @@ struct CreatePlanView: View {
             ? Array(1...3) : Array(2...6)
     }
 
-    /// Mirrors createSavedPlan exactly so the displayed date
-    /// always matches what is actually generated.
     var startDate: Date {
         var cal          = Calendar(identifier: .gregorian)
         cal.firstWeekday = 2
         cal.timeZone     = .current
-
         let weekday         = cal.component(.weekday, from: raceDate)
         let daysSinceMonday = (weekday + 5) % 7
         guard let raceWeekMonday = cal.date(
@@ -51,7 +48,6 @@ struct CreatePlanView: View {
             value:    -daysSinceMonday,
             to:       cal.startOfDay(for: raceDate)
         ) else { return raceDate }
-
         return cal.date(
             byAdding: .weekOfYear,
             value:    -(settings.planLength.rawValue - 1),
@@ -141,8 +137,7 @@ struct CreatePlanView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 18)
-                .background(
-                    Color(.secondarySystemGroupedBackground))
+                .background(Color(.secondarySystemGroupedBackground))
                 .cornerRadius(16)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
@@ -171,10 +166,13 @@ struct CreatePlanView: View {
     }
 
     // MARK: - Form Content
+    // Order: Race Type → Race Date → Duration → Training Method
+    //        → Taper → Goal Time → Base Mileage → Schedule
 
     private var formContent: some View {
         VStack(spacing: 0) {
 
+            // 1. Race Type — determines everything downstream
             formSection("RACE TYPE") {
                 VStack(spacing: 0) {
                     ForEach(RaceType.allCases, id: \.self) { type in
@@ -186,6 +184,7 @@ struct CreatePlanView: View {
                 }
             }
 
+            // 2. Race Date — anchors the calendar
             formSection("RACE DATE") {
                 VStack(spacing: 0) {
                     DatePicker("Race Date",
@@ -208,6 +207,24 @@ struct CreatePlanView: View {
                 }
             }
 
+            // 3. Duration — right after date so start date updates live
+            formSection("DURATION") {
+                HStack(spacing: 8) {
+                    ForEach(availableLengths) { length in
+                        CreateDurationChip(
+                            label:      length.label,
+                            isSelected: settings.planLength == length,
+                            onTap: {
+                                UIImpactFeedbackGenerator(style: .light)
+                                    .impactOccurred()
+                                settings.planLength = length
+                            }
+                        )
+                    }
+                }
+            }
+
+            // 4. Training Method
             formSection("TRAINING METHOD") {
                 VStack(spacing: 0) {
                     ForEach(availablePlanTypes) { plan in
@@ -228,73 +245,7 @@ struct CreatePlanView: View {
                 }
             }
 
-            formSection("DURATION") {
-                HStack(spacing: 8) {
-                    ForEach(availableLengths) { length in
-                        CreateDurationChip(
-                            label:      length.label,
-                            isSelected: settings.planLength == length,
-                            onTap: {
-                                UIImpactFeedbackGenerator(style: .light)
-                                    .impactOccurred()
-                                settings.planLength = length
-                            }
-                        )
-                    }
-                }
-            }
-
-            formSection("TAPER LENGTH") {
-                VStack(spacing: 0) {
-                    ForEach(TaperDuration.allCases) { option in
-                        Button {
-                            UIImpactFeedbackGenerator(style: .light)
-                                .impactOccurred()
-                            settings.taperDuration = option
-                        } label: {
-                            HStack(spacing: 14) {
-                                ZStack {
-                                    Circle()
-                                        .stroke(
-                                            settings.taperDuration == option
-                                                ? Color.accentColor
-                                                : Color(.systemFill),
-                                            lineWidth: 1.5
-                                        )
-                                        .frame(width: 18, height: 18)
-                                    if settings.taperDuration == option {
-                                        Circle()
-                                            .fill(Color.accentColor)
-                                            .frame(width: 10,
-                                                   height: 10)
-                                    }
-                                }
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(option.label)
-                                        .font(.system(
-                                            size: 14,
-                                            weight: settings.taperDuration
-                                                == option
-                                                ? .semibold : .regular
-                                        ))
-                                        .foregroundColor(.primary)
-                                    Text(option.description)
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                            }
-                            .padding(.vertical, 12)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        if option != TaperDuration.allCases.last {
-                            Divider().padding(.leading, 32)
-                        }
-                    }
-                }
-            }
-
+            // 5. Goal Time
             formSection("GOAL TIME") {
                 HStack(spacing: 0) {
                     Picker("", selection: $goalHours) {
@@ -323,6 +274,7 @@ struct CreatePlanView: View {
                 .frame(height: 110)
             }
 
+            // 6. Base Mileage
             formSection("BASE MILEAGE") {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
@@ -333,9 +285,13 @@ struct CreatePlanView: View {
                             .contentTransition(.numericText())
                             .animation(.spring(response: 0.3),
                                        value: settings.baseMileage)
-                        Text("miles / week currently")
+                        Text(settings.baseMileage == 0
+                             ? "just getting started"
+                             : "miles / week currently")
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
+                            .animation(.easeInOut(duration: 0.2),
+                                       value: settings.baseMileage == 0)
                     }
                     Spacer()
                     VStack(spacing: 8) {
@@ -354,8 +310,9 @@ struct CreatePlanView: View {
                                 .cornerRadius(10)
                         }
                         .buttonStyle(.plain)
+
                         Button {
-                            if settings.baseMileage > 10 {
+                            if settings.baseMileage > 0 {
                                 UIImpactFeedbackGenerator(style: .light)
                                     .impactOccurred()
                                 settings.baseMileage -= 5
@@ -363,16 +320,73 @@ struct CreatePlanView: View {
                         } label: {
                             Image(systemName: "minus")
                                 .font(.system(size: 15, weight: .medium))
-                                .foregroundColor(.primary)
+                                .foregroundColor(
+                                    settings.baseMileage == 0
+                                        ? Color(.systemGray3)
+                                        : .primary
+                                )
                                 .frame(width: 44, height: 44)
                                 .background(Color(.systemFill))
                                 .cornerRadius(10)
                         }
                         .buttonStyle(.plain)
+                        .disabled(settings.baseMileage == 0)
                     }
                 }
             }
 
+            // 7. Taper Length
+            formSection("TAPER LENGTH") {
+                VStack(spacing: 0) {
+                    ForEach(TaperDuration.allCases) { option in
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light)
+                                .impactOccurred()
+                            settings.taperDuration = option
+                        } label: {
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    Circle()
+                                        .stroke(
+                                            settings.taperDuration == option
+                                                ? Color.accentColor
+                                                : Color(.systemFill),
+                                            lineWidth: 1.5
+                                        )
+                                        .frame(width: 18, height: 18)
+                                    if settings.taperDuration == option {
+                                        Circle()
+                                            .fill(Color.accentColor)
+                                            .frame(width: 10, height: 10)
+                                    }
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(option.label)
+                                        .font(.system(
+                                            size: 14,
+                                            weight: settings.taperDuration
+                                                == option
+                                                ? .semibold : .regular
+                                        ))
+                                        .foregroundColor(.primary)
+                                    Text(option.description)
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                            }
+                            .padding(.vertical, 12)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        if option != TaperDuration.allCases.last {
+                            Divider().padding(.leading, 32)
+                        }
+                    }
+                }
+            }
+
+            // 8. Schedule
             scheduleSection
         }
         .onTapGesture {
@@ -438,8 +452,7 @@ struct CreatePlanView: View {
 
             content()
                 .padding(16)
-                .background(
-                    Color(.secondarySystemGroupedBackground))
+                .background(Color(.secondarySystemGroupedBackground))
                 .cornerRadius(14)
         }
         .padding(.horizontal, 20)
@@ -624,8 +637,7 @@ struct CreatePlanView: View {
                                       ? .semibold : .regular))
                         .foregroundColor(.primary)
                     Text(type.displayDistance)
-                        .font(.system(size: 12,
-                                      design: .monospaced))
+                        .font(.system(size: 12, design: .monospaced))
                         .foregroundColor(.secondary)
                 }
                 Spacer()
@@ -732,8 +744,8 @@ struct CreatePlanView: View {
         if p.usesCrossTraining, let ct = s.crossTrainDay {
             hardBlocked.insert(ct)
         }
-        let maxRestDays  = 7 - minimumRunDays(for: p)
-        let currentRest  = s.restDays.filter {
+        let maxRestDays = 7 - minimumRunDays(for: p)
+        let currentRest = s.restDays.filter {
             !hardBlocked.contains($0)
         }.count
         var blocked = Array(hardBlocked)
@@ -812,13 +824,11 @@ struct CreatePlanView: View {
     // MARK: - Actions
 
     private func handleRaceTypeChange() {
-        if let first = PlanType.options(
-            for: selectedRaceType).first {
+        if let first = PlanType.options(for: selectedRaceType).first {
             settings.planType = first
             settings.resetScheduleForNewPlanType()
         }
-        if let first = PlanLength.options(
-            for: selectedRaceType).first {
+        if let first = PlanLength.options(for: selectedRaceType).first {
             settings.planLength = first
         }
         goalHours   = selectedRaceType == .halfMarathon ? 1 : 3

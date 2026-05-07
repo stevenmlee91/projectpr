@@ -5,13 +5,14 @@ import SwiftUI
 struct TodayView: View {
     @EnvironmentObject var store: PlanStore
 
-    @State private var dailyInsight      : DailyInsight?      = nil
-    @State private var completionContext : CompletionContext?  = nil
-    @State private var showCompletion    : Bool                = false
-    @State private var pendingMilestone  : Milestone?          = nil
-    @State private var showMilestone     : Bool                = false
-    @State private var offSeasonWorkout  : SuggestedWorkout?   = nil
-    @State private var showCreatePlan    : Bool                = false
+    @State private var dailyInsight      : DailyInsight?         = nil
+    @State private var completionContext : CompletionContext?     = nil
+    @State private var showCompletion    : Bool                   = false
+    @State private var pendingMilestone  : Milestone?             = nil
+    @State private var showMilestone     : Bool                   = false
+    @State private var offSeasonWorkout  : SuggestedWorkout?      = nil
+    @State private var offSeasonGoal     : OffSeasonWeeklyGoal?   = nil
+    @State private var showCreatePlan    : Bool                   = false
 
     private var todayContext: TodayContext? {
         TodayContext.find(in: store.plans,
@@ -190,15 +191,18 @@ struct TodayView: View {
     private func refreshOffSeason() {
         guard todayContext == nil else {
             offSeasonWorkout = nil
+            offSeasonGoal    = nil
             return
         }
-        let context      = OffSeasonContext.build(from: store.plans)
+        let context = OffSeasonContext.build(from: store.plans,
+                                             primaryID: store.primaryPlanID)
         offSeasonWorkout = OffSeasonEngine.todaySuggestion(
             date:    Date(),
             context: context
         )
+        offSeasonGoal = OffSeasonWeeklyGoal.make(from: context)
     }
-    
+
     // MARK: - Header
 
     private func todayHeader(ctx: TodayContext) -> some View {
@@ -226,7 +230,8 @@ struct TodayView: View {
     }
 
     private var offSeasonPhaseLabel: String {
-        let context = OffSeasonContext.build(from: store.plans)
+        let context = OffSeasonContext.build(from: store.plans,
+                                             primaryID: store.primaryPlanID)
         switch context.recoveryPhase {
         case .activeRecovery:
             return "Active recovery — rest and rebuild"
@@ -259,9 +264,14 @@ struct TodayView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 8)
 
-            // Off-season suggestion card
-            if let workout = offSeasonWorkout {
-                OffSeasonCard(workout: workout)
+            // Off-season card with weekly goal
+            if let workout = offSeasonWorkout,
+               let goal    = offSeasonGoal {
+                OffSeasonCard(
+                    workout: workout,
+                    goal:    goal,
+                    store:   OffSeasonStore.shared
+                )
             }
 
             // Divider
@@ -396,8 +406,7 @@ struct TodayWorkoutCard: View {
                 }
             }
         }
-        .animation(.spring(response: 0.3,
-                            dampingFraction: 0.7),
+        .animation(.spring(response: 0.3, dampingFraction: 0.7),
                    value: status)
     }
 
@@ -464,8 +473,7 @@ struct TodayWorkoutCard: View {
                     .combined(with: .opacity))
             }
         }
-        .animation(.spring(response: 0.35,
-                            dampingFraction: 0.75),
+        .animation(.spring(response: 0.35, dampingFraction: 0.75),
                    value: status)
     }
 
@@ -768,8 +776,7 @@ struct TodayWorkoutCard: View {
                     .combined(with: .opacity))
             }
         }
-        .animation(.spring(response: 0.35,
-                            dampingFraction: 0.75),
+        .animation(.spring(response: 0.35, dampingFraction: 0.75),
                    value: isEditingNote)
     }
 
@@ -970,8 +977,7 @@ struct WeekProgressCard: View {
         }
         .frame(maxWidth: .infinity)
         .scaleEffect(day.id == ctx.day.id ? 1.08 : 1.0)
-        .animation(.spring(response: 0.3,
-                            dampingFraction: 0.65),
+        .animation(.spring(response: 0.3, dampingFraction: 0.65),
                    value: day.id == ctx.day.id)
     }
 
