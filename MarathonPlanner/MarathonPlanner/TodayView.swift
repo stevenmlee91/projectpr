@@ -11,6 +11,7 @@ struct TodayView: View {
     @State private var pendingMilestone  : Milestone?          = nil
     @State private var showMilestone     : Bool                = false
     @State private var offSeasonWorkout  : SuggestedWorkout?   = nil
+    @State private var showCreatePlan    : Bool                = false
 
     private var todayContext: TodayContext? {
         TodayContext.find(in: store.plans,
@@ -140,6 +141,10 @@ struct TodayView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: showCompletion)
         .animation(.easeInOut(duration: 0.25), value: showMilestone)
+        .sheet(isPresented: $showCreatePlan) {
+            CreatePlanView()
+                .environmentObject(store)
+        }
     }
 
     // MARK: - Completion Handler
@@ -187,25 +192,13 @@ struct TodayView: View {
             offSeasonWorkout = nil
             return
         }
-
-        let cal   = Calendar.current
-        let today = cal.startOfDay(for: Date())
-
-        let recentlyFinished = store.plans.contains { plan in
-            let raceDay = cal.startOfDay(for: plan.raceDate)
-            let diff    = cal.dateComponents([.day],
-                                             from: raceDay,
-                                             to: today).day ?? 99
-            return diff >= 0 && diff <= 14
-        }
-
+        let context      = OffSeasonContext.build(from: store.plans)
         offSeasonWorkout = OffSeasonEngine.todaySuggestion(
-            date:                today,
-            settings:            store.plans.first?.settings,
-            recentlyFinishedRace: recentlyFinished
+            date:    Date(),
+            context: context
         )
     }
-
+    
     // MARK: - Header
 
     private func todayHeader(ctx: TodayContext) -> some View {
@@ -232,10 +225,24 @@ struct TodayView: View {
         return f.string(from: Date()).uppercased()
     }
 
+    private var offSeasonPhaseLabel: String {
+        let context = OffSeasonContext.build(from: store.plans)
+        switch context.recoveryPhase {
+        case .activeRecovery:
+            return "Active recovery — rest and rebuild"
+        case .earlyOffSeason:
+            return "Early off-season — reestablishing the habit"
+        case .baseBuilding:
+            return "Base building — no active plan"
+        }
+    }
+
     // MARK: - Empty State
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 20) {
+
+            // Header
             VStack(alignment: .leading, spacing: 4) {
                 Text(formattedDate())
                     .font(.system(size: 11, design: .monospaced))
@@ -245,39 +252,37 @@ struct TodayView: View {
                     .font(.system(size: 24, weight: .light,
                                   design: .serif))
                     .foregroundColor(.primary)
-                Text("Base building — no active plan")
+                Text(offSeasonPhaseLabel)
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundColor(Color(hex: "4A4A4A"))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 8)
 
+            // Off-season suggestion card
             if let workout = offSeasonWorkout {
                 OffSeasonCard(workout: workout)
             }
 
-            createPlanPrompt
-        }
-    }
-
-    private var createPlanPrompt: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "calendar.badge.plus")
-                .font(.system(size: 16, weight: .light))
-                .foregroundColor(.secondary)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Ready to start training?")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.primary)
-                Text("Create a plan to unlock your full training dashboard.")
-                    .font(.system(size: 11))
+            // Divider
+            HStack(spacing: 12) {
+                Rectangle()
+                    .fill(Color(.separator))
+                    .frame(height: 1)
+                Text("READY TO RACE?")
+                    .font(.system(size: 9, weight: .semibold,
+                                  design: .monospaced))
                     .foregroundColor(.secondary)
+                    .kerning(2)
+                    .fixedSize()
+                Rectangle()
+                    .fill(Color(.separator))
+                    .frame(height: 1)
             }
-            Spacer()
+
+            // CTA
+            CreatePlanCTAButton(showCreatePlan: $showCreatePlan)
         }
-        .padding(14)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
     }
 }
 
