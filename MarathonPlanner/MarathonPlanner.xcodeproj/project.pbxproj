@@ -49,6 +49,7 @@
 		B08F5A2E2FAC283200BFFC53 /* OffSeasonCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A2D2FAC283200BFFC53 /* OffSeasonCard.swift */; };
 		B08F5A302FAC31D400BFFC53 /* CreateplanCTAButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A2F2FAC31D400BFFC53 /* CreateplanCTAButton.swift */; };
 		B08F5A322FAC456F00BFFC53 /* OffSeasonStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A312FAC456F00BFFC53 /* OffSeasonStore.swift */; };
+		B08F5A342FADAD2E00BFFC53 /* WorkoutCompletionButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A332FADAD2E00BFFC53 /* WorkoutCompletionButton.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -126,6 +127,7 @@
 		B08F5A2D2FAC283200BFFC53 /* OffSeasonCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffSeasonCard.swift; sourceTree = "<group>"; };
 		B08F5A2F2FAC31D400BFFC53 /* CreateplanCTAButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateplanCTAButton.swift; sourceTree = "<group>"; };
 		B08F5A312FAC456F00BFFC53 /* OffSeasonStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffSeasonStore.swift; sourceTree = "<group>"; };
+		B08F5A332FADAD2E00BFFC53 /* WorkoutCompletionButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCompletionButton.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -230,6 +232,7 @@
 				B07526022F9B0C89008F9552 /* PlanListView.swift */,
 				B07526042F9B0C9F008F9552 /* CreatePlanView.swift */,
 				B07526062F9B0CB4008F9552 /* SavedPlanView.swift */,
+				B08F5A332FADAD2E00BFFC53 /* WorkoutCompletionButton.swift */,
 				B07526182F9EC44E008F9552 /* AppearanceManager.swift */,
 				B07526142F9E6FF4008F9552 /* TodayView.swift */,
 				B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */,
@@ -419,6 +422,7 @@
 				B08F5A222FA7F64600BFFC53 /* WorkoutCompletionView.swift in Sources */,
 				B0A62DB42F9862AD0093719D /* MinitabView.swift in Sources */,
 				B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */,
+				B08F5A342FADAD2E00BFFC53 /* WorkoutCompletionButton.swift in Sources */,
 				B08F59C82FA46AE800BFFC53 /* RouteMapView.swift in Sources */,
 				B08F5A1E2FA7F4F300BFFC53 /* DailyInsightEngine.swift in Sources */,
 				B08F5A2A2FAB0B6200BFFC53 /* MilestoneDetector.swift in Sources */,

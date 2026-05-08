@@ -27,7 +27,7 @@ struct SavedPlanView: View {
         else { return 0 }
         let trackable = current.weeks
             .flatMap { $0.days }
-            .filter { $0.workoutType != "Rest" }
+            .filter { $0.isTrackable }
         guard !trackable.isEmpty else { return 0 }
         let done = trackable.filter {
             $0.completionStatus == .completed
@@ -442,7 +442,6 @@ struct DotView: View {
         }
     }
 
-    // Color keys off stored rawValue — correct, never changes
     var baseDotColor: Color {
         switch day.workoutType {
         case "Rest":
@@ -476,17 +475,9 @@ struct SPVWeekDetailView: View {
     let week   : SavedWeek
     @EnvironmentObject var store: PlanStore
 
-    @State private var localWeek: SavedWeek
-
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "EEE, MMM d"; return f
     }()
-
-    init(planID: UUID, week: SavedWeek) {
-        self.planID = planID
-        self.week   = week
-        _localWeek  = State(initialValue: week)
-    }
 
     private var liveWeek: SavedWeek {
         store.plans
@@ -499,7 +490,6 @@ struct SPVWeekDetailView: View {
         liveWeek.phase.contains("Race Week")
     }
 
-    // Derive race type from the plan so every row gets the right labels
     private var raceType: RaceType {
         store.plans.first { $0.id == planID }?.settings.raceType ?? .marathon
     }
@@ -622,7 +612,6 @@ struct SPVDayRow: View {
         Calendar.current.isDateInToday(day.date)
     }
 
-    // Color keys off stored rawValue — correct, never changes
     var dotColor: Color {
         switch day.workoutType {
         case "Rest":
@@ -666,6 +655,8 @@ struct SPVDayRow: View {
             }
 
             HStack(alignment: .top, spacing: 14) {
+
+                // Workout type dot
                 ZStack {
                     if isToday {
                         Circle()
@@ -673,56 +664,140 @@ struct SPVDayRow: View {
                             .frame(width: 18, height: 18)
                     }
                     Circle()
-                        .fill(dotColor)
+                        .fill(day.isRestDay
+                              ? Color(.tertiarySystemFill)
+                              : dotColor)
                         .frame(width: 10, height: 10)
                 }
                 .frame(width: 18, height: 18)
                 .padding(.top, 2)
 
+                // Content
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text(dateFormatter.string(from: day.date))
                             .font(.system(
                                 size: 14,
                                 weight: isToday ? .bold : .semibold))
-                            .foregroundColor(isToday
-                                             ? Color(hex: "0A84FF")
-                                             : .primary)
+                            .foregroundColor(
+                                day.isRestDay
+                                    ? .secondary
+                                    : isToday
+                                        ? Color(hex: "0A84FF")
+                                        : .primary
+                            )
                         Spacer()
                         milesView
                     }
 
-                    // ← Uses displayWorkoutType for correct HMP/MP label
                     Text(day.displayWorkoutType(raceType: raceType))
                         .font(.system(size: 12))
-                        .foregroundColor(completionColor ?? dotColor)
+                        .foregroundColor(
+                            day.isRestDay
+                                ? Color(.tertiaryLabel)
+                                : completionColor ?? dotColor
+                        )
 
                     Text(day.description)
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(
+                            day.isRestDay
+                                ? Color(.tertiaryLabel)
+                                : .secondary
+                        )
                         .fixedSize(horizontal: false, vertical: true)
 
-                    if day.paceNote != "—" && !day.paceNote.isEmpty {
+                    if day.paceNote != "—" && !day.paceNote.isEmpty
+                        && !day.isRestDay {
                         Text("Target: \(day.paceNote)")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(Color(hex: "0A84FF"))
                     }
 
-                    if day.completionStatus == .completed
-                        || day.completionStatus == .modified
-                        || day.completionStatus == .skipped {
+                    if !day.isRestDay
+                        && (day.completionStatus == .completed
+                            || day.completionStatus == .modified
+                            || day.completionStatus == .skipped) {
                         noteSection
                     }
                 }
 
-                completionButtons
-                    .contentShape(Rectangle())
+                // Completion control — rest days get the muted marker
+                if day.isRestDay {
+                    RestDayMarker()
+                } else {
+                    WorkoutCompletionButton(
+                        status:     day.completionStatus,
+                        isRestDay:  day.isRestDay,
+                        onComplete: {
+                            let next: CompletionStatus =
+                                day.completionStatus == .completed
+                                    ? .notStarted : .completed
+                            if next == .completed {
+                                CompletionHaptics.complete()
+                            } else {
+                                CompletionHaptics.uncomplete()
+                            }
+                            store.updateCompletion(
+                                planID: planID,
+                                weekID: weekID,
+                                dayID:  day.id,
+                                status: next
+                            )
+                            if next == .notStarted {
+                                isEditingNote = false
+                                noteInput     = ""
+                            }
+                        },
+                        onSkip: {
+                            let next: CompletionStatus =
+                                day.completionStatus == .skipped
+                                    ? .notStarted : .skipped
+                            CompletionHaptics.skip()
+                            store.updateCompletion(
+                                planID: planID,
+                                weekID: weekID,
+                                dayID:  day.id,
+                                status: next
+                            )
+                            if next == .notStarted {
+                                isEditingNote = false
+                                noteInput     = ""
+                            }
+                        }
+                    )
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, isToday ? 10 : 14)
 
-            if day.completionStatus == .modified || showingActualMiles {
+            // Actual miles edit row
+            if !day.isRestDay
+                && (day.completionStatus == .modified
+                    || showingActualMiles) {
                 actualMilesRow
+            }
+
+            // Pencil button for modifying miles — non-rest only
+            if !day.isRestDay && day.miles > 0
+                && !showingActualMiles
+                && day.completionStatus != .skipped {
+                Button {
+                    actualMilesInput = day.actualMiles
+                        .map { String(format: "%.1f", $0) } ?? ""
+                    showingActualMiles.toggle()
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 10))
+                        Text("Log actual miles")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
             }
         }
         .background(rowBackground)
@@ -738,6 +813,8 @@ struct SPVDayRow: View {
         .cornerRadius(12)
         .contentShape(Rectangle())
         .id(day.id)
+        .animation(.easeInOut(duration: 0.2),
+                   value: day.completionStatus)
     }
 
     // MARK: Note Section
@@ -825,7 +902,8 @@ struct SPVDayRow: View {
                                 noteFocused   = false
                             } label: {
                                 Text("Clear")
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(.system(size: 11,
+                                                  weight: .medium))
                                     .foregroundColor(Color(hex: "FF453A"))
                             }
                             .buttonStyle(.plain)
@@ -881,71 +959,6 @@ struct SPVDayRow: View {
         }
     }
 
-    // MARK: Completion Buttons
-
-    private var completionButtons: some View {
-        VStack(spacing: 4) {
-            Button {
-                let next: CompletionStatus =
-                    day.completionStatus == .completed
-                        ? .notStarted : .completed
-                store.updateCompletion(planID: planID, weekID: weekID,
-                                       dayID: day.id, status: next)
-                if next == .notStarted {
-                    isEditingNote = false
-                    noteInput     = ""
-                }
-            } label: {
-                Image(systemName: day.completionStatus == .completed
-                      ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 26))
-                    .foregroundColor(day.completionStatus == .completed
-                                     ? Color(hex: "30D158")
-                                     : Color(hex: "3A3A3A"))
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                let next: CompletionStatus =
-                    day.completionStatus == .skipped
-                        ? .notStarted : .skipped
-                store.updateCompletion(planID: planID, weekID: weekID,
-                                       dayID: day.id, status: next)
-                if next == .notStarted {
-                    isEditingNote = false
-                    noteInput     = ""
-                }
-            } label: {
-                Image(systemName: day.completionStatus == .skipped
-                      ? "xmark.circle.fill" : "minus.circle")
-                    .font(.system(size: 20))
-                    .foregroundColor(day.completionStatus == .skipped
-                                     ? Color(hex: "FF453A")
-                                     : Color(hex: "3A3A3A"))
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if day.miles > 0 {
-                Button {
-                    actualMilesInput = day.actualMiles
-                        .map { String(format: "%.1f", $0) } ?? ""
-                    showingActualMiles.toggle()
-                } label: {
-                    Image(systemName: "pencil.circle")
-                        .font(.system(size: 20))
-                        .foregroundColor(Color(hex: "3A3A3A"))
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
     // MARK: Actual Miles Row
 
     private var actualMilesRow: some View {
@@ -964,9 +977,13 @@ struct SPVDayRow: View {
                 .cornerRadius(6)
             Button("Save") {
                 if let miles = Double(actualMilesInput) {
-                    store.updateCompletion(planID: planID, weekID: weekID,
-                                          dayID: day.id, status: .modified,
-                                          actual: miles)
+                    store.updateCompletion(
+                        planID: planID,
+                        weekID: weekID,
+                        dayID:  day.id,
+                        status: .modified,
+                        actual: miles
+                    )
                 }
                 showingActualMiles = false
             }
@@ -982,6 +999,9 @@ struct SPVDayRow: View {
     // MARK: Styling
 
     private var rowBackground: Color {
+        if day.isRestDay {
+            return Color(.secondarySystemBackground).opacity(0.6)
+        }
         if isToday && day.completionStatus == .notStarted {
             return Color(hex: "0A84FF").opacity(0.06)
         }

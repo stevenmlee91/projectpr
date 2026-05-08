@@ -47,6 +47,8 @@ struct SavedWeek: Identifiable, Codable {
         self.days       = days
     }
 
+    // MARK: - Mileage
+
     var totalMiles: Double {
         days.reduce(0) { $0 + $1.miles }
     }
@@ -74,8 +76,14 @@ struct SavedWeek: Identifiable, Codable {
         days.reduce(0) { $0 + ($1.actualMiles ?? 0) }
     }
 
+    // MARK: - Completion
+    // Rest days are never counted toward any completion metric.
+    // Cross-training days ARE counted — the runner must intentionally
+    // complete them.
+
+    /// Fraction of trackable workouts completed. Rest days excluded.
     var completionPercentage: Double {
-        let trackable = days.filter { $0.workoutType != "Rest" }
+        let trackable = days.filter { $0.isTrackable }
         guard !trackable.isEmpty else { return 1.0 }
         let done = trackable.filter {
             $0.completionStatus == .completed
@@ -84,15 +92,19 @@ struct SavedWeek: Identifiable, Codable {
         return Double(done) / Double(trackable.count)
     }
 
+    /// Number of trackable workouts marked complete or modified.
+    /// Rest days never contribute to this count.
     var completedDayCount: Int {
         days.filter {
-            $0.completionStatus == .completed
-                || $0.completionStatus == .modified
+            $0.isTrackable
+                && ($0.completionStatus == .completed
+                    || $0.completionStatus == .modified)
         }.count
     }
 
+    /// Total number of trackable workout days (rest days excluded).
     var trackableDayCount: Int {
-        days.filter { $0.workoutType != "Rest" }.count
+        days.filter { $0.isTrackable }.count
     }
 }
 
@@ -126,9 +138,27 @@ struct SavedDay: Identifiable, Codable {
         self.completionNote   = completionNote
     }
 
+    // MARK: - Day Classification
+
+    /// True only for Rest days. These are excluded from all
+    /// completion counts, percentages, and progress metrics.
+    var isRestDay: Bool {
+        workoutType == "Rest"
+    }
+
+    /// True for any day that should count toward completion.
+    /// Rest days return false. Everything else — including
+    /// Cross-Training — returns true.
+    var isTrackable: Bool {
+        workoutType != "Rest"
+    }
+
+    // MARK: - Date Helpers
+
     var isToday: Bool {
         Calendar.current.isDateInToday(date)
     }
+
     var isPast: Bool {
         date < Calendar.current.startOfDay(for: Date())
     }
@@ -161,11 +191,9 @@ private func mondayOffset(for weekdayName: String) -> Int {
 }
 
 /// Returns the Monday that starts the week containing `date`.
-/// Gregorian weekday: Sun=1, Mon=2 … Sat=7
-/// daysSinceMonday:   Mon=0, Tue=1 … Sun=6
 private func mondayOfWeek(containing date: Date) -> Date {
     let weekday         = mondayCalendar.component(.weekday, from: date)
-    let daysSinceMonday = (weekday + 5) % 7   // Mon=0 … Sun=6
+    let daysSinceMonday = (weekday + 5) % 7
     return mondayCalendar.date(
         byAdding: .day,
         value:    -daysSinceMonday,
@@ -179,12 +207,8 @@ func createSavedPlan(name: String,
                      raceDate: Date,
                      settings: UserSettings) -> SavedPlan {
 
-    // Find the Monday of the week that contains the race date.
-    // For race date Sun Aug 30 → raceWeekMonday = Mon Aug 24.
     let raceWeekMonday = mondayOfWeek(containing: raceDate)
 
-    // Go back (planLength - 1) weeks to get the plan start Monday.
-    // Week 1 starts here, week N ends on race Sunday.
     guard let startDate = mondayCalendar.date(
         byAdding: .weekOfYear,
         value:    -(settings.planLength.rawValue - 1),
@@ -210,12 +234,11 @@ func createSavedPlan(name: String,
 func buildSavedWeeks(from trainingWeeks: [TrainingWeek],
                      startDate: Date) -> [SavedWeek] {
 
-    // Ensure startDate is always a Monday
     let monday = mondayOfWeek(containing: startDate)
 
     return trainingWeeks.map { week in
         let savedDays: [SavedDay] = week.days.map { day in
-            let weekOffset  = week.weekNumber - 1          // week 1 → 0
+            let weekOffset  = week.weekNumber - 1
             let dayOffset   = mondayOffset(for: day.weekday.fullName)
             let totalOffset = weekOffset * 7 + dayOffset
 
@@ -287,7 +310,7 @@ class PlanStore: ObservableObject {
         NotificationManager.shared.scheduleWorkoutReminders(
             for: plans, primaryID: primaryPlanID)
         WeeklySummaryManager.shared.scheduleWeeklySummary(
-                for: plans, primaryID: primaryPlanID)
+            for: plans, primaryID: primaryPlanID)
     }
 
     // MARK: - CRUD
@@ -311,7 +334,7 @@ class PlanStore: ObservableObject {
         NotificationManager.shared.scheduleWorkoutReminders(
             for: plans, primaryID: primaryPlanID)
         WeeklySummaryManager.shared.scheduleWeeklySummary(
-                for: plans, primaryID: primaryPlanID)
+            for: plans, primaryID: primaryPlanID)
     }
 
     func deletePlans(at offsets: IndexSet) {
@@ -470,6 +493,7 @@ extension SavedDay: Equatable, Hashable {
     }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
+
 // MARK: - Workout Display Helpers
 
 extension SavedDay {
