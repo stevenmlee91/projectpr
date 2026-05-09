@@ -2,37 +2,24 @@ import SwiftUI
 import Charts
 
 // MARK: - Chart Phase
+// Separate from TrainingPhase — adds past/current/future
+// context that is only relevant to the chart display.
 
 enum ChartPhase {
     case past, current, peak, taper, race, future
 }
 
-// MARK: - Phase Detection
-
-private func detectPhase(week: SavedWeek,
-                          currentWeekNum: Int,
-                          peakWeekNum: Int) -> ChartPhase {
-    let p = week.phase.lowercased()
-    if p.contains("race")  { return .race }
-    if p.contains("taper") { return week.weekNumber < currentWeekNum ? .past : .taper }
-    if p.contains("peak") || week.weekNumber == peakWeekNum {
-        return week.weekNumber < currentWeekNum ? .past : .peak
-    }
-    if week.weekNumber == currentWeekNum { return .current }
-    if week.weekNumber < currentWeekNum  { return .past }
-    return .future
-}
-
 // MARK: - Chart Bar
 
 struct ChartBar: Identifiable {
-    let id         : UUID
-    let weekNumber : Int
-    let miles      : Double
-    let phase      : ChartPhase
-    let phaseLabel : String
-    let isCurrent  : Bool
-    let hasLogged  : Bool
+    let id            : UUID
+    let weekNumber    : Int
+    let miles         : Double
+    let phase         : ChartPhase
+    let trainingPhase : TrainingPhase
+    let phaseLabel    : String
+    let isCurrent     : Bool
+    let hasLogged     : Bool
 }
 
 // MARK: - Weekly Mileage Chart View
@@ -46,17 +33,17 @@ struct WeeklyMileageChartView: View {
     @State private var selectedWeekNum : Int? = nil
     @State private var animateChart    = false
 
-    // MARK: - Computed
+    // MARK: - Phase Parameters
+
+    private var taperWeeks : Int { TrainingPhaseEngine.taperWeeks(for: plan) }
+    private var peakWeeks  : Int { TrainingPhaseEngine.peakWeeks(for: plan)  }
+    private var totalWeeks : Int { plan.weeks.count }
 
     private var peakWeekNum: Int {
-        plan.weeks
-            .filter {
-                !$0.phase.lowercased().contains("race") &&
-                !$0.phase.lowercased().contains("taper")
-            }
-            .max { $0.totalMiles < $1.totalMiles }?
-            .weekNumber ?? 1
+        TrainingPhaseEngine.peakWeekNumber(for: plan)
     }
+
+    // MARK: - Computed
 
     private var hasAnyLoggedData: Bool {
         plan.weeks.contains { $0.hasAnyActualMiles }
@@ -64,23 +51,41 @@ struct WeeklyMileageChartView: View {
 
     private var bars: [ChartBar] {
         plan.weeks.map { week in
-            let phase = detectPhase(week: week,
-                                    currentWeekNum: currentWeekNum,
-                                    peakWeekNum: peakWeekNum)
-            // In actual mode only show bars for weeks with logged data.
-            // Weeks not yet started show 0 in actual mode.
+            let tp = TrainingPhaseEngine.phase(
+                weekNumber:  week.weekNumber,
+                totalWeeks:  totalWeeks,
+                taperWeeks:  taperWeeks,
+                peakWeeks:   peakWeeks
+            )
+
+            let chartPhase: ChartPhase
+            if week.weekNumber == totalWeeks {
+                chartPhase = .race
+            } else if week.weekNumber < currentWeekNum {
+                chartPhase = .past
+            } else if week.weekNumber == currentWeekNum {
+                chartPhase = .current
+            } else {
+                switch tp {
+                case .peak:  chartPhase = .peak
+                case .taper: chartPhase = .taper
+                default:     chartPhase = .future
+                }
+            }
+
             let miles: Double = showingActual
                 ? week.actualTotalMiles
                 : week.totalMiles
 
             return ChartBar(
-                id:         week.id,
-                weekNumber: week.weekNumber,
-                miles:      miles,
-                phase:      phase,
-                phaseLabel: week.phase,
-                isCurrent:  week.weekNumber == currentWeekNum,
-                hasLogged:  week.hasAnyActualMiles
+                id:            week.id,
+                weekNumber:    week.weekNumber,
+                miles:         miles,
+                phase:         chartPhase,
+                trainingPhase: tp,
+                phaseLabel:    week.phase,
+                isCurrent:     week.weekNumber == currentWeekNum,
+                hasLogged:     week.hasAnyActualMiles
             )
         }
     }
@@ -144,13 +149,14 @@ struct WeeklyMileageChartView: View {
                     .foregroundColor(.secondary)
                 Spacer()
 
-                // Toggle — only shown once user has logged something
                 if hasAnyLoggedData {
                     HStack(spacing: 0) {
-                        toggleButton(label: "Planned", active: !showingActual) {
+                        toggleButton(label: "Planned",
+                                     active: !showingActual) {
                             showingActual = false
                         }
-                        toggleButton(label: "Actual", active: showingActual) {
+                        toggleButton(label: "Actual",
+                                     active: showingActual) {
                             showingActual = true
                         }
                     }
@@ -166,9 +172,12 @@ struct WeeklyMileageChartView: View {
                                action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 11, weight: active ? .semibold : .regular,
+                .font(.system(size: 11,
+                              weight: active ? .semibold : .regular,
                               design: .monospaced))
-                .foregroundColor(active ? Color(.systemBackground) : .secondary)
+                .foregroundColor(active
+                                 ? Color(.systemBackground)
+                                 : .secondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
                 .background(active ? Color(.label) : Color.clear)
@@ -192,13 +201,15 @@ struct WeeklyMileageChartView: View {
         .chartXScale(domain: 1...weekCount)
         .chartYScale(domain: 0...maxMiles)
         .chartXAxis {
-            AxisMarks(preset: .aligned, values: xAxisValues()) { value in
+            AxisMarks(preset: .aligned,
+                      values: xAxisValues()) { value in
                 if let wk = value.as(Int.self) {
                     AxisValueLabel(anchor: .top) {
                         Text("\(wk)")
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundColor(
-                                wk == currentWeekNum ? .primary : .secondary
+                                wk == currentWeekNum
+                                    ? .primary : .secondary
                             )
                     }
                 }
@@ -225,7 +236,8 @@ struct WeeklyMileageChartView: View {
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
-                                let origin = geo[proxy.plotAreaFrame].origin
+                                let origin =
+                                    geo[proxy.plotAreaFrame].origin
                                 let x = value.location.x - origin.x
                                 if let wk: Int = proxy.value(atX: x) {
                                     let clamped = max(1, min(wk, weekCount))
@@ -237,15 +249,17 @@ struct WeeklyMileageChartView: View {
                             .onEnded { _ in
                                 DispatchQueue.main.asyncAfter(
                                     deadline: .now() + 3) {
-                                    withAnimation { selectedWeekNum = nil }
+                                    withAnimation {
+                                        selectedWeekNum = nil
+                                    }
                                 }
                             }
                     )
             }
         }
         .frame(height: 160)
-        .animation(.easeOut(duration: 0.5), value: animateChart)
-        .animation(.easeInOut(duration: 0.3), value: showingActual)
+        .animation(.easeOut(duration: 0.5),    value: animateChart)
+        .animation(.easeInOut(duration: 0.3),  value: showingActual)
     }
 
     // MARK: - Bar Color
@@ -254,9 +268,10 @@ struct WeeklyMileageChartView: View {
         let isSelected = bar.weekNumber == selectedWeekNum
 
         if showingActual {
-            // In actual mode — unstarted weeks are very faint
-            if !bar.hasLogged { return Color(.systemFill).opacity(0.2) }
-            if isSelected     { return Color.white }
+            if !bar.hasLogged {
+                return Color(.systemFill).opacity(0.2)
+            }
+            if isSelected { return Color.white }
             switch bar.phase {
             case .race:    return Color.yellow
             case .peak:    return Color(hex: "FF453A")
@@ -266,7 +281,6 @@ struct WeeklyMileageChartView: View {
             case .future:  return Color(hex: "30D158").opacity(0.5)
             }
         } else {
-            // In planned mode
             if isSelected { return Color.white }
             switch bar.phase {
             case .race:    return Color.yellow
@@ -281,7 +295,8 @@ struct WeeklyMileageChartView: View {
 
     // MARK: - Selected Week Detail
 
-    private func selectedDetail(bar: ChartBar, week: SavedWeek) -> some View {
+    private func selectedDetail(bar: ChartBar,
+                                 week: SavedWeek) -> some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
@@ -295,18 +310,28 @@ struct WeeklyMileageChartView: View {
                                    bg: Color(.label))
                     }
                     switch bar.phase {
-                    case .peak:  phaseBadge("PEAK",  fg: .white, bg: Color(hex: "FF453A"))
-                    case .taper: phaseBadge("TAPER", fg: .black, bg: Color(hex: "FF9F0A"))
-                    case .race:  phaseBadge("RACE",  fg: .black, bg: .yellow)
-                    default:     EmptyView()
+                    case .peak:
+                        phaseBadge("PEAK",
+                                   fg: .white,
+                                   bg: Color(hex: "FF453A"))
+                    case .taper:
+                        phaseBadge("TAPER",
+                                   fg: .black,
+                                   bg: Color(hex: "FF9F0A"))
+                    case .race:
+                        phaseBadge("RACE",
+                                   fg: .black,
+                                   bg: .yellow)
+                    default:
+                        EmptyView()
                     }
                 }
 
-                Text(bar.phaseLabel)
+                // Display canonical phase name, not raw week.phase string
+                Text(canonicalPhaseLabel(bar.trainingPhase))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
 
-                // Show both planned and actual side by side when in actual mode
                 if showingActual && bar.hasLogged {
                     let planned = week.totalMiles
                     let actual  = week.actualTotalMiles
@@ -346,8 +371,8 @@ struct WeeklyMileageChartView: View {
                                     .font(.system(size: 14, weight: .medium,
                                                   design: .monospaced))
                                     .foregroundColor(diff >= 0
-                                                     ? Color(hex: "30D158")
-                                                     : Color(hex: "FF453A"))
+                                        ? Color(hex: "30D158")
+                                        : Color(hex: "FF453A"))
                             }
                         }
                     }
@@ -381,7 +406,19 @@ struct WeeklyMileageChartView: View {
         .cornerRadius(10)
     }
 
-    private func phaseBadge(_ label: String, fg: Color, bg: Color) -> some View {
+    private func canonicalPhaseLabel(_ phase: TrainingPhase) -> String {
+        switch phase {
+        case .base:  return "Base Building"
+        case .build: return "Building Fitness"
+        case .peak:  return "Peak Week"
+        case .taper: return "Taper"
+        case .race:  return "Race Week"
+        }
+    }
+
+    private func phaseBadge(_ label: String,
+                              fg: Color,
+                              bg: Color) -> some View {
         Text(label)
             .font(.system(size: 8, weight: .bold, design: .monospaced))
             .foregroundColor(fg)
@@ -420,9 +457,14 @@ struct WeeklyMileageChartView: View {
 
     private func xAxisValues() -> [Int] {
         let step   = weekCount > 14 ? 4 : 2
-        var values = stride(from: 1, through: weekCount, by: step).map { $0 }
-        if !values.contains(currentWeekNum) { values.append(currentWeekNum) }
-        if !values.contains(weekCount)      { values.append(weekCount) }
+        var values = stride(from: 1, through: weekCount,
+                            by: step).map { $0 }
+        if !values.contains(currentWeekNum) {
+            values.append(currentWeekNum)
+        }
+        if !values.contains(weekCount) {
+            values.append(weekCount)
+        }
         return values.sorted()
     }
 }

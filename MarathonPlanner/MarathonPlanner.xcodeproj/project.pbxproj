@@ -50,6 +50,8 @@
 		B08F5A302FAC31D400BFFC53 /* CreateplanCTAButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A2F2FAC31D400BFFC53 /* CreateplanCTAButton.swift */; };
 		B08F5A322FAC456F00BFFC53 /* OffSeasonStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A312FAC456F00BFFC53 /* OffSeasonStore.swift */; };
 		B08F5A342FADAD2E00BFFC53 /* WorkoutCompletionButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A332FADAD2E00BFFC53 /* WorkoutCompletionButton.swift */; };
+		B08F5A362FADB36C00BFFC53 /* FirstHalfPlanGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A352FADB36C00BFFC53 /* FirstHalfPlanGenerator.swift */; };
+		B08F5A382FAEFC8500BFFC53 /* TrainingPhaseEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A372FAEFC8500BFFC53 /* TrainingPhaseEngine.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -128,6 +130,8 @@
 		B08F5A2F2FAC31D400BFFC53 /* CreateplanCTAButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateplanCTAButton.swift; sourceTree = "<group>"; };
 		B08F5A312FAC456F00BFFC53 /* OffSeasonStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffSeasonStore.swift; sourceTree = "<group>"; };
 		B08F5A332FADAD2E00BFFC53 /* WorkoutCompletionButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCompletionButton.swift; sourceTree = "<group>"; };
+		B08F5A352FADB36C00BFFC53 /* FirstHalfPlanGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstHalfPlanGenerator.swift; sourceTree = "<group>"; };
+		B08F5A372FAEFC8500BFFC53 /* TrainingPhaseEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPhaseEngine.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -222,6 +226,7 @@
 				B08F59D02FA565C000BFFC53 /* ElevationSheetView.swift */,
 				B0A62D7E2F9861A70093719D /* ContentView.swift */,
 				B0A62DA62F9862170093719D /* TrainingPlan.swift */,
+				B08F5A352FADB36C00BFFC53 /* FirstHalfPlanGenerator.swift */,
 				B0A62DA82F9862340093719D /* PlanGenerator.swift */,
 				B08F59BD2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift */,
 				B075260C2F9B1317008F9552 /* ScheduleSetupView.swift */,
@@ -248,6 +253,7 @@
 				B0A62DB12F98629C0093719D /* WeekDetailView.swift */,
 				B0A62DB32F9862AD0093719D /* MinitabView.swift */,
 				B07526162F9EB5CB008F9552 /* WeeklyMileageChart.swift */,
+				B08F5A372FAEFC8500BFFC53 /* TrainingPhaseEngine.swift */,
 				B0A62D802F9861AB0093719D /* Assets.xcassets */,
 				B0A62D822F9861AB0093719D /* Preview Content */,
 			);
@@ -428,8 +434,10 @@
 				B08F5A2A2FAB0B6200BFFC53 /* MilestoneDetector.swift in Sources */,
 				B08F5A202FA7F50E00BFFC53 /* DailyInsightCard.swift in Sources */,
 				B08F59CF2FA565B400BFFC53 /* ElevationChartView.swift in Sources */,
+				B08F5A382FAEFC8500BFFC53 /* TrainingPhaseEngine.swift in Sources */,
 				B08F59CA2FA46B0000BFFC53 /* RouteBuilderView.swift in Sources */,
 				B08F5A1C2FA70E0700BFFC53 /* OnBoardingView.swift in Sources */,
+				B08F5A362FADB36C00BFFC53 /* FirstHalfPlanGenerator.swift in Sources */,
 				B07526052F9B0C9F008F9552 /* CreatePlanView.swift in Sources */,
 				B08F59D72FA5BB9700BFFC53 /* SavedRouteStore.swift in Sources */,
 				B07526192F9EC44E008F9552 /* AppearanceManager.swift in Sources */,

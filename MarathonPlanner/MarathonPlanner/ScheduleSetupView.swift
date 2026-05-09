@@ -68,6 +68,8 @@ struct ScheduleSetupView: View {
             return "Six days running. Two quality days + medium-long run mid-week."
         case .jackDaniels:
             return "Q1 and Q2 anchor the week. All other days strictly easy."
+        case .firstHalf:
+            return "Four days of running. Long run on Saturday, easy and steady mid-week."
         }
     }
 

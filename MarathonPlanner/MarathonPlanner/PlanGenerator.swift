@@ -51,6 +51,13 @@ struct PlanGenerator {
     // MARK: - Entry Point
 
     static func generate(settings: UserSettings) -> [TrainingWeek] {
+
+        // First Half Marathon uses its own dedicated generator.
+        // Bypass the blueprint system entirely.
+        if settings.planType == .firstHalf {
+            return FirstHalfPlanGenerator.generate(settings: settings)
+        }
+
         let tier        = determineMileageTier(settings.baseMileage)
         let constraints = getMethodConstraints(for: settings.planType)
         let peaks       = calculatePeakTargets(
@@ -331,6 +338,10 @@ struct PlanGenerator {
                         (tier == .low && week < 8)
                             ? .easy : .intervalWork)
             }
+        case .firstHalf:
+            // First Half bypasses this path via the early return
+            // in generate(), but the switch must be exhaustive.
+            return (.easy, .easy)
         }
     }
 
@@ -412,6 +423,10 @@ struct PlanGenerator {
             return higdonHalfInt(settings, tier, constraints, peaks)
         case .hansonsHalf:
             return hansonsHalf(settings, tier, constraints, peaks)
+        case .firstHalf:
+            // Handled by the early return in generate().
+            // Returns empty so the guard catches it if ever reached.
+            return []
         }
     }
 

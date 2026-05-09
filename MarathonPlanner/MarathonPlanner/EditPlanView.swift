@@ -26,7 +26,6 @@ struct EditPlanView: View {
         || editedSettings.baseMileage  != plan.settings.baseMileage
         || editedSettings.planType     != plan.settings.planType
         || editedSettings.planLength   != plan.settings.planLength
-        || editedSettings.taperDuration != plan.settings.taperDuration
     }
 
     private var hasAnyChange: Bool {
@@ -271,7 +270,8 @@ struct EditPlanView: View {
             .padding(.bottom, 24)
         }
     }
-    // MARK: - Taper Duration
+    
+    // Add after planLengthSection:
 
     private var taperSection: some View {
         VStack(spacing: 0) {
@@ -284,36 +284,36 @@ struct EditPlanView: View {
                             editedSettings.taperDuration = option
                         } label: {
                             HStack(spacing: 14) {
-                                Circle()
-                                    .stroke(editedSettings.taperDuration == option
-                                            ? Color.accentColor : Color(.systemFill),
-                                            lineWidth: 1.5)
-                                    .background(Circle().fill(
-                                        editedSettings.taperDuration == option
-                                            ? Color.accentColor.opacity(0.15)
-                                            : Color.clear))
-                                    .frame(width: 16, height: 16)
+                                ZStack {
+                                    Circle()
+                                        .stroke(
+                                            editedSettings.taperDuration == option
+                                                ? Color.accentColor
+                                                : Color(.systemFill),
+                                            lineWidth: 1.5
+                                        )
+                                        .frame(width: 16, height: 16)
+                                    if editedSettings.taperDuration == option {
+                                        Circle()
+                                            .fill(Color.accentColor)
+                                            .frame(width: 8, height: 8)
+                                    }
+                                }
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(option.label)
                                         .font(.system(size: 14,
                                                       weight: editedSettings.taperDuration == option
-                                                          ? .semibold : .regular))
+                                                      ? .semibold : .regular))
                                         .foregroundColor(.primary)
                                     Text(option.description)
                                         .font(.system(size: 11))
                                         .foregroundColor(.secondary)
                                 }
                                 Spacer()
-                                if editedSettings.taperDuration == option {
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(.accentColor)
-                                }
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
-                            .background(editedSettings.taperDuration == option
-                                        ? Color(.systemFill) : Color.clear)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         if option != TaperDuration.allCases.last {
@@ -327,7 +327,6 @@ struct EditPlanView: View {
             .padding(.bottom, 24)
         }
     }
-
     // MARK: - Long Run Day
 
     private var longRunDaySection: some View {
@@ -659,7 +658,7 @@ struct EditPlanView: View {
             return "REST DAY (1 ONLY)"
         case .pfitz:
             return "REST DAY (1 MAXIMUM)"
-        case .higdon, .higdonHalfNovice:
+        case .higdon, .higdonHalfNovice, .firstHalf:
             return "REST DAYS (SELECT 2)"
         case .higdonIntermediate, .higdonHalfIntermediate:
             return "REST DAY (1 MINIMUM)"

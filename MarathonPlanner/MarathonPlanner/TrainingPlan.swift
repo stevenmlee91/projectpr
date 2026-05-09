@@ -77,12 +77,14 @@ enum PlanType: String, CaseIterable, Identifiable, Codable {
     case higdonHalfNovice       = "Higdon Half Novice"
     case higdonHalfIntermediate = "Higdon Half Intermediate"
     case hansonsHalf            = "Hansons Half"
+    case firstHalf              = "First Half Marathon"
 
     var id: String { rawValue }
 
     var raceType: RaceType {
         switch self {
-        case .higdonHalfNovice, .higdonHalfIntermediate, .hansonsHalf:
+        case .higdonHalfNovice, .higdonHalfIntermediate,
+             .hansonsHalf, .firstHalf:
             return .halfMarathon
         default:
             return .marathon
@@ -109,6 +111,8 @@ enum PlanType: String, CaseIterable, Identifiable, Codable {
             return "Four to five days running with a midweek tempo. Long run to 12 miles. For runners with race experience."
         case .hansonsHalf:
             return "Six days running with cumulative fatigue. Speed and strength workouts. Race day will feel controlled."
+        case .firstHalf:
+            return "Built for first-time half marathoners. Conservative progression, four days of running, and confidence-building long runs. Finish strong."
         }
     }
 
@@ -118,7 +122,7 @@ enum PlanType: String, CaseIterable, Identifiable, Codable {
              .higdonIntermediate, .hansonsHalf,
              .higdonHalfIntermediate:
             return true
-        case .higdon, .higdonHalfNovice:
+        case .higdon, .higdonHalfNovice, .firstHalf:
             return false
         }
     }
@@ -139,8 +143,8 @@ enum PlanType: String, CaseIterable, Identifiable, Codable {
 
     var minimumRestDays: Int {
         switch self {
-        case .higdon, .higdonHalfNovice: return 2
-        default:                         return 1
+        case .higdon, .higdonHalfNovice, .firstHalf: return 2
+        default:                                      return 1
         }
     }
 
@@ -152,7 +156,15 @@ enum PlanType: String, CaseIterable, Identifiable, Codable {
     }
 
     static func options(for raceType: RaceType) -> [PlanType] {
-        allCases.filter { $0.raceType == raceType }
+        switch raceType {
+        case .halfMarathon:
+            // First Half listed first — most visible to beginners
+            return [.firstHalf, .higdonHalfNovice,
+                    .higdonHalfIntermediate, .hansonsHalf]
+        case .marathon:
+            return [.higdon, .higdonIntermediate,
+                    .hansons, .pfitz, .jackDaniels]
+        }
     }
 }
 
@@ -170,8 +182,10 @@ enum PlanLength: Int, CaseIterable, Identifiable, Codable {
 
     static func options(for raceType: RaceType) -> [PlanLength] {
         switch raceType {
-        case .halfMarathon: return [.eightWeek, .tenWeek, .twelveWeek]
-        case .marathon:     return [.twelveWeek, .sixteenWeek, .eighteenWeek]
+        case .halfMarathon: return [.eightWeek, .tenWeek,
+                                    .twelveWeek, .sixteenWeek]
+        case .marathon:     return [.twelveWeek, .sixteenWeek,
+                                    .eighteenWeek]
         }
     }
 }
@@ -248,13 +262,15 @@ enum WorkoutType: String, Codable {
     case crossTrain       = "Cross-Training"
     case raceDay          = "Race Day 🏁"
     case shakeout         = "Shakeout Run"
+    case steadyRun        = "Steady Run"    // new — First Half only
 
     var effortLevel: Int {
         switch self {
         case .rest:                                             return 0
         case .recovery:                                         return 1
         case .easy, .strides, .crossTrain, .shakeout:         return 2
-        case .generalAerobic, .mediumLong, .midweekLong:      return 3
+        case .generalAerobic, .mediumLong, .midweekLong,
+             .steadyRun:                                        return 3
         case .longRun, .marathonPace, .tempoRun, .strengthMP: return 4
         case .lactateThreshold, .cruiseIntervals, .speedWork,
              .intervalWork, .repetitionWork, .longRunWithMP:   return 5
@@ -269,7 +285,7 @@ enum WorkoutType: String, Codable {
         case .easy, .strides, .crossTrain,
              .shakeout:                         return "green"
         case .generalAerobic, .mediumLong,
-             .midweekLong:                      return "teal"
+             .midweekLong, .steadyRun:          return "teal"
         case .longRun, .marathonPace,
              .tempoRun, .strengthMP:            return "orange"
         case .lactateThreshold, .cruiseIntervals,
@@ -371,6 +387,12 @@ struct UserSchedule: Codable, Equatable {
                 longRunDay: .sunday, workoutDay1: .tuesday,
                 workoutDay2: .thursday, restDays: [.friday],
                 crossTrainDay: nil, midweekLongDay: .wednesday)
+        case .firstHalf:
+            // Sat long run, Tue easy, Thu steady, Mon+Fri rest
+            return UserSchedule(
+                longRunDay: .saturday, workoutDay1: .tuesday,
+                workoutDay2: .thursday, restDays: [.monday, .friday],
+                crossTrainDay: nil, midweekLongDay: .wednesday)
         }
     }
 
@@ -425,14 +447,13 @@ struct UserSchedule: Codable, Equatable {
 // MARK: - User Settings
 
 struct UserSettings: Codable {
-    var goalTimeMinutes : Int          = 210
-    var baseMileage     : Double       = 25
-    var planType        : PlanType     = .higdon
-    var planLength      : PlanLength   = .sixteenWeek
-    var schedule        : UserSchedule = UserSchedule.defaultFor(.higdon)
+    var goalTimeMinutes : Int           = 210
+    var baseMileage     : Double        = 25
+    var planType        : PlanType      = .higdon
+    var planLength      : PlanLength    = .sixteenWeek
+    var schedule        : UserSchedule  = UserSchedule.defaultFor(.higdon)
     var taperDuration   : TaperDuration = .twoWeeks
 
-    // Derived — always comes from planType, never stored separately
     var raceType: RaceType { planType.raceType }
 
     var goalTimeFormatted: String {
@@ -471,15 +492,13 @@ extension UserSettings: Equatable {
 
 struct PaceEngine {
     let goalMinutes : Int
-    let distance    : Double   // race distance in miles
+    let distance    : Double
 
-    /// Convenience init — defaults to marathon distance
     init(goalMinutes: Int, distance: Double = 26.2) {
         self.goalMinutes = goalMinutes
         self.distance    = distance
     }
 
-    /// Seconds per mile at goal race pace
     var MP: Int {
         guard distance > 0 else { return 480 }
         return Int(Double(goalMinutes * 60) / distance)
@@ -523,8 +542,7 @@ struct TrainingPaces {
 
     static func calculate(goalMinutes: Int,
                           distance: Double = 26.2) -> TrainingPaces {
-        let e = PaceEngine(goalMinutes: goalMinutes,
-                           distance:    distance)
+        let e = PaceEngine(goalMinutes: goalMinutes, distance: distance)
         return TrainingPaces(
             easy:     (e.easy.high, e.easy.low),
             longRun:  (e.longRun.high, e.longRun.low),
@@ -583,6 +601,10 @@ func calculatePeakTargets(method: PlanType,
                            taperWeeks: taperDuration.rawValue)
     case .hansonsHalf:
         return PeakTargets(peakLongRun: 10, peakWeeklyMiles: 45,
+                           peakWeekNumber: pw,
+                           taperWeeks: taperDuration.rawValue)
+    case .firstHalf:
+        return PeakTargets(peakLongRun: 11, peakWeeklyMiles: 28,
                            peakWeekNumber: pw,
                            taperWeeks: taperDuration.rawValue)
     }
@@ -683,5 +705,14 @@ func getMethodConstraints(for planType: PlanType) -> MethodConstraints {
             requiresMediumLong: false, earliestQualityWeek: 1,
             allowsConsecutiveHard: false,
             absoluteMinWeekly: 20, absoluteMaxWeekly: 50)
+    case .firstHalf:
+        return MethodConstraints(
+            maxLongRunMiles: 11, minLongRunMiles: 3,
+            longRunAsPercentage: 0.40, minRunDays: 3, maxRunDays: 4,
+            requiredWorkouts: [.longRun],
+            progressionStyle: .periodicCutback,
+            requiresMediumLong: false, earliestQualityWeek: 99,
+            allowsConsecutiveHard: false,
+            absoluteMinWeekly: 10, absoluteMaxWeekly: 30)
     }
 }

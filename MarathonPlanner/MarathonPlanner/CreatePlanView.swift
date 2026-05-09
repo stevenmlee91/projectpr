@@ -696,6 +696,8 @@ struct CreatePlanView: View {
             return "Four to five days running. Tempo + long run anchor the week."
         case .hansonsHalf:
             return "Six days running with cumulative fatigue. One rest day only."
+        case .firstHalf:
+            return "Four days running. Long run Saturday, easy Tuesday, steady Thursday. 2 rest days."
         }
     }
 
@@ -705,7 +707,7 @@ struct CreatePlanView: View {
             return "REST DAY (1 ONLY)"
         case .pfitz:
             return "REST DAY (1 MAXIMUM)"
-        case .higdon, .higdonHalfNovice:
+        case .higdon, .higdonHalfNovice, .firstHalf:
             return "REST DAYS (SELECT 2)"
         case .higdonIntermediate, .higdonHalfIntermediate:
             return "REST DAY (1 MINIMUM)"
@@ -720,7 +722,7 @@ struct CreatePlanView: View {
             return "Runs 6 days/week by design. One rest day only."
         case .pfitz:
             return "Needs 5–6 running days. Limit rest to preserve volume."
-        case .higdon, .higdonHalfNovice:
+        case .higdon, .higdonHalfNovice, .firstHalf:
             return "Two rest days help absorb training."
         case .higdonIntermediate, .higdonHalfIntermediate:
             return "One rest day minimum. Cross-training covers recovery."
