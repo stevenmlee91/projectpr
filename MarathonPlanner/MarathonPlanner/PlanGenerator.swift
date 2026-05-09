@@ -52,10 +52,14 @@ struct PlanGenerator {
 
     static func generate(settings: UserSettings) -> [TrainingWeek] {
 
-        // First Half Marathon uses its own dedicated generator.
-        // Bypass the blueprint system entirely.
         if settings.planType == .firstHalf {
             return FirstHalfPlanGenerator.generate(settings: settings)
+        }
+        if settings.planType == .higdon {
+            return HigdonNoviceGenerator.generate(settings: settings)
+        }
+        if settings.planType == .higdonIntermediate {
+            return HigdonIntermediateGenerator.generate(settings: settings)
         }
 
         let tier        = determineMileageTier(settings.baseMileage)
