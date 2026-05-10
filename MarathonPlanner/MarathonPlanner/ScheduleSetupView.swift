@@ -66,8 +66,6 @@ struct ScheduleSetupView: View {
             return "Six days running. One quality day per week."
         case .pfitz:
             return "Six days running. Two quality days + medium-long run mid-week."
-        case .jackDaniels:
-            return "Q1 and Q2 anchor the week. All other days strictly easy."
         case .firstHalf:
             return "Four days of running. Long run on Saturday, easy and steady mid-week."
         }
@@ -106,7 +104,7 @@ struct ScheduleSetupView: View {
             }
 
             if plan == .hansons || plan == .pfitz
-                || plan == .jackDaniels || plan == .hansonsHalf {
+                || plan == .hansonsHalf {
                 ScheduleLabel("SECONDARY WORKOUT DAY (Q2)")
                 SingleDayPicker(
                     selected: $settings.schedule.workoutDay2,

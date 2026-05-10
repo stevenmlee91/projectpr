@@ -72,7 +72,6 @@ enum PlanType: String, CaseIterable, Identifiable, Codable {
     case hansons            = "Hansons"
     case higdon             = "Higdon Novice"
     case higdonIntermediate = "Higdon Intermediate"
-    case jackDaniels        = "Jack Daniels"
 
     case higdonHalfNovice       = "Higdon Half Novice"
     case higdonHalfIntermediate = "Higdon Half Intermediate"
@@ -103,8 +102,6 @@ enum PlanType: String, CaseIterable, Identifiable, Codable {
             return "Gentle build-up. Mostly easy running. Long run is the main event. Best for first-timers."
         case .higdonIntermediate:
             return "Adds cross-training and a midweek longer run. For runners with 1–2 marathons completed."
-        case .jackDaniels:
-            return "VDOT-based precision. Two structured quality days. Every pace is mathematically derived."
         case .higdonHalfNovice:
             return "Three days of running per week. Long run builds to 10 miles. Perfect for your first half marathon."
         case .higdonHalfIntermediate:
@@ -118,7 +115,7 @@ enum PlanType: String, CaseIterable, Identifiable, Codable {
 
     var requiresTwoWorkoutDays: Bool {
         switch self {
-        case .hansons, .pfitz, .jackDaniels,
+        case .hansons, .pfitz,
              .higdonIntermediate, .hansonsHalf,
              .higdonHalfIntermediate:
             return true
@@ -163,7 +160,7 @@ enum PlanType: String, CaseIterable, Identifiable, Codable {
                     .higdonHalfIntermediate, .hansonsHalf]
         case .marathon:
             return [.higdon, .higdonIntermediate,
-                    .hansons, .pfitz, .jackDaniels]
+                    .hansons, .pfitz]
         }
     }
 }
@@ -382,11 +379,6 @@ struct UserSchedule: Codable, Equatable {
                 longRunDay: .saturday, workoutDay1: .tuesday,
                 workoutDay2: .thursday, restDays: [.friday],
                 crossTrainDay: nil, midweekLongDay: .wednesday)
-        case .jackDaniels:
-            return UserSchedule(
-                longRunDay: .sunday, workoutDay1: .tuesday,
-                workoutDay2: .thursday, restDays: [.friday],
-                crossTrainDay: nil, midweekLongDay: .wednesday)
         case .firstHalf:
             // Sat long run, Tue easy, Thu steady, Mon+Fri rest
             return UserSchedule(
@@ -587,10 +579,6 @@ func calculatePeakTargets(method: PlanType,
         return PeakTargets(peakLongRun: 22, peakWeeklyMiles: 48,
                            peakWeekNumber: pw,
                            taperWeeks: taperDuration.rawValue)
-    case .jackDaniels:
-        return PeakTargets(peakLongRun: 18, peakWeeklyMiles: 60,
-                           peakWeekNumber: pw,
-                           taperWeeks: taperDuration.rawValue)
     case .higdonHalfNovice:
         return PeakTargets(peakLongRun: 10, peakWeeklyMiles: 28,
                            peakWeekNumber: pw,
@@ -669,15 +657,6 @@ func getMethodConstraints(for planType: PlanType) -> MethodConstraints {
             requiresMediumLong: false, earliestQualityWeek: 3,
             allowsConsecutiveHard: false,
             absoluteMinWeekly: 20, absoluteMaxWeekly: 55)
-    case .jackDaniels:
-        return MethodConstraints(
-            maxLongRunMiles: 22, minLongRunMiles: 8,
-            longRunAsPercentage: 0.25, minRunDays: 4, maxRunDays: 6,
-            requiredWorkouts: [.repetitionWork, .cruiseIntervals, .intervalWork],
-            progressionStyle: .phasedQuality,
-            requiresMediumLong: false, earliestQualityWeek: 1,
-            allowsConsecutiveHard: false,
-            absoluteMinWeekly: 25, absoluteMaxWeekly: 75)
     case .higdonHalfNovice:
         return MethodConstraints(
             maxLongRunMiles: 10, minLongRunMiles: 4,

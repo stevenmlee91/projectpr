@@ -374,7 +374,6 @@ struct EditPlanView: View {
         Group {
             if editedSettings.planType == .hansons
                 || editedSettings.planType == .pfitz
-                || editedSettings.planType == .jackDaniels
                 || editedSettings.planType == .hansonsHalf {
                 EditScheduleLabel("SECONDARY WORKOUT DAY (Q2)")
                 SingleDayPicker(
@@ -662,8 +661,6 @@ struct EditPlanView: View {
             return "REST DAYS (SELECT 2)"
         case .higdonIntermediate, .higdonHalfIntermediate:
             return "REST DAY (1 MINIMUM)"
-        case .jackDaniels:
-            return "REST DAYS (1–2)"
         }
     }
 

@@ -499,7 +499,6 @@ struct CreatePlanView: View {
 
             if settings.planType == .hansons
                 || settings.planType == .pfitz
-                || settings.planType == .jackDaniels
                 || settings.planType == .hansonsHalf {
                 scheduleBlock("SECONDARY WORKOUT DAY (Q2)") {
                     SingleDayPicker(
@@ -688,8 +687,6 @@ struct CreatePlanView: View {
             return "Six days running. One quality session. One rest day only."
         case .pfitz:
             return "Six days running. Two quality days + medium-long run mid-week."
-        case .jackDaniels:
-            return "Q1 and Q2 anchor the week. All other days strictly easy."
         case .higdonHalfNovice:
             return "Three days running. Long run is the anchor. 2–3 rest days."
         case .higdonHalfIntermediate:
@@ -711,8 +708,6 @@ struct CreatePlanView: View {
             return "REST DAYS (SELECT 2)"
         case .higdonIntermediate, .higdonHalfIntermediate:
             return "REST DAY (1 MINIMUM)"
-        case .jackDaniels:
-            return "REST DAYS (1–2)"
         }
     }
 
@@ -726,8 +721,6 @@ struct CreatePlanView: View {
             return "Two rest days help absorb training."
         case .higdonIntermediate, .higdonHalfIntermediate:
             return "One rest day minimum. Cross-training covers recovery."
-        case .jackDaniels:
-            return "Keep Q1 and Q2 separated by at least one easy day."
         }
     }
 

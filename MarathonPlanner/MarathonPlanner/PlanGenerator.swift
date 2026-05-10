@@ -285,10 +285,6 @@ struct PlanGenerator {
         lm = min(max(lm, constraints.minLongRunMiles),
                  constraints.maxLongRunMiles)
 
-        if method == .jackDaniels && weeklyMileage > 0 {
-            lm = min(lm, weeklyMileage * constraints.longRunAsPercentage)
-        }
-
         lm = max(lm, constraints.minLongRunMiles)
 
         guard lm.isFinite else {
@@ -333,15 +329,6 @@ struct PlanGenerator {
             return (.easy, .easy)
         case .higdonIntermediate, .higdonHalfIntermediate:
             return (week >= 3 ? .tempoRun : .easy, .easy)
-        case .jackDaniels:
-            if week <= 4 {
-                return (.repetitionWork,
-                        tier == .low ? .easy : .repetitionWork)
-            } else {
-                return (.cruiseIntervals,
-                        (tier == .low && week < 8)
-                            ? .easy : .intervalWork)
-            }
         case .firstHalf:
             // First Half bypasses this path via the early return
             // in generate(), but the switch must be exhaustive.
@@ -419,8 +406,6 @@ struct PlanGenerator {
             return higdon(settings, tier, constraints, peaks)
         case .higdonIntermediate:
             return higdonInt(settings, tier, constraints, peaks)
-        case .jackDaniels:
-            return daniels(settings, tier, constraints, peaks)
         case .higdonHalfNovice:
             return higdonHalfNovice(settings, tier, constraints, peaks)
         case .higdonHalfIntermediate:
@@ -568,41 +553,6 @@ struct PlanGenerator {
                              : (isCut ? "Recovery Week" : "Building"),
                 totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: pr, secondaryWorkout: .easy,
-                isCutback: isCut, includesMediumLong: false,
-                mediumLongMiles: 0)
-        }
-    }
-
-    static func daniels(
-        _ s: UserSettings, _ t: MileageTier,
-        _ c: MethodConstraints, _ p: PeakTargets
-    ) -> [WeekBlueprint] {
-        let n  = s.planLength.rawValue
-        let mi = weeklyMileage(baseMileage: s.baseMileage,
-                               peakMileage: p.peakWeeklyMiles,
-                               weeks: n, peakWeek: p.peakWeekNumber,
-                               cutbackEvery: 4, cutbackFactor: 0.80,
-                               constraints: c)
-        return (0..<n).map { i in
-            let wk    = i + 1
-            let isCut = wk % 4 == 0 && wk <= p.peakWeekNumber
-            let isTap = wk > p.peakWeekNumber
-            let (pr, sc) = workoutTypes(week: wk, method: .jackDaniels,
-                                         tier: t, totalWeeks: n,
-                                         constraints: c)
-            let lm = longRunDistance(week: wk, method: .jackDaniels,
-                                     baseMileage: s.baseMileage, peaks: p,
-                                     constraints: c, weeklyMileage: mi[i],
-                                     isCutback: isCut)
-            let phase: String
-            if isTap         { phase = "Phase IV — Taper" }
-            else if wk <= 4  { phase = "Phase I — Base" }
-            else if wk <= 11 { phase = "Phase II — Threshold" }
-            else             { phase = "Phase III — Race-Specific" }
-
-            return WeekBlueprint(weekNumber: wk, phase: phase,
-                totalMiles: mi[i], longMiles: lm,
-                primaryWorkout: pr, secondaryWorkout: sc,
                 isCutback: isCut, includesMediumLong: false,
                 mediumLongMiles: 0)
         }
