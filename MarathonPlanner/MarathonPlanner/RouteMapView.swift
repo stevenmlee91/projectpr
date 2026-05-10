@@ -11,6 +11,7 @@ struct RouteMapView: UIViewRepresentable {
     var showsCompass         : Bool
     var showsScale           : Bool
     var useMetric            : Bool
+    var isEditing            : Bool          // ← NEW: controls tap-to-place
     var amenities            : [AmenityResult]
     var selectedAmenity      : AmenityResult?
 
@@ -20,6 +21,7 @@ struct RouteMapView: UIViewRepresentable {
          showsCompass: Bool = true,
          showsScale: Bool = true,
          useMetric: Bool = false,
+         isEditing: Bool = true,            // ← NEW
          amenities: [AmenityResult] = [],
          selectedAmenity: AmenityResult? = nil) {
         self.vm              = vm
@@ -28,6 +30,7 @@ struct RouteMapView: UIViewRepresentable {
         self.showsCompass    = showsCompass
         self.showsScale      = showsScale
         self.useMetric       = useMetric
+        self.isEditing       = isEditing    // ← NEW
         self.amenities       = amenities
         self.selectedAmenity = selectedAmenity
     }
@@ -59,6 +62,9 @@ struct RouteMapView: UIViewRepresentable {
     // MARK: Update
 
     func updateUIView(_ map: MKMapView, context: Context) {
+
+        // Keep coordinator in sync with current editing state
+        context.coordinator.isEditing = isEditing   // ← NEW
 
         if vm.shouldMoveCamera {
             map.setRegion(vm.cameraRegion, animated: true)
@@ -229,11 +235,15 @@ struct RouteMapView: UIViewRepresentable {
     // MARK: - Coordinator
 
     class Coordinator: NSObject, MKMapViewDelegate {
-        let vm: RouteBuilderViewModel
+        let vm        : RouteBuilderViewModel
+        var isEditing : Bool = true      // ← NEW: updated by updateUIView
 
         init(vm: RouteBuilderViewModel) { self.vm = vm }
 
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+            // ← NEW: bail immediately if not in editing mode
+            guard isEditing else { return }
+
             guard let map = gesture.view as? MKMapView else { return }
 
             // Check if tap hit an amenity annotation view
@@ -286,10 +296,8 @@ struct RouteMapView: UIViewRepresentable {
                 view.image          = amenityImage(type: amenity.amenityType)
                 view.centerOffset   = CGPoint(x: 0, y: -16)
 
-                // Callout accessory
                 let btn = UIButton(type: .detailDisclosure)
                 view.rightCalloutAccessoryView = btn
-
                 return view
             }
 
@@ -326,8 +334,7 @@ struct RouteMapView: UIViewRepresentable {
                     view.glyphImage      = UIImage(systemName: "figure.run")
                 } else if wp.isLast && vm.waypoints.count > 1 {
                     view.markerTintColor = UIColor(Color(hex: "FF453A"))
-                    view.glyphImage      = UIImage(
-                        systemName: "flag.checkered")
+                    view.glyphImage      = UIImage(systemName: "flag.checkered")
                 } else {
                     view.alpha = 0
                 }
@@ -346,30 +353,24 @@ struct RouteMapView: UIViewRepresentable {
 
             let ctx = UIGraphicsGetCurrentContext()!
 
-            // Shadow
             ctx.setShadow(offset: CGSize(width: 0, height: 1),
                           blur: 3,
                           color: UIColor.black.withAlphaComponent(0.3).cgColor)
-
-            // Circle fill
             ctx.setFillColor(type.color.cgColor)
             ctx.fillEllipse(in: CGRect(origin: .zero, size: size)
                 .insetBy(dx: 1, dy: 1))
 
-            // White border
             ctx.setShadow(offset: .zero, blur: 0, color: nil)
             ctx.setStrokeColor(UIColor.white.cgColor)
             ctx.setLineWidth(1.5)
             ctx.strokeEllipse(in: CGRect(origin: .zero, size: size)
                 .insetBy(dx: 2, dy: 2))
 
-            // SF Symbol icon
             let config = UIImage.SymbolConfiguration(
                 pointSize: 13, weight: .bold)
             if let icon = UIImage(systemName: type.icon,
                                    withConfiguration: config)?
-                .withTintColor(.white,
-                               renderingMode: .alwaysOriginal) {
+                .withTintColor(.white, renderingMode: .alwaysOriginal) {
                 let iconSize = icon.size
                 let iconRect = CGRect(
                     x: (size.width  - iconSize.width)  / 2,
@@ -385,8 +386,7 @@ struct RouteMapView: UIViewRepresentable {
 
         // MARK: - Distance Marker Image
 
-        private func markerImage(number: Int,
-                                  useMetric: Bool) -> UIImage {
+        private func markerImage(number: Int, useMetric: Bool) -> UIImage {
             let unit  = useMetric ? "K" : ""
             let label = "\(number)\(unit)"
             let size  = CGSize(width: 28, height: 28)
@@ -405,8 +405,7 @@ struct RouteMapView: UIViewRepresentable {
 
             ctx.setShadow(offset: .zero, blur: 0, color: nil)
             ctx.setStrokeColor(
-                UIColor(red: 0.04, green: 0.52,
-                        blue: 1.0,  alpha: 1.0).cgColor)
+                UIColor(red: 0.04, green: 0.52, blue: 1.0, alpha: 1.0).cgColor)
             ctx.setLineWidth(1.5)
             ctx.strokeEllipse(in: CGRect(origin: .zero, size: size)
                 .insetBy(dx: 2, dy: 2))

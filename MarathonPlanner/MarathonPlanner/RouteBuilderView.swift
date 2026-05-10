@@ -1,10 +1,22 @@
 import SwiftUI
 import MapKit
 
+// MARK: - Route Builder State
+
+enum RouteBuilderState: Equatable {
+    case editing
+    case reviewing
+}
+
+// MARK: - Route Builder View
+
 struct RouteBuilderView: View {
 
     @EnvironmentObject var routeStore   : SavedRouteStore
     @StateObject private var vm         = RouteBuilderViewModel()
+
+    @State private var builderState     : RouteBuilderState = .editing
+
     @State private var shareURL         : URL?      = nil
     @State private var showClearAlert   = false
     @State private var showElevation    = false
@@ -19,26 +31,27 @@ struct RouteBuilderView: View {
     @State private var poiMode          : MapPOIMode  = .runnerFocused
     @State private var useMetric        : Bool        = false
 
-    // Amenities
-    @State private var amenities        : [AmenityResult] = []
-    @State private var showAmenities    = false
+    @State private var amenities          : [AmenityResult] = []
+    @State private var showAmenities      = false
     @State private var isLoadingAmenities = false
-    @State private var selectedAmenity  : AmenityResult?  = nil
-    @State private var amenityFilter    : Set<AmenityType> = [
+    @State private var selectedAmenity    : AmenityResult?  = nil
+    @State private var amenityFilter      : Set<AmenityType> = [
         .water, .restroom, .park
     ]
     @State private var showAmenityPanel = false
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
 
-                // MARK: Map
                 RouteMapView(
                     vm:              vm,
                     mapLayer:        mapLayer,
                     poiMode:         poiMode,
                     useMetric:       useMetric,
+                    isEditing:       builderState == .editing,
                     amenities:       showAmenities
                         ? amenities.filter { amenityFilter.contains($0.type) }
                         : [],
@@ -46,7 +59,14 @@ struct RouteBuilderView: View {
                 )
                 .ignoresSafeArea()
 
-                // MARK: Floating controls — right side
+                // Editing state badge
+                VStack {
+                    editingStateBadge
+                        .padding(.top, 104)
+                    Spacer()
+                }
+
+                // Floating controls — right side
                 VStack {
                     Spacer().frame(height: 100)
                     HStack {
@@ -59,8 +79,6 @@ struct RouteBuilderView: View {
                                 showLayer: $showLayerPicker,
                                 useMetric: $useMetric
                             )
-
-                            // Amenities toggle button
                             Button {
                                 withAnimation(.spring(response: 0.3)) {
                                     if showAmenities {
@@ -73,8 +91,7 @@ struct RouteBuilderView: View {
                             } label: {
                                 VStack(spacing: 2) {
                                     Image(systemName: "drop.fill")
-                                        .font(.system(size: 15,
-                                                      weight: .medium))
+                                        .font(.system(size: 15, weight: .medium))
                                         .foregroundColor(
                                             showAmenities
                                                 ? Color(hex: "0A84FF")
@@ -93,8 +110,7 @@ struct RouteBuilderView: View {
                                         : Color(.secondarySystemBackground)
                                 )
                                 .clipShape(Circle())
-                                .shadow(color: .black.opacity(0.12),
-                                        radius: 4, y: 2)
+                                .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
                             }
                             .buttonStyle(.plain)
                         }
@@ -103,7 +119,7 @@ struct RouteBuilderView: View {
                     Spacer()
                 }
 
-                // MARK: Amenity filter panel
+                // Amenity filter panel
                 if showAmenityPanel {
                     VStack {
                         Spacer().frame(height: 100)
@@ -111,34 +127,31 @@ struct RouteBuilderView: View {
                             Spacer()
                             amenityFilterPanel
                                 .padding(.trailing, 66)
-                                .transition(.scale(scale: 0.8,
-                                                   anchor: .topTrailing)
+                                .transition(.scale(scale: 0.8, anchor: .topTrailing)
                                     .combined(with: .opacity))
                         }
                         Spacer()
                     }
                 }
 
-                // MARK: Amenity detail card
+                // Amenity detail card
                 if let selected = selectedAmenity {
                     VStack {
                         Spacer()
                         amenityDetailCard(selected)
                             .padding(.horizontal, 16)
                             .padding(.bottom, 160)
-                            .transition(.move(edge: .bottom)
-                                .combined(with: .opacity))
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
 
-                // MARK: Routing spinner
+                // Routing spinner
                 if vm.isRouting {
                     VStack {
                         HStack(spacing: 10) {
                             ProgressView().tint(.white)
                             Text("Snapping to road...")
-                                .font(.system(size: 12,
-                                              weight: .medium,
+                                .font(.system(size: 12, weight: .medium,
                                               design: .monospaced))
                                 .foregroundColor(.white)
                         }
@@ -151,7 +164,7 @@ struct RouteBuilderView: View {
                     }
                 }
 
-                // MARK: Error banner
+                // Error banner
                 if let err = vm.errorMessage {
                     VStack {
                         HStack(spacing: 8) {
@@ -160,8 +173,7 @@ struct RouteBuilderView: View {
                             Text(err)
                                 .font(.system(size: 12))
                                 .foregroundColor(.white)
-                                .fixedSize(horizontal: false,
-                                           vertical: true)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .padding(14)
                         .background(Color.black.opacity(0.80))
@@ -172,13 +184,13 @@ struct RouteBuilderView: View {
                     }
                 }
 
-                // MARK: Bottom panel
+                // Bottom panel
                 VStack(spacing: 0) {
                     statsBar
                     controlBar
                 }
 
-                // MARK: Layer picker overlay
+                // Layer picker overlay
                 if showLayerPicker {
                     Color.black.opacity(0.3)
                         .ignoresSafeArea()
@@ -194,8 +206,7 @@ struct RouteBuilderView: View {
                             poiMode:       $poiMode,
                             isShowing:     $showLayerPicker
                         )
-                        .transition(.move(edge: .bottom)
-                            .combined(with: .opacity))
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                         .cornerRadius(20, corners: [.topLeft, .topRight])
                     }
                     .ignoresSafeArea(edges: .bottom)
@@ -205,6 +216,7 @@ struct RouteBuilderView: View {
             .animation(.spring(response: 0.35), value: showLayerPicker)
             .animation(.spring(response: 0.3),  value: showAmenityPanel)
             .animation(.spring(response: 0.3),  value: selectedAmenity?.id)
+            .animation(.spring(response: 0.4),  value: builderState)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -227,12 +239,8 @@ struct RouteBuilderView: View {
                         .kerning(3)
                 }
             }
-            .sheet(isPresented: $showSearch) {
-                locationSearchSheet
-            }
-            .sheet(item: $shareURL) { url in
-                ShareSheet(items: [url])
-            }
+            .sheet(isPresented: $showSearch)    { locationSearchSheet }
+            .sheet(item: $shareURL)             { url in ShareSheet(items: [url]) }
             .sheet(isPresented: $showElevation) {
                 ElevationSheetView(
                     segments:    vm.segments,
@@ -252,17 +260,16 @@ struct RouteBuilderView: View {
                 .environmentObject(routeStore)
             }
             .sheet(isPresented: $showLibrary) {
-                SavedRoutesLibraryView(onLoad: { saved in
-                    loadSavedRoute(saved)
-                })
-                .environmentObject(routeStore)
+                SavedRoutesLibraryView(onLoad: { saved in loadSavedRoute(saved) })
+                    .environmentObject(routeStore)
             }
             .alert("Clear Route", isPresented: $showClearAlert) {
                 Button("Clear", role: .destructive) {
                     vm.clearAll()
-                    amenities      = []
-                    showAmenities  = false
+                    amenities       = []
+                    showAmenities   = false
                     selectedAmenity = nil
+                    builderState    = .editing
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
@@ -271,13 +278,33 @@ struct RouteBuilderView: View {
         }
     }
 
+    // MARK: - Editing State Badge
+
+    private var editingStateBadge: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(builderState == .editing
+                      ? Color(hex: "30D158")
+                      : Color(hex: "0A84FF"))
+                .frame(width: 6, height: 6)
+            Text(builderState == .editing ? "EDITING ROUTE" : "REVIEWING ROUTE")
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundColor(.primary)
+                .kerning(1.5)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(.ultraThinMaterial)
+        .cornerRadius(20)
+        .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
+    }
+
     // MARK: - Amenity Filter Panel
 
     private var amenityFilterPanel: some View {
         VStack(alignment: .trailing, spacing: 8) {
             Text("SHOW ON MAP")
-                .font(.system(size: 9, weight: .semibold,
-                              design: .monospaced))
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
                 .foregroundColor(.secondary)
                 .kerning(2)
 
@@ -293,27 +320,17 @@ struct RouteBuilderView: View {
                         Text(type.rawValue)
                             .font(.system(size: 12, weight: .medium,
                                           design: .monospaced))
-                            .foregroundColor(
-                                amenityFilter.contains(type)
-                                    ? type.swiftUIColor
-                                    : .secondary
-                            )
+                            .foregroundColor(amenityFilter.contains(type)
+                                             ? type.swiftUIColor : .secondary)
                         Image(systemName: type.icon)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(
-                                amenityFilter.contains(type)
-                                    ? type.swiftUIColor
-                                    : .secondary
-                            )
+                            .foregroundColor(amenityFilter.contains(type)
+                                             ? type.swiftUIColor : .secondary)
                         Image(systemName: amenityFilter.contains(type)
-                              ? "checkmark.circle.fill"
-                              : "circle")
+                              ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 14))
-                            .foregroundColor(
-                                amenityFilter.contains(type)
-                                    ? type.swiftUIColor
-                                    : .secondary
-                            )
+                            .foregroundColor(amenityFilter.contains(type)
+                                             ? type.swiftUIColor : .secondary)
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -323,7 +340,6 @@ struct RouteBuilderView: View {
                 .buttonStyle(.plain)
             }
 
-            // Search / hide button
             Button {
                 if showAmenities {
                     showAmenities    = false
@@ -336,8 +352,7 @@ struct RouteBuilderView: View {
                 }
             } label: {
                 Text(showAmenities ? "HIDE" : "SEARCH")
-                    .font(.system(size: 11, weight: .bold,
-                                  design: .monospaced))
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
                     .kerning(1)
                     .foregroundColor(Color(.systemBackground))
                     .padding(.horizontal, 16)
@@ -349,11 +364,7 @@ struct RouteBuilderView: View {
             .disabled(vm.segments.isEmpty)
         }
         .padding(12)
-        .background(
-            Color(.systemBackground)
-                .opacity(0.95)
-                .cornerRadius(14)
-        )
+        .background(Color(.systemBackground).opacity(0.95).cornerRadius(14))
         .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
     }
 
@@ -369,7 +380,6 @@ struct RouteBuilderView: View {
                     .font(.system(size: 18, weight: .medium))
                     .foregroundColor(amenity.type.swiftUIColor)
             }
-
             VStack(alignment: .leading, spacing: 3) {
                 Text(amenity.name)
                     .font(.system(size: 14, weight: .semibold))
@@ -380,20 +390,15 @@ struct RouteBuilderView: View {
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(amenity.type.swiftUIColor)
                     if let dist = amenity.distanceFromRoute {
-                        Text("·")
-                            .foregroundColor(.secondary)
+                        Text("·").foregroundColor(.secondary)
                         Text(String(format: "%.0fm from route", dist))
                             .font(.system(size: 11, design: .monospaced))
                             .foregroundColor(.secondary)
                     }
                 }
             }
-
             Spacer()
-
-            Button {
-                withAnimation { selectedAmenity = nil }
-            } label: {
+            Button { withAnimation { selectedAmenity = nil } } label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 20))
                     .foregroundColor(Color(.systemGray3))
@@ -419,25 +424,18 @@ struct RouteBuilderView: View {
             Divider().frame(height: 32)
             statCell(
                 value: String(format: "%.0f", vm.totalAscentFeet),
-                unit:  "ft gain"
+                unit: "ft gain"
             )
             Divider().frame(height: 32)
-            statCell(
-                value: estimatedTime,
-                unit:  "est. time"
-            )
+            statCell(value: estimatedTime, unit: "est. time")
             Divider().frame(height: 32)
-            Button {
-                withAnimation { useMetric.toggle() }
-            } label: {
+            Button { withAnimation { useMetric.toggle() } } label: {
                 VStack(spacing: 2) {
                     Text(useMetric ? "KM" : "MI")
-                        .font(.system(size: 18, weight: .thin,
-                                      design: .monospaced))
+                        .font(.system(size: 18, weight: .thin, design: .monospaced))
                         .foregroundColor(Color(hex: "0A84FF"))
                     Text("markers")
-                        .font(.system(size: 9, weight: .medium,
-                                      design: .monospaced))
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
                         .foregroundColor(.secondary)
                         .kerning(1)
                 }
@@ -463,12 +461,10 @@ struct RouteBuilderView: View {
     private func statCell(value: String, unit: String) -> some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 18, weight: .thin,
-                              design: .monospaced))
+                .font(.system(size: 18, weight: .thin, design: .monospaced))
                 .foregroundColor(.primary)
             Text(unit)
-                .font(.system(size: 9, weight: .medium,
-                              design: .monospaced))
+                .font(.system(size: 9, weight: .medium, design: .monospaced))
                 .foregroundColor(.secondary)
                 .kerning(1)
         }
@@ -476,6 +472,12 @@ struct RouteBuilderView: View {
     }
 
     // MARK: - Control Bar
+    //
+    // Two-row layout — mode toggle gets its own full-width row.
+    // Overlap between center and right buttons is architecturally impossible.
+    //
+    // Row 1: DONE EDITING / EDIT ROUTE  (full width, no competition)
+    // Row 2: Undo | Clear | → | Save | Elevation | GPX
 
     private var controlBar: some View {
         VStack(spacing: 0) {
@@ -493,9 +495,7 @@ struct RouteBuilderView: View {
                             .kerning(1)
                             .foregroundColor(Color(hex: "30D158"))
                         Spacer()
-                        Button {
-                            vm.cancelOutAndBack()
-                        } label: {
+                        Button { vm.cancelOutAndBack() } label: {
                             Text("CANCEL")
                                 .font(.system(size: 10, weight: .bold,
                                               design: .monospaced))
@@ -503,8 +503,7 @@ struct RouteBuilderView: View {
                                 .foregroundColor(Color(hex: "FF453A"))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 5)
-                                .background(
-                                    Color(hex: "FF453A").opacity(0.12))
+                                .background(Color(hex: "FF453A").opacity(0.12))
                                 .cornerRadius(8)
                         }
                         .buttonStyle(.plain)
@@ -514,8 +513,7 @@ struct RouteBuilderView: View {
                     .background(Color(hex: "30D158").opacity(0.08))
                     .overlay(
                         Rectangle().frame(height: 0.5)
-                            .foregroundColor(
-                                Color(hex: "30D158").opacity(0.2)),
+                            .foregroundColor(Color(hex: "30D158").opacity(0.2)),
                         alignment: .top
                     )
                 } else {
@@ -529,12 +527,9 @@ struct RouteBuilderView: View {
                                 .kerning(1)
                             Spacer()
                             Text(String(format: "%.2f %@ total",
-                                        useMetric
-                                            ? vm.totalKm    * 2
-                                            : vm.totalMiles * 2,
+                                        useMetric ? vm.totalKm * 2 : vm.totalMiles * 2,
                                         useMetric ? "km" : "mi"))
-                                .font(.system(size: 11,
-                                              design: .monospaced))
+                                .font(.system(size: 11, design: .monospaced))
                                 .foregroundColor(.secondary)
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 10, weight: .semibold))
@@ -546,8 +541,7 @@ struct RouteBuilderView: View {
                         .background(Color(hex: "0A84FF").opacity(0.08))
                         .overlay(
                             Rectangle().frame(height: 0.5)
-                                .foregroundColor(
-                                    Color(hex: "0A84FF").opacity(0.2)),
+                                .foregroundColor(Color(hex: "0A84FF").opacity(0.2)),
                             alignment: .top
                         )
                     }
@@ -556,103 +550,163 @@ struct RouteBuilderView: View {
                 }
             }
 
-            // Main button row
-            HStack(spacing: 10) {
+            VStack(spacing: 10) {
 
-                circleButton(icon:     "arrow.uturn.backward",
-                             color:    .primary,
-                             disabled: !vm.canUndo) {
-                    vm.undoLast()
-                }
+                // ── Row 1: Mode toggle — full width, never shared ──
+                modeToggleButton
+                    .padding(.horizontal, 16)
+                    .padding(.top, 14)
 
-                circleButton(icon:     "trash",
-                             color:    Color(hex: "FF453A"),
-                             disabled: vm.waypoints.isEmpty) {
-                    showClearAlert = true
-                }
+                // ── Row 2: Icon buttons ──
+                HStack(spacing: 10) {
+                    circleButton(
+                        icon:     "arrow.uturn.backward",
+                        color:    .primary,
+                        disabled: !vm.canUndo || builderState == .reviewing
+                    ) { vm.undoLast() }
 
-                Spacer()
+                    circleButton(
+                        icon:     "trash",
+                        color:    Color(hex: "FF453A"),
+                        disabled: vm.waypoints.isEmpty
+                    ) { showClearAlert = true }
 
-                if vm.waypoints.isEmpty {
-                    Text("Tap the map to start")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundColor(.secondary)
-                } else {
-                    Text("Tap to add points")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundColor(.secondary)
-                }
+                    Spacer()
 
-                Spacer()
+                    if vm.canExport {
+                        Button { showSaveSheet = true } label: {
+                            VStack(spacing: 3) {
+                                Image(systemName: "square.and.arrow.down")
+                                    .font(.system(size: 14, weight: .medium))
+                                Text("SAVE")
+                                    .font(.system(size: 8, weight: .bold,
+                                                  design: .monospaced))
+                                    .kerning(1)
+                            }
+                            .foregroundColor(Color(hex: "30D158"))
+                            .frame(width: 46, height: 46)
+                            .background(Color(hex: "30D158").opacity(0.10))
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(
+                                Color(hex: "30D158").opacity(0.25), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
 
-                // Save
-                if vm.canExport {
-                    Button { showSaveSheet = true } label: {
+                    if vm.segments.count >= 1 {
+                        Button { showElevation = true } label: {
+                            VStack(spacing: 3) {
+                                Image(systemName: "mountain.2.fill")
+                                    .font(.system(size: 14, weight: .medium))
+                                Text("ELEV")
+                                    .font(.system(size: 8, weight: .bold,
+                                                  design: .monospaced))
+                                    .kerning(1)
+                            }
+                            .foregroundColor(Color(hex: "FF9F0A"))
+                            .frame(width: 46, height: 46)
+                            .background(Color(hex: "FF9F0A").opacity(0.10))
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(
+                                Color(hex: "FF9F0A").opacity(0.25), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Button {
+                        if let url = vm.buildGPX() { shareURL = url }
+                    } label: {
                         VStack(spacing: 3) {
-                            Image(systemName: "square.and.arrow.down")
+                            Image(systemName: "square.and.arrow.up")
                                 .font(.system(size: 14, weight: .medium))
-                            Text("SAVE")
+                            Text("GPX")
                                 .font(.system(size: 8, weight: .bold,
                                               design: .monospaced))
                                 .kerning(1)
                         }
-                        .foregroundColor(Color(hex: "30D158"))
+                        .foregroundColor(vm.canExport ? .primary : .secondary)
                         .frame(width: 46, height: 46)
-                        .background(Color(hex: "30D158").opacity(0.10))
+                        .background(Color(.secondarySystemBackground))
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(
-                            Color(hex: "30D158").opacity(0.25),
-                            lineWidth: 1))
                     }
                     .buttonStyle(.plain)
+                    .disabled(!vm.canExport)
                 }
-
-                // Elevation
-                if vm.segments.count >= 1 {
-                    Button { showElevation = true } label: {
-                        VStack(spacing: 3) {
-                            Image(systemName: "mountain.2.fill")
-                                .font(.system(size: 14, weight: .medium))
-                            Text("ELEV")
-                                .font(.system(size: 8, weight: .bold,
-                                              design: .monospaced))
-                                .kerning(1)
-                        }
-                        .foregroundColor(Color(hex: "FF9F0A"))
-                        .frame(width: 46, height: 46)
-                        .background(Color(hex: "FF9F0A").opacity(0.10))
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(
-                            Color(hex: "FF9F0A").opacity(0.25),
-                            lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                // GPX
-                Button {
-                    if let url = vm.buildGPX() { shareURL = url }
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 14, weight: .medium))
-                        Text("GPX")
-                            .font(.system(size: 8, weight: .bold,
-                                          design: .monospaced))
-                            .kerning(1)
-                    }
-                    .foregroundColor(vm.canExport ? .primary : .secondary)
-                    .frame(width: 46, height: 46)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .disabled(!vm.canExport)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 14)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
         }
         .background(.ultraThinMaterial)
+    }
+
+    // MARK: - Mode Toggle Button
+    //
+    // Full-width pill — owns its entire row, never in competition.
+    // .lineLimit(1) and .fixedSize kept as defensive constraints.
+
+    @ViewBuilder
+    private var modeToggleButton: some View {
+        switch builderState {
+        case .editing:
+            Button {
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {
+                    builderState = .reviewing
+                }
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            } label: {
+                HStack(spacing: 8) {
+                    Spacer()
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 13, weight: .bold))
+                    Text("DONE EDITING")
+                        .font(.system(size: 13, weight: .bold,
+                                      design: .monospaced))
+                        .kerning(1)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                    Spacer()
+                }
+                .foregroundColor(.white)
+                .padding(.vertical, 13)
+                .background(vm.waypoints.isEmpty
+                            ? Color(.systemFill)
+                            : Color(hex: "30D158"))
+                .cornerRadius(13)
+            }
+            .buttonStyle(.plain)
+            .disabled(vm.waypoints.isEmpty)
+            .animation(.easeInOut(duration: 0.2), value: vm.waypoints.isEmpty)
+
+        case .reviewing:
+            Button {
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {
+                    builderState = .editing
+                }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            } label: {
+                HStack(spacing: 8) {
+                    Spacer()
+                    Image(systemName: "pencil")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("EDIT ROUTE")
+                        .font(.system(size: 13, weight: .semibold,
+                                      design: .monospaced))
+                        .kerning(1)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                    Spacer()
+                }
+                .foregroundColor(Color(hex: "0A84FF"))
+                .padding(.vertical, 13)
+                .background(Color(hex: "0A84FF").opacity(0.10))
+                .cornerRadius(13)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 13)
+                        .stroke(Color(hex: "0A84FF").opacity(0.3), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     // MARK: - Circle Button
@@ -679,7 +733,6 @@ struct RouteBuilderView: View {
         isLoadingAmenities = true
         amenities          = []
 
-        // Build bounding region from route
         var allCoords: [CLLocationCoordinate2D] = []
         for segment in vm.segments {
             let count  = segment.polyline.pointCount
@@ -688,9 +741,7 @@ struct RouteBuilderView: View {
                 count: count
             )
             segment.polyline.getCoordinates(
-                &coords,
-                range: NSRange(location: 0, length: count)
-            )
+                &coords, range: NSRange(location: 0, length: count))
             allCoords.append(contentsOf: coords.filter {
                 CLLocationCoordinate2DIsValid($0)
             })
@@ -748,15 +799,15 @@ struct RouteBuilderView: View {
 
     private func loadSavedRoute(_ saved: SavedRoute) {
         vm.clearAll()
-        amenities      = []
-        showAmenities  = false
+        amenities       = []
+        showAmenities   = false
         selectedAmenity = nil
+        builderState    = .reviewing
 
         let coords = saved.coordinateData.map { $0.coordinate }
         guard coords.count >= 2 else { return }
 
-        let polyline = MKPolyline(
-            coordinates: coords, count: coords.count)
+        let polyline = MKPolyline(coordinates: coords, count: coords.count)
         let segment  = RouteSegment(
             polyline:  polyline,
             distanceM: saved.distanceMeters,
@@ -767,8 +818,7 @@ struct RouteBuilderView: View {
             RouteWaypoint(coordinate: coords.first!, index: 0),
             RouteWaypoint(coordinate: coords.last!,  index: 1)
         ]
-        let region = MKCoordinateRegion(
-            polyline.boundingMapRect).paddedBy(1.3)
+        let region          = MKCoordinateRegion(polyline.boundingMapRect).paddedBy(1.3)
         vm.cameraRegion     = region
         vm.shouldMoveCamera = true
     }
@@ -823,8 +873,7 @@ struct RouteBuilderView: View {
                             Spacer().frame(height: 40)
                             ProgressView().tint(Color(hex: "0A84FF"))
                             Text("Searching...")
-                                .font(.system(size: 13,
-                                              design: .monospaced))
+                                .font(.system(size: 13, design: .monospaced))
                                 .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity)
@@ -832,12 +881,10 @@ struct RouteBuilderView: View {
                         VStack(spacing: 12) {
                             Spacer().frame(height: 40)
                             Image(systemName: "mappin.slash")
-                                .font(.system(size: 36,
-                                              weight: .ultraLight))
+                                .font(.system(size: 36, weight: .ultraLight))
                                 .foregroundColor(.secondary)
                             Text("No results found")
-                                .font(.system(size: 15, weight: .light,
-                                              design: .serif))
+                                .font(.system(size: 15, weight: .light, design: .serif))
                             Text("Try a different search term.")
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
@@ -847,12 +894,10 @@ struct RouteBuilderView: View {
                         VStack(spacing: 12) {
                             Spacer().frame(height: 40)
                             Image(systemName: "magnifyingglass")
-                                .font(.system(size: 36,
-                                              weight: .ultraLight))
+                                .font(.system(size: 36, weight: .ultraLight))
                                 .foregroundColor(.secondary)
                             Text("Search for a location")
-                                .font(.system(size: 15, weight: .light,
-                                              design: .serif))
+                                .font(.system(size: 15, weight: .light, design: .serif))
                             Text("Type a city, suburb, or address.")
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
@@ -869,19 +914,15 @@ struct RouteBuilderView: View {
                                 HStack(spacing: 14) {
                                     ZStack {
                                         Circle()
-                                            .fill(Color(
-                                                .secondarySystemBackground))
+                                            .fill(Color(.secondarySystemBackground))
                                             .frame(width: 36, height: 36)
                                         Image(systemName: mapItemIcon(item))
-                                            .font(.system(size: 14,
-                                                          weight: .medium))
-                                            .foregroundColor(
-                                                Color(hex: "0A84FF"))
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(Color(hex: "0A84FF"))
                                     }
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(item.name ?? "Unknown")
-                                            .font(.system(size: 14,
-                                                          weight: .medium))
+                                            .font(.system(size: 14, weight: .medium))
                                             .foregroundColor(.primary)
                                             .lineLimit(1)
                                         Text(formattedAddress(item))
@@ -891,10 +932,8 @@ struct RouteBuilderView: View {
                                     }
                                     Spacer()
                                     Image(systemName: "arrow.right")
-                                        .font(.system(size: 11,
-                                                      weight: .medium))
-                                        .foregroundColor(
-                                            Color(.tertiaryLabel))
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(Color(.tertiaryLabel))
                                 }
                                 .padding(.vertical, 4)
                             }
@@ -947,8 +986,7 @@ struct RouteBuilderView: View {
     }
 
     private func moveMap(to item: MKMapItem) {
-        guard let coord = item.placemark.location?.coordinate
-        else { return }
+        guard let coord = item.placemark.location?.coordinate else { return }
         vm.cameraRegion     = MKCoordinateRegion(
             center:             coord,
             latitudinalMeters:  2000,
@@ -982,8 +1020,7 @@ struct RouteBuilderView: View {
 // MARK: - Corner Radius Helper
 
 extension View {
-    func cornerRadius(_ radius: CGFloat,
-                      corners: UIRectCorner) -> some View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
         clipShape(RoundedCorner(radius: radius, corners: corners))
     }
 }
@@ -1009,16 +1046,12 @@ extension MKCoordinateRegion {
         let ne = MKMapPoint(x: mapRect.maxX, y: mapRect.minY)
         self.init(
             center: CLLocationCoordinate2D(
-                latitude:  (sw.coordinate.latitude
-                            + ne.coordinate.latitude)  / 2,
-                longitude: (sw.coordinate.longitude
-                            + ne.coordinate.longitude) / 2
+                latitude:  (sw.coordinate.latitude  + ne.coordinate.latitude)  / 2,
+                longitude: (sw.coordinate.longitude + ne.coordinate.longitude) / 2
             ),
             span: MKCoordinateSpan(
-                latitudeDelta:  abs(ne.coordinate.latitude
-                                    - sw.coordinate.latitude),
-                longitudeDelta: abs(ne.coordinate.longitude
-                                    - sw.coordinate.longitude)
+                latitudeDelta:  abs(ne.coordinate.latitude  - sw.coordinate.latitude),
+                longitudeDelta: abs(ne.coordinate.longitude - sw.coordinate.longitude)
             )
         )
     }
@@ -1038,14 +1071,10 @@ extension MKCoordinateRegion {
 
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
-    func makeUIViewController(
-        context: Context
-    ) -> UIActivityViewController {
+    func makeUIViewController(context: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: items,
                                  applicationActivities: nil)
     }
-    func updateUIViewController(
-        _ vc: UIActivityViewController,
-        context: Context
-    ) {}
+    func updateUIViewController(_ vc: UIActivityViewController,
+                                context: Context) {}
 }
