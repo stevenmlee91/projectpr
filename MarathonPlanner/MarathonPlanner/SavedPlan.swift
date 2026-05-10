@@ -407,7 +407,9 @@ class PlanStore: ObservableObject {
         }
     }
 
-    // MARK: - Edit Helpers
+    // MARK: - Edit: Schedule Reflow
+    // Only the workout schedule changed — reassign day-of-week without
+    // touching mileage, phases, or completion data.
 
     func reflowSchedule(_ plan: SavedPlan,
                         newSchedule: UserSchedule) -> SavedPlan {
@@ -427,6 +429,10 @@ class PlanStore: ObservableObject {
         )
     }
 
+    // MARK: - Edit: Full Regeneration (no preservation)
+    // Used when a clean slate is appropriate and completion data
+    // does not need to be carried forward.
+
     func regeneratePlan(_ plan: SavedPlan,
                         newSettings: UserSettings) -> SavedPlan {
         let trainingWeeks = PlanGenerator.generate(settings: newSettings)
@@ -441,6 +447,132 @@ class PlanStore: ObservableObject {
             weeks:     saved,
             settings:  newSettings
         )
+    }
+
+    // MARK: - Edit: Full Regeneration with Completion Preservation
+    //
+    // Handles race date changes, plan length changes, taper changes,
+    // methodology changes — anything that requires a full rebuild.
+    //
+    // Preserves all completed/skipped/modified workout data by matching
+    // calendar dates between the old and new plan. For pure date shifts
+    // (race moved N days), also tries matching the shifted original date
+    // so that a completed 18-miler from last Saturday stays marked done
+    // even when the plan moves 2 weeks later.
+    //
+    // Future days (after today) are always left as .notStarted.
+
+    func regeneratePlanPreservingHistory(
+        _ plan      : SavedPlan,
+        newSettings : UserSettings,
+        newRaceDate : Date
+    ) -> SavedPlan {
+
+        let cal = Calendar.current
+
+        // New training start date from updated race date + plan length
+        let newStart = EditDateCalculator.startDate(
+            raceDate:   newRaceDate,
+            planLength: newSettings.planLength
+        )
+
+        // Days the plan shifted (positive = later, negative = earlier)
+        let dateShiftDays = cal.dateComponents(
+            [.day], from: plan.startDate, to: newStart).day ?? 0
+
+        // Snapshot completion data before regenerating
+        let lookup = buildCompletionLookup(from: plan.weeks)
+
+        // Full regeneration through the same pipeline as plan creation
+        let trainingWeeks = PlanGenerator.generate(settings: newSettings)
+        let newSavedWeeks = buildSavedWeeks(from:      trainingWeeks,
+                                             startDate: newStart)
+
+        // Re-apply preserved completion data onto the new weeks
+        let finalWeeks = applyCompletionPreservation(
+            to:            newSavedWeeks,
+            lookup:        lookup,
+            dateShiftDays: dateShiftDays
+        )
+
+        return SavedPlan(
+            id:        plan.id,       // Same ID — update, not a new plan
+            name:      plan.name,
+            raceDate:  newRaceDate,
+            startDate: newStart,
+            planType:  newSettings.planType.rawValue,
+            weeks:     finalWeeks,
+            settings:  newSettings
+        )
+    }
+
+    // MARK: - Completion Lookup Builder
+
+    private func buildCompletionLookup(
+        from weeks: [SavedWeek]
+    ) -> [Date: (CompletionStatus, Double?, String?)] {
+        let cal = Calendar.current
+        var lookup: [Date: (CompletionStatus, Double?, String?)] = [:]
+        for week in weeks {
+            for day in week.days {
+                // Only store days that have been interacted with
+                guard day.completionStatus != .notStarted
+                    || day.actualMiles != nil
+                    || day.completionNote != nil
+                else { continue }
+                let date = cal.startOfDay(for: day.date)
+                lookup[date] = (day.completionStatus,
+                                day.actualMiles,
+                                day.completionNote)
+            }
+        }
+        return lookup
+    }
+
+    // MARK: - Apply Completion Preservation
+
+    private func applyCompletionPreservation(
+        to newWeeks     : [SavedWeek],
+        lookup          : [Date: (CompletionStatus, Double?, String?)],
+        dateShiftDays   : Int
+    ) -> [SavedWeek] {
+        let cal   = Calendar.current
+        let today = cal.startOfDay(for: Date())
+
+        return newWeeks.map { week in
+            var mutableWeek  = week
+            mutableWeek.days = week.days.map { day -> SavedDay in
+                var mutableDay = day
+                let date       = cal.startOfDay(for: day.date)
+
+                // Never restore completion onto future dates
+                guard date <= today else { return mutableDay }
+
+                // Strategy 1: exact calendar date match
+                if let record = lookup[date] {
+                    mutableDay.completionStatus = record.0
+                    mutableDay.actualMiles      = record.1
+                    mutableDay.completionNote   = record.2
+                    return mutableDay
+                }
+
+                // Strategy 2: shifted date match
+                // Plan moved N days — find the workout at its original date.
+                if dateShiftDays != 0,
+                   let originalDate = cal.date(
+                       byAdding: .day,
+                       value:    -dateShiftDays,
+                       to:       date),
+                   let record = lookup[cal.startOfDay(for: originalDate)] {
+                    mutableDay.completionStatus = record.0
+                    mutableDay.actualMiles      = record.1
+                    mutableDay.completionNote   = record.2
+                }
+
+                return mutableDay
+            }
+            return mutableWeek
+        }
     }
 
     // MARK: - Persistence

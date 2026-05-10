@@ -7,6 +7,7 @@ struct EditPlanView: View {
     let plan: SavedPlan
 
     @State private var editedSettings : UserSettings
+    @State private var raceDate       : Date          // NEW — race date editing
     @State private var goalHours      : Int
     @State private var goalMinutes    : Int
     @State private var isSaving       = false
@@ -15,30 +16,65 @@ struct EditPlanView: View {
     init(plan: SavedPlan) {
         self.plan = plan
         _editedSettings = State(initialValue: plan.settings)
+        _raceDate       = State(initialValue: plan.raceDate)   // NEW
         let h = plan.settings.goalTimeMinutes / 60
         let m = plan.settings.goalTimeMinutes % 60
         _goalHours   = State(initialValue: h)
         _goalMinutes = State(initialValue: m)
     }
 
+    // MARK: - Change Detection
+
+    private var raceDateChanged: Bool {
+        !Calendar.current.isDate(raceDate, inSameDayAs: plan.raceDate)
+    }
+
     private var requiresFullRegen: Bool {
-        editedSettings.goalTimeMinutes  != plan.settings.goalTimeMinutes
-        || editedSettings.baseMileage   != plan.settings.baseMileage
-        || editedSettings.planType      != plan.settings.planType
-        || editedSettings.planLength    != plan.settings.planLength
-        || editedSettings.taperDuration != plan.settings.taperDuration
+        raceDateChanged
+            || editedSettings.goalTimeMinutes  != plan.settings.goalTimeMinutes
+            || editedSettings.baseMileage      != plan.settings.baseMileage
+            || editedSettings.planType         != plan.settings.planType
+            || editedSettings.planLength       != plan.settings.planLength
+            || editedSettings.taperDuration    != plan.settings.taperDuration
     }
 
     private var hasAnyChange: Bool {
-        editedSettings.goalTimeMinutes  != plan.settings.goalTimeMinutes
-        || editedSettings.baseMileage   != plan.settings.baseMileage
-        || editedSettings.planType      != plan.settings.planType
-        || editedSettings.planLength    != plan.settings.planLength
-        || editedSettings.taperDuration != plan.settings.taperDuration
-        || editedSettings.schedule      != plan.settings.schedule
+        raceDateChanged
+            || editedSettings.goalTimeMinutes  != plan.settings.goalTimeMinutes
+            || editedSettings.baseMileage      != plan.settings.baseMileage
+            || editedSettings.planType         != plan.settings.planType
+            || editedSettings.planLength       != plan.settings.planLength
+            || editedSettings.taperDuration    != plan.settings.taperDuration
+            || editedSettings.schedule         != plan.settings.schedule
     }
 
-    // Available plan types filtered to same race type as original plan
+    // MARK: - Date Helpers
+
+    private var previewStartDate: Date {
+        EditDateCalculator.startDate(raceDate:   raceDate,
+                                     planLength: editedSettings.planLength)
+    }
+
+    private var dateValidationIssue: String? {
+        if raceDate < Date() {
+            return "Race date cannot be in the past."
+        }
+        let cal = Calendar.current
+        let weeksAvailable = cal.dateComponents(
+            [.weekOfYear], from: Date(), to: raceDate).weekOfYear ?? 0
+        if weeksAvailable < editedSettings.planLength.rawValue {
+            return "Only \(weeksAvailable) weeks until race day. "
+                + "Consider a shorter plan or a later race date."
+        }
+        return nil
+    }
+
+    private var isSaveBlocked: Bool {
+        !hasAnyChange || isSaving || dateValidationIssue != nil
+    }
+
+    // MARK: - Available options (same race type as original)
+
     private var availablePlanTypes: [PlanType] {
         PlanType.options(for: plan.settings.raceType)
     }
@@ -49,41 +85,38 @@ struct EditPlanView: View {
 
     private var goalHourRange: [Int] {
         plan.settings.raceType == .halfMarathon
-            ? Array(1...3)
-            : Array(2...6)
+            ? Array(1...3) : Array(2...6)
     }
+
+    private let dateFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateStyle = .medium; return f
+    }()
+
+    // MARK: - Body
 
     var body: some View {
         NavigationView {
             ZStack {
                 Color(.systemBackground).ignoresSafeArea()
-
                 ScrollView {
                     VStack(spacing: 0) {
-                        Group {
-                            editHeader
-                            planTypeSection
-                            goalTimeSection
-                            baseMileageSection
-                            planLengthSection
-                            taperSection
-                        }
-                        Group {
-                            longRunDaySection
-                            primaryWorkoutSection
-                            secondaryWorkoutSection
-                        }
-                        Group {
-                            midweekLongSection
-                            crossTrainSection
-                            restDaysSection
-                        }
-                        Group {
-                            conflictWarningsView
-                            if showPreview { previewSection }
-                            saveSection
-                            Spacer().frame(height: 60)
-                        }
+                        editHeader
+                        raceDateSection         // NEW
+                        planTypeSection
+                        goalTimeSection
+                        baseMileageSection
+                        planLengthSection
+                        taperSection
+                        longRunDaySection
+                        primaryWorkoutSection
+                        secondaryWorkoutSection
+                        midweekLongSection
+                        crossTrainSection
+                        restDaysSection
+                        conflictWarningsView
+                        if showPreview { previewSection }
+                        saveSection
+                        Spacer().frame(height: 60)
                     }
                 }
             }
@@ -105,19 +138,31 @@ struct EditPlanView: View {
     private var editHeader: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("EDITING")
-                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .font(.system(size: 10, weight: .semibold,
+                              design: .monospaced))
                 .foregroundColor(.secondary)
                 .kerning(3)
             Text(plan.name)
                 .font(.system(size: 24, weight: .light, design: .serif))
                 .foregroundColor(.primary)
 
-            if requiresFullRegen {
+            if let issue = dateValidationIssue {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.orange)
+                    Text(issue)
+                        .font(.system(size: 11))
+                        .foregroundColor(.orange)
+                }
+                .padding(.top, 4)
+            } else if requiresFullRegen {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.system(size: 11))
                         .foregroundColor(.orange)
-                    Text("Changes will trigger a full plan regeneration")
+                    Text("Changes will trigger a full plan regeneration. "
+                         + "Completed workouts are preserved.")
                         .font(.system(size: 11))
                         .foregroundColor(.orange)
                 }
@@ -127,7 +172,7 @@ struct EditPlanView: View {
                     Image(systemName: "calendar.badge.clock")
                         .font(.system(size: 11))
                         .foregroundColor(Color(hex: "30D158"))
-                    Text("Workouts will reflow onto new days")
+                    Text("Workouts will reflow onto updated days.")
                         .font(.system(size: 11))
                         .foregroundColor(Color(hex: "30D158"))
                 }
@@ -138,6 +183,77 @@ struct EditPlanView: View {
         .padding(.horizontal, 24)
         .padding(.top, 20)
         .padding(.bottom, 24)
+    }
+
+    // MARK: - Race Date (NEW)
+
+    private var raceDateSection: some View {
+        VStack(spacing: 0) {
+            EditLabel("RACE DATE")
+            ZStack {
+                Color(.secondarySystemBackground)
+                VStack(alignment: .leading, spacing: 0) {
+
+                    DatePicker(
+                        "Race Date",
+                        selection: $raceDate,
+                        in: Calendar.current.date(
+                            byAdding: .day, value: 1, to: Date())!...,
+                        displayedComponents: .date
+                    )
+                    .datePickerStyle(.compact)
+                    .padding(16)
+
+                    if raceDateChanged {
+                        Divider()
+                        HStack(spacing: 8) {
+                            Image(systemName: "calendar.badge.clock")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(hex: "0A84FF"))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Training begins "
+                                     + dateFmt.string(from: previewStartDate))
+                                    .font(.system(size: 12,
+                                                  design: .monospaced))
+                                    .foregroundColor(Color(hex: "0A84FF"))
+                                let daysDelta = Calendar.current
+                                    .dateComponents(
+                                        [.day],
+                                        from: plan.raceDate,
+                                        to: raceDate).day ?? 0
+                                if daysDelta != 0 {
+                                    Text(daysDelta > 0
+                                         ? "Race moved \(daysDelta) days later"
+                                         : "Race moved \(abs(daysDelta)) days earlier")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                    }
+
+                    if let issue = dateValidationIssue {
+                        Divider()
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                                .font(.system(size: 12))
+                            Text(issue)
+                                .font(.system(size: 12))
+                                .foregroundColor(.orange)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                    }
+                }
+            }
+            .cornerRadius(12)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+        }
     }
 
     // MARK: - Plan Type
@@ -185,10 +301,8 @@ struct EditPlanView: View {
                         .font(.system(size: 22, weight: .thin))
 
                     Picker("", selection: $goalMinutes) {
-                        ForEach(
-                            [0,5,10,15,20,25,30,35,40,45,50,55],
-                            id: \.self
-                        ) { m in
+                        ForEach([0,5,10,15,20,25,30,35,40,45,50,55],
+                                id: \.self) { m in
                             Text(String(format: "%02dm", m)).tag(m)
                         }
                     }
@@ -272,8 +386,8 @@ struct EditPlanView: View {
             .padding(.bottom, 24)
         }
     }
-    
-    // Add after planLengthSection:
+
+    // MARK: - Taper
 
     private var taperSection: some View {
         VStack(spacing: 0) {
@@ -303,9 +417,10 @@ struct EditPlanView: View {
                                 }
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(option.label)
-                                        .font(.system(size: 14,
-                                                      weight: editedSettings.taperDuration == option
-                                                      ? .semibold : .regular))
+                                        .font(.system(
+                                            size: 14,
+                                            weight: editedSettings.taperDuration == option
+                                                ? .semibold : .regular))
                                         .foregroundColor(.primary)
                                     Text(option.description)
                                         .font(.system(size: 11))
@@ -329,6 +444,7 @@ struct EditPlanView: View {
             .padding(.bottom, 24)
         }
     }
+
     // MARK: - Long Run Day
 
     private var longRunDaySection: some View {
@@ -407,7 +523,7 @@ struct EditPlanView: View {
         }
     }
 
-    // MARK: - Cross Train
+    // MARK: - Cross-Train
 
     private var crossTrainSection: some View {
         Group {
@@ -493,7 +609,6 @@ struct EditPlanView: View {
     private var previewSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             EditLabel("PREVIEW CHANGES")
-
             VStack(alignment: .leading, spacing: 8) {
                 let notes = buildChangeNotes()
                 if notes.isEmpty {
@@ -527,9 +642,7 @@ struct EditPlanView: View {
 
     private var saveSection: some View {
         VStack(spacing: 12) {
-            Button {
-                showPreview.toggle()
-            } label: {
+            Button { showPreview.toggle() } label: {
                 HStack(spacing: 8) {
                     Image(systemName: showPreview ? "eye.slash" : "eye")
                         .font(.system(size: 13))
@@ -550,8 +663,7 @@ struct EditPlanView: View {
             Button(action: saveChanges) {
                 HStack(spacing: 10) {
                     if isSaving {
-                        ProgressView()
-                            .scaleEffect(0.8)
+                        ProgressView().scaleEffect(0.8)
                         Text("SAVING...")
                             .font(.system(size: 13, weight: .semibold,
                                           design: .monospaced))
@@ -572,12 +684,12 @@ struct EditPlanView: View {
                 .foregroundColor(Color(.systemBackground))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
-                .background(hasAnyChange
-                            ? Color(.label)
-                            : Color(.systemFill))
+                .background(isSaveBlocked
+                            ? Color(.systemFill)
+                            : Color(.label))
                 .cornerRadius(14)
             }
-            .disabled(!hasAnyChange || isSaving)
+            .disabled(isSaveBlocked)
             .padding(.horizontal, 16)
         }
         .padding(.bottom, 8)
@@ -589,21 +701,26 @@ struct EditPlanView: View {
         syncGoalTime()
         isSaving = true
 
-        let captured = editedSettings
-        let original = plan
+        let capturedSettings  = editedSettings
+        let capturedRaceDate  = raceDate
+        let original          = plan
+        let raceDateUnchanged = Calendar.current.isDate(
+            capturedRaceDate, inSameDayAs: original.raceDate)
 
         DispatchQueue.global(qos: .userInitiated).async {
             let updatedPlan: SavedPlan
 
-            if original.settings.onlyScheduleDiffers(from: captured) {
+            if raceDateUnchanged
+                && original.settings.onlyScheduleDiffers(from: capturedSettings) {
+                // Only schedule changed — reflow workouts onto new days
                 updatedPlan = store.reflowSchedule(
-                    original,
-                    newSchedule: captured.schedule
-                )
+                    original, newSchedule: capturedSettings.schedule)
             } else {
-                updatedPlan = store.regeneratePlan(
+                // Full regeneration — preserves all completed workout history
+                updatedPlan = store.regeneratePlanPreservingHistory(
                     original,
-                    newSettings: captured
+                    newSettings:    capturedSettings,
+                    newRaceDate:    capturedRaceDate
                 )
             }
 
@@ -622,6 +739,10 @@ struct EditPlanView: View {
         let old = plan.settings
         let new = editedSettings
 
+        if raceDateChanged {
+            notes.append("Race date: \(dateFmt.string(from: plan.raceDate)) → \(dateFmt.string(from: raceDate))")
+            notes.append("Training begins: \(dateFmt.string(from: previewStartDate))")
+        }
         if old.planType != new.planType {
             notes.append("Plan type: \(old.planType.rawValue) → \(new.planType.rawValue) (full regeneration)")
         }
@@ -658,14 +779,10 @@ struct EditPlanView: View {
 
     private var restLabel: String {
         switch editedSettings.planType {
-        case .hansons, .hansonsHalf:
-            return "REST DAY (1 ONLY)"
-        case .pfitz:
-            return "REST DAY (1 MAXIMUM)"
-        case .higdon, .higdonHalfNovice, .firstHalf:
-            return "REST DAYS (SELECT 2)"
-        case .higdonIntermediate, .higdonHalfIntermediate:
-            return "REST DAY (1 MINIMUM)"
+        case .hansons, .hansonsHalf:    return "REST DAY (1 ONLY)"
+        case .pfitz:                     return "REST DAY (1 MAXIMUM)"
+        case .higdon, .higdonHalfNovice, .firstHalf: return "REST DAYS (SELECT 2)"
+        case .higdonIntermediate, .higdonHalfIntermediate: return "REST DAY (1 MINIMUM)"
         }
     }
 
@@ -680,7 +797,6 @@ struct EditPlanView: View {
         if p.requiresTwoWorkoutDays { hard.insert(s.workoutDay2) }
         if p.usesMidweekLongRun     { hard.insert(s.midweekLongDay) }
         if p.usesCrossTraining, let ct = s.crossTrainDay { hard.insert(ct) }
-
         let minRun  = minimumRunDays(for: p)
         let maxRest = 7 - minRun
         let curRest = s.restDays.filter { !hard.contains($0) }.count
@@ -752,7 +868,31 @@ struct EditPlanView: View {
     }
 }
 
-// MARK: - Sub-components
+// MARK: - Date Calculator
+// Shared helper — mirrors the logic in createSavedPlan().
+// Exposed here so EditPlanView can preview the new start date live.
+
+enum EditDateCalculator {
+    static func startDate(raceDate: Date, planLength: PlanLength) -> Date {
+        var cal          = Calendar(identifier: .gregorian)
+        cal.firstWeekday = 2
+        cal.timeZone     = .current
+        let weekday         = cal.component(.weekday, from: raceDate)
+        let daysSinceMonday = (weekday + 5) % 7
+        guard let raceWeekMonday = cal.date(
+            byAdding: .day,
+            value:    -daysSinceMonday,
+            to:       cal.startOfDay(for: raceDate)
+        ) else { return raceDate }
+        return cal.date(
+            byAdding: .weekOfYear,
+            value:    -(planLength.rawValue - 1),
+            to:       raceWeekMonday
+        ) ?? raceDate
+    }
+}
+
+// MARK: - Sub-components (unchanged from previous version)
 
 struct EditLabel: View {
     let t: String
@@ -834,8 +974,7 @@ struct EditDurationChip: View {
                               weight: isSelected ? .semibold : .regular,
                               design: .monospaced))
                 .foregroundColor(isSelected
-                                 ? Color(.systemBackground)
-                                 : .secondary)
+                                 ? Color(.systemBackground) : .secondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(isSelected

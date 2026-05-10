@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B07526012F9B0C72008F9552 /* PlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526002F9B0C72008F9552 /* PlanStore.swift */; };
+		B07526012F9B0C72008F9552 /* SavedPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526002F9B0C72008F9552 /* SavedPlan.swift */; };
 		B07526032F9B0C89008F9552 /* PlanListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526022F9B0C89008F9552 /* PlanListView.swift */; };
 		B07526052F9B0C9F008F9552 /* CreatePlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526042F9B0C9F008F9552 /* CreatePlanView.swift */; };
 		B07526072F9B0CB4008F9552 /* SavedPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07526062F9B0CB4008F9552 /* SavedPlanView.swift */; };
@@ -91,7 +91,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		B07526002F9B0C72008F9552 /* PlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanStore.swift; sourceTree = "<group>"; };
+		B07526002F9B0C72008F9552 /* SavedPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedPlan.swift; sourceTree = "<group>"; };
 		B07526022F9B0C89008F9552 /* PlanListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanListView.swift; sourceTree = "<group>"; };
 		B07526042F9B0C9F008F9552 /* CreatePlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePlanView.swift; sourceTree = "<group>"; };
 		B07526062F9B0CB4008F9552 /* SavedPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedPlanView.swift; sourceTree = "<group>"; };
@@ -243,7 +243,7 @@
 				B08F5A3D2FAFF72700BFFC53 /* HigdonIntermediateGenerator.swift */,
 				B08F59BD2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift */,
 				B075260C2F9B1317008F9552 /* ScheduleSetupView.swift */,
-				B07526002F9B0C72008F9552 /* PlanStore.swift */,
+				B07526002F9B0C72008F9552 /* SavedPlan.swift */,
 				B08F59BB2FA1B9BB00BFFC53 /* NotificationsManager.swift */,
 				B07526102F9DD78F008F9552 /* WeekDetailViewModel.swift */,
 				B075260E2F9D9F2B008F9552 /* EditPlanView.swift */,
@@ -473,7 +473,7 @@
 				B0A62DB02F9862890093719D /* PlanView.swift in Sources */,
 				B08F5A322FAC456F00BFFC53 /* OffSeasonStore.swift in Sources */,
 				B08F59C02FA1BDDD00BFFC53 /* PaceCalculatorView.swift in Sources */,
-				B07526012F9B0C72008F9552 /* PlanStore.swift in Sources */,
+				B07526012F9B0C72008F9552 /* SavedPlan.swift in Sources */,
 				B08F59DF2FA6487A00BFFC53 /* NearbyAmenitiesService.swift in Sources */,
 				B08F5A302FAC31D400BFFC53 /* CreateplanCTAButton.swift in Sources */,
 				B075260D2F9B1317008F9552 /* ScheduleSetupView.swift in Sources */,
