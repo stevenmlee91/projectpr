@@ -28,13 +28,14 @@ struct FirstHalfPlanGenerator {
             let wk    = i + 1
             let total = mileage[i]
             let lr    = longRuns[i]
-            let phase = phaseName(week: wk, total: n)
+            let (phase, phaseLabel) = phaseInfo(week: wk, total: n)
             let isCut = isCutback(week: wk, total: n)
             let isTap = wk > n - 2
 
             weeks.append(buildWeek(
                 weekNumber: wk,
                 phase:      phase,
+                phaseLabel: phaseLabel,
                 total:      total,
                 longMiles:  lr,
                 schedule:   schedule,
@@ -52,16 +53,11 @@ struct FirstHalfPlanGenerator {
     }
 
     // MARK: - Weekly Mileage Schedule
-    // Starts at min(base, 14), ramps conservatively to 28 peak.
-    // Cutback weeks every 3–4 weeks step back 20%.
-    // Hard ceiling: 28 mpw always enforced.
 
     static func weeklyMileageSchedule(n: Int,
                                        base: Double) -> [Double] {
         let peak       = peakWeekly
-        let taperStart = n - 1          // weeks n-1 and n are taper
-        // Entry mileage — beginner starts at 12–16 mpw regardless
-        // of stated base to prevent inflated starting points
+        let taperStart = n - 1
         let start      = min(max(base, 12), 16).rounded(toPlaces: 0)
 
         var result  : [Double] = []
@@ -72,17 +68,12 @@ struct FirstHalfPlanGenerator {
             let val : Double
 
             if wk > taperStart {
-                // Race week — very low
                 val = (peak * 0.28).rounded(toPlaces: 0)
             } else if wk == taperStart {
-                // First taper week
                 val = (peak * 0.62).rounded(toPlaces: 0)
             } else if isCutback(week: wk, total: n) {
-                // Step back 20% from current
                 val = max((current * 0.80).rounded(toPlaces: 0), 12)
-                // Note: don't update current on cutback weeks
             } else {
-                // Linear ramp toward peak, capped at 10% per week
                 let progress = Double(i) / Double(taperStart - 1)
                 let target   = start + (peak - start) * progress
                 let capped   = min(target, current * 1.10)
@@ -90,7 +81,6 @@ struct FirstHalfPlanGenerator {
                 current = val
             }
 
-            // Hard ceiling — never exceed 28 mpw under any circumstances
             result.append(min(val, peakWeekly))
         }
 
@@ -98,19 +88,17 @@ struct FirstHalfPlanGenerator {
     }
 
     // MARK: - Long Run Progression
-    // Canonical 16-week sequence. Never exceeds 11 miles.
-    // Week 16 = 0 (race day injected by injectRaceDay).
 
     static func longRunSchedule(n: Int) -> [Double] {
         let canonical16: [Double] = [
-            3,  4,  5,  4,    // weeks 1–4   (w4 = cutback)
-            6,  7,  5,        // weeks 5–7   (w7 = cutback)
-            8,  9,  7,        // weeks 8–10  (w10 = cutback)
-            10, 11,           // weeks 11–12 (peak)
-            8,                // week 13 taper
-            5,                // week 14 taper
-            3,                // week 15 pre-race
-            0                 // week 16 race (overwritten)
+            3,  4,  5,  4,
+            6,  7,  5,
+            8,  9,  7,
+            10, 11,
+            8,
+            5,
+            3,
+            0
         ]
 
         let clamped = canonical16.map { min($0, peakLong) }
@@ -121,8 +109,7 @@ struct FirstHalfPlanGenerator {
         return extra + clamped
     }
 
-    // MARK: - Cutback Weeks
-    // Canonical cutbacks at weeks 4, 7, 10 of a 16-week plan.
+    // MARK: - Cutback Detection
 
     static func isCutback(week: Int, total: Int) -> Bool {
         let offset    = 16 - total
@@ -130,30 +117,27 @@ struct FirstHalfPlanGenerator {
         return [4, 7, 10].contains(canonical)
     }
 
-    // MARK: - Phase Names
+    // MARK: - Phase Info
+    // Returns both the canonical TrainingPhase enum and the
+    // First Half-specific display label.
 
-    static func phaseName(week: Int, total: Int) -> String {
+    static func phaseInfo(week: Int, total: Int) -> (TrainingPhase, String) {
         let isTap  = week > total - 2
         let offset = 16 - total
         let c      = week + offset
 
-        if isTap   { return "Taper" }
-        if c <= 4  { return "Getting Started" }
-        if c <= 10 { return "Building Fitness" }
-        return "Race Preparation"
+        if isTap   { return (.taper, "Taper")            }
+        if c <= 4  { return (.base,  "Getting Started")  }
+        if c <= 10 { return (.base,  "Building Fitness") }
+        return             (.build,  "Race Preparation")
     }
 
     // MARK: - Week Builder
-    // Exactly three running days:
-    //   lrDay  → long run
-    //   q1Day  → easy run
-    //   q2Day  → steady run
-    // All other non-rest days default to rest.
-    // This prevents extra miles leaking into unintended days.
 
     static func buildWeek(
         weekNumber : Int,
-        phase      : String,
+        phase      : TrainingPhase,   // canonical enum
+        phaseLabel : String,          // First Half-specific display
         total      : Double,
         longMiles  : Double,
         schedule   : UserSchedule,
@@ -162,22 +146,16 @@ struct FirstHalfPlanGenerator {
         totalWeeks : Int
     ) -> TrainingWeek {
         let lrDay = schedule.longRunDay
-        let q1Day = schedule.workoutDay1   // easy run day
-        let q2Day = schedule.workoutDay2   // steady run day
+        let q1Day = schedule.workoutDay1
+        let q2Day = schedule.workoutDay2
         let rests = schedule.restDays
 
-        // The three designated running days
         let runningDays: Set<Weekday> = [lrDay, q1Day, q2Day]
 
-        // Clamp long run to hard ceiling
-        let longM = min(max(longMiles, 3), peakLong)
-
-        // Remaining miles split between easy and steady days only.
-        // Hard-cap total at peakWeekly before distributing.
+        let longM       = min(max(longMiles, 3), peakLong)
         let cappedTotal = min(total, peakWeekly)
         let remain      = max(0, cappedTotal - longM)
 
-        // Split evenly between the two non-long running days
         let easyM   = (remain / 2.0).rounded(toPlaces: 1)
         let steadyM = max(0, remain - easyM).rounded(toPlaces: 1)
 
@@ -187,7 +165,6 @@ struct FirstHalfPlanGenerator {
             let td: TrainingDay
 
             if rests.contains(day) {
-                // Explicitly marked rest
                 td = makeRest(day, isTaper: isTaper)
             } else if day == lrDay {
                 td = makeLongRun(day, miles: longM,
@@ -203,23 +180,22 @@ struct FirstHalfPlanGenerator {
                                    weekNumber: weekNumber,
                                    isTaper:    isTaper)
             } else if runningDays.contains(day) {
-                // Defensive — should not be reached given the
-                // three cases above cover all runningDays members
                 td = makeEasyRun(day, miles: easyM,
                                  weekNumber: weekNumber,
                                  isCutback:  isCutback)
             } else {
-                // Any day not in rests and not a designated running
-                // day becomes a rest day — no leaked miles
                 td = makeRest(day, isTaper: isTaper)
             }
 
             days.append(td)
         }
 
-        return TrainingWeek(weekNumber: weekNumber,
-                            phase:      phase,
-                            days:       days)
+        return TrainingWeek(
+            weekNumber: weekNumber,
+            phase:      phase,       // TrainingPhase enum
+            phaseLabel: phaseLabel,  // "Getting Started", "Building Fitness", etc.
+            days:       days
+        )
     }
 
     // MARK: - Day Makers

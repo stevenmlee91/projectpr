@@ -898,7 +898,7 @@ struct WeekProgressCard: View {
                                       design: .monospaced))
                         .foregroundColor(.secondary)
                         .kerning(3)
-                    Text(liveWeek.phase)
+                    Text(liveWeek.phaseLabel)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.primary)
                 }

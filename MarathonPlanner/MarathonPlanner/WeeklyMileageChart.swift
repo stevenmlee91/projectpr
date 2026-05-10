@@ -1,25 +1,53 @@
 import SwiftUI
 import Charts
 
-// MARK: - Chart Phase
-// Separate from TrainingPhase — adds past/current/future
-// context that is only relevant to the chart display.
+// MARK: - Week Display State
+// Single source of truth for ALL chart bar colors and legend entries.
+// Both barColor() and the legend derive from this — never from separate sources.
 
-enum ChartPhase {
-    case past, current, peak, taper, race, future
+private enum WeekDisplayState: CaseIterable {
+    case past       // completed weeks
+    case current    // this week
+    case upcoming   // future base/build weeks — neutral
+    case peak       // future peak week
+    case taper      // future taper weeks
+    case race       // race week
+
+    // One color definition used by both bars AND legend
+    var color: Color {
+        switch self {
+        case .past:     return Color(hex: "30D158")
+        case .current:  return Color.white
+        case .upcoming: return Color(.systemFill)
+        case .peak:     return Color(hex: "FF453A")
+        case .taper:    return Color(hex: "FF9F0A")
+        case .race:     return Color.yellow
+        }
+    }
+
+    var legendLabel: String {
+        switch self {
+        case .past:     return "Done"
+        case .current:  return "This Week"
+        case .upcoming: return "Future"
+        case .peak:     return "Peak"
+        case .taper:    return "Taper"
+        case .race:     return "Race"
+        }
+    }
 }
 
 // MARK: - Chart Bar
 
 struct ChartBar: Identifiable {
-    let id            : UUID
-    let weekNumber    : Int
-    let miles         : Double
-    let phase         : ChartPhase
-    let trainingPhase : TrainingPhase
-    let phaseLabel    : String
-    let isCurrent     : Bool
-    let hasLogged     : Bool
+    let id         : UUID
+    let weekNumber : Int
+    let miles      : Double
+    let phase      : TrainingPhase
+    let phaseLabel : String
+    let isCurrent  : Bool
+    let isPast     : Bool
+    let hasLogged  : Bool
 }
 
 // MARK: - Weekly Mileage Chart View
@@ -33,16 +61,13 @@ struct WeeklyMileageChartView: View {
     @State private var selectedWeekNum : Int? = nil
     @State private var animateChart    = false
 
-    // MARK: - Phase Parameters
+    // MARK: - Computed
 
-    private var taperWeeks : Int { TrainingPhaseEngine.taperWeeks(for: plan) }
-    private var totalWeeks : Int { plan.weeks.count }
+    private var totalWeeks: Int { plan.weeks.count }
 
     private var peakWeekNum: Int {
         TrainingPhaseEngine.peakWeekNumber(for: plan)
     }
-
-    // MARK: - Computed
 
     private var hasAnyLoggedData: Bool {
         plan.weeks.contains { $0.hasAnyActualMiles }
@@ -50,41 +75,19 @@ struct WeeklyMileageChartView: View {
 
     private var bars: [ChartBar] {
         plan.weeks.map { week in
-            let tp = TrainingPhaseEngine.phase(
-                weekNumber:  week.weekNumber,
-                totalWeeks:  totalWeeks,
-                taperWeeks:  taperWeeks,
-                peakWeekNumber: peakWeekNum      // ← data-derived, not a count
-            )
-
-            let chartPhase: ChartPhase
-            if week.weekNumber == totalWeeks {
-                chartPhase = .race
-            } else if week.weekNumber < currentWeekNum {
-                chartPhase = .past
-            } else if week.weekNumber == currentWeekNum {
-                chartPhase = .current
-            } else {
-                switch tp {
-                case .peak:  chartPhase = .peak
-                case .taper: chartPhase = .taper
-                default:     chartPhase = .future
-                }
-            }
-
             let miles: Double = showingActual
                 ? week.actualTotalMiles
                 : week.totalMiles
 
             return ChartBar(
-                id:            week.id,
-                weekNumber:    week.weekNumber,
-                miles:         miles,
-                phase:         chartPhase,
-                trainingPhase: tp,
-                phaseLabel:    week.phase,
-                isCurrent:     week.weekNumber == currentWeekNum,
-                hasLogged:     week.hasAnyActualMiles
+                id:         week.id,
+                weekNumber: week.weekNumber,
+                miles:      miles,
+                phase:      week.phase,
+                phaseLabel: week.phaseLabel,
+                isCurrent:  week.weekNumber == currentWeekNum,
+                isPast:     week.weekNumber < currentWeekNum,
+                hasLogged:  week.hasAnyActualMiles
             )
         }
     }
@@ -104,6 +107,26 @@ struct WeeklyMileageChartView: View {
     }
 
     private var weekCount: Int { plan.weeks.count }
+
+    // MARK: - Display State
+    // The ONLY place where a bar's visual state is computed.
+    // Both barColor() and selectedDetail() use this.
+
+    // AFTER:
+    private func displayState(for bar: ChartBar) -> WeekDisplayState {
+        // Race week: always yellow — checked first, absolute
+        if bar.phase == .race    { return .race    }
+        // Current week: always white highlight
+        if bar.isCurrent         { return .current }
+        // Peak week: always red — a permanent milestone, past or future
+        // Uses mileage-derived peakWeekNum so old plans work too
+        if bar.weekNumber == peakWeekNum { return .peak }
+        // Past weeks: completed green
+        if bar.isPast            { return .past    }
+        // Future weeks: phase-aware
+        if bar.phase == .taper   { return .taper  }
+        return .upcoming
+    }
 
     // MARK: - Body
 
@@ -257,46 +280,29 @@ struct WeeklyMileageChartView: View {
             }
         }
         .frame(height: 160)
-        .animation(.easeOut(duration: 0.5),    value: animateChart)
-        .animation(.easeInOut(duration: 0.3),  value: showingActual)
+        .animation(.easeOut(duration: 0.5),   value: animateChart)
+        .animation(.easeInOut(duration: 0.3), value: showingActual)
     }
 
     // MARK: - Bar Color
+    // All color logic flows through displayState() → WeekDisplayState.color.
+    // Two overrides: unlogged actual bars fade out; selected bar highlights white.
 
     private func barColor(_ bar: ChartBar) -> Color {
-        let isSelected = bar.weekNumber == selectedWeekNum
-
-        if showingActual {
-            if !bar.hasLogged {
-                return Color(.systemFill).opacity(0.2)
-            }
-            if isSelected { return Color.white }
-            switch bar.phase {
-            case .race:    return Color.yellow
-            case .peak:    return Color(hex: "FF453A")
-            case .taper:   return Color(hex: "FF9F0A")
-            case .current: return Color.white
-            case .past:    return Color(hex: "30D158")
-            case .future:  return Color(hex: "30D158").opacity(0.5)
-            }
-        } else {
-            if isSelected { return Color.white }
-            switch bar.phase {
-            case .race:    return Color.yellow
-            case .peak:    return Color(hex: "FF453A")
-            case .taper:   return Color(hex: "FF9F0A")
-            case .current: return Color.white
-            case .past:    return Color(hex: "30D158")
-            case .future:  return Color(.systemFill)
-            }
+        if showingActual && !bar.hasLogged && !bar.isPast {
+            return Color(.systemFill).opacity(0.2)
         }
+        if bar.weekNumber == selectedWeekNum { return Color.white }
+        return displayState(for: bar).color
     }
 
     // MARK: - Selected Week Detail
 
     private func selectedDetail(bar: ChartBar,
                                  week: SavedWeek) -> some View {
-        HStack(spacing: 0) {
+        let state = displayState(for: bar)
+
+        return HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                     Text("WEEK \(bar.weekNumber)")
@@ -308,26 +314,18 @@ struct WeeklyMileageChartView: View {
                                    fg: Color(.systemBackground),
                                    bg: Color(.label))
                     }
-                    switch bar.phase {
-                    case .peak:
-                        phaseBadge("PEAK",
-                                   fg: .white,
-                                   bg: Color(hex: "FF453A"))
-                    case .taper:
-                        phaseBadge("TAPER",
-                                   fg: .black,
-                                   bg: Color(hex: "FF9F0A"))
-                    case .race:
-                        phaseBadge("RACE",
-                                   fg: .black,
-                                   bg: .yellow)
+                    switch state {
+                    case .peak, .taper, .race:
+                        phaseBadge(state.legendLabel.uppercased(),
+                                   fg: state == .taper || state == .race
+                                       ? .black : .white,
+                                   bg: state.color)
                     default:
                         EmptyView()
                     }
                 }
 
-                // Display canonical phase name, not raw week.phase string
-                Text(canonicalPhaseLabel(bar.trainingPhase))
+                Text(bar.phaseLabel)
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
 
@@ -405,16 +403,6 @@ struct WeeklyMileageChartView: View {
         .cornerRadius(10)
     }
 
-    private func canonicalPhaseLabel(_ phase: TrainingPhase) -> String {
-        switch phase {
-        case .base:  return "Base Building"
-        case .build: return "Building Fitness"
-        case .peak:  return "Peak Week"
-        case .taper: return "Taper"
-        case .race:  return "Race Week"
-        }
-    }
-
     private func phaseBadge(_ label: String,
                               fg: Color,
                               bg: Color) -> some View {
@@ -428,14 +416,14 @@ struct WeeklyMileageChartView: View {
     }
 
     // MARK: - Legend
+    // Generated directly from WeekDisplayState.allCases.
+    // Impossible for legend and bars to show different colors.
 
     private var legend: some View {
         HStack(spacing: 14) {
-            legendItem(color: Color(hex: "30D158"), label: "Past")
-            legendItem(color: Color.white,          label: "Current")
-            legendItem(color: Color(hex: "FF453A"), label: "Peak")
-            legendItem(color: Color(hex: "FF9F0A"), label: "Taper")
-            legendItem(color: Color.yellow,         label: "Race")
+            ForEach(WeekDisplayState.allCases, id: \.legendLabel) { state in
+                legendItem(color: state.color, label: state.legendLabel)
+            }
             Spacer()
         }
         .padding(.top, 2)

@@ -283,7 +283,8 @@ struct SPVWeekRow: View {
     let week          : SavedWeek
     var isCurrentWeek : Bool = false
 
-    private var isRaceWeek: Bool { week.phase.contains("Race Week") }
+    // Use enum comparison — no string matching
+    private var isRaceWeek: Bool { week.phase == .race }
 
     private let shortDate: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "MMM d"; return f
@@ -331,7 +332,8 @@ struct SPVWeekRow: View {
             }
 
             HStack {
-                Text(week.phase)
+                // Display phaseLabel for methodology-specific names
+                Text(week.phaseLabel)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(
                         isRaceWeek    ? Color.orange :
@@ -486,9 +488,8 @@ struct SPVWeekDetailView: View {
         ?? week
     }
 
-    private var isRaceWeek: Bool {
-        liveWeek.phase.contains("Race Week")
-    }
+    // Use enum comparison — no string matching
+    private var isRaceWeek: Bool { liveWeek.phase == .race }
 
     private var raceType: RaceType {
         store.plans.first { $0.id == planID }?.settings.raceType ?? .marathon
@@ -529,7 +530,8 @@ struct SPVWeekDetailView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
-                        Text(liveWeek.phase)
+                        // Display phaseLabel for methodology-specific name
+                        Text(liveWeek.phaseLabel)
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundColor(isRaceWeek
                                              ? .yellow
@@ -656,7 +658,6 @@ struct SPVDayRow: View {
 
             HStack(alignment: .top, spacing: 14) {
 
-                // Workout type dot
                 ZStack {
                     if isToday {
                         Circle()
@@ -672,7 +673,6 @@ struct SPVDayRow: View {
                 .frame(width: 18, height: 18)
                 .padding(.top, 2)
 
-                // Content
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text(dateFormatter.string(from: day.date))
@@ -722,7 +722,6 @@ struct SPVDayRow: View {
                     }
                 }
 
-                // Completion control — rest days get the muted marker
                 if day.isRestDay {
                     RestDayMarker()
                 } else {
@@ -771,14 +770,12 @@ struct SPVDayRow: View {
             .padding(.horizontal, 14)
             .padding(.vertical, isToday ? 10 : 14)
 
-            // Actual miles edit row
             if !day.isRestDay
                 && (day.completionStatus == .modified
                     || showingActualMiles) {
                 actualMilesRow
             }
 
-            // Pencil button for modifying miles — non-rest only
             if !day.isRestDay && day.miles > 0
                 && !showingActualMiles
                 && day.completionStatus != .skipped {

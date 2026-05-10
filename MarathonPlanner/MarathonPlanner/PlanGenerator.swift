@@ -34,7 +34,8 @@ func determineMileageTier(_ base: Double) -> MileageTier {
 
 struct WeekBlueprint {
     var weekNumber         : Int
-    var phase              : String
+    var phase              : TrainingPhase   // canonical phase enum
+    var phaseLabel         : String          // methodology-specific display
     var totalMiles         : Double
     var longMiles          : Double
     var primaryWorkout     : WorkoutType
@@ -53,13 +54,19 @@ struct PlanGenerator {
     static func generate(settings: UserSettings) -> [TrainingWeek] {
 
         if settings.planType == .firstHalf {
-            return FirstHalfPlanGenerator.generate(settings: settings)
+            var weeks = FirstHalfPlanGenerator.generate(settings: settings)
+            TrainingPhaseEngine.assignPhases(to: &weeks, settings: settings)
+            return weeks
         }
         if settings.planType == .higdon {
-            return HigdonNoviceGenerator.generate(settings: settings)
+            var weeks = HigdonNoviceGenerator.generate(settings: settings)
+            TrainingPhaseEngine.assignPhases(to: &weeks, settings: settings)
+            return weeks
         }
         if settings.planType == .higdonIntermediate {
-            return HigdonIntermediateGenerator.generate(settings: settings)
+            var weeks = HigdonIntermediateGenerator.generate(settings: settings)
+            TrainingPhaseEngine.assignPhases(to: &weeks, settings: settings)
+            return weeks
         }
 
         let tier        = determineMileageTier(settings.baseMileage)
@@ -99,6 +106,10 @@ struct PlanGenerator {
         weeks = injectRaceDay(into:     weeks,
                               schedule: schedule,
                               raceType: settings.raceType)
+
+        // Canonical phase assignment — runs after mileage is finalised
+        TrainingPhaseEngine.assignPhases(to: &weeks, settings: settings)
+
         return weeks
     }
 
@@ -154,7 +165,8 @@ struct PlanGenerator {
 
         lastWeek = TrainingWeek(
             weekNumber: lastWeek.weekNumber,
-            phase:      "Race Week 🏁",
+            phase:      .race,
+            phaseLabel: "Race Week 🏁",
             days:       newDays
         )
         allWeeks[lastIndex] = lastWeek
@@ -284,7 +296,6 @@ struct PlanGenerator {
 
         lm = min(max(lm, constraints.minLongRunMiles),
                  constraints.maxLongRunMiles)
-
         lm = max(lm, constraints.minLongRunMiles)
 
         guard lm.isFinite else {
@@ -330,8 +341,6 @@ struct PlanGenerator {
         case .higdonIntermediate, .higdonHalfIntermediate:
             return (week >= 3 ? .tempoRun : .easy, .easy)
         case .firstHalf:
-            // First Half bypasses this path via the early return
-            // in generate(), but the switch must be exhaustive.
             return (.easy, .easy)
         }
     }
@@ -349,14 +358,15 @@ struct PlanGenerator {
         b.totalMiles = min(max(b.totalMiles, constraints.absoluteMinWeekly),
                            constraints.absoluteMaxWeekly)
 
-        if b.phase.contains("Taper") {
+        // Use enum comparison — no more string checks
+        if b.phase == .taper {
             b.totalMiles = max(b.totalMiles,
                                constraints.absoluteMinWeekly * 0.4)
         }
 
         if constraints.requiresMediumLong
             && !b.isCutback
-            && !b.phase.contains("Taper") {
+            && b.phase != .taper {
             b.includesMediumLong = true
             if b.mediumLongMiles < 10 {
                 b.mediumLongMiles = max(
@@ -370,7 +380,7 @@ struct PlanGenerator {
             .speedWork, .strengthMP, .lactateThreshold,
             .cruiseIntervals, .intervalWork, .repetitionWork, .tempoRun
         ]
-        if !b.phase.contains("Taper")
+        if b.phase != .taper
             && b.weekNumber >= constraints.earliestQualityWeek
             && b.primaryWorkout == .easy
             && constraints.requiredWorkouts.contains(
@@ -379,12 +389,8 @@ struct PlanGenerator {
                 .first { qualTypes.contains($0) } ?? .easy
         }
 
-        if !b.totalMiles.isFinite {
-            b.totalMiles = constraints.absoluteMinWeekly
-        }
-        if !b.longMiles.isFinite {
-            b.longMiles = constraints.minLongRunMiles
-        }
+        if !b.totalMiles.isFinite { b.totalMiles = constraints.absoluteMinWeekly }
+        if !b.longMiles.isFinite  { b.longMiles  = constraints.minLongRunMiles   }
 
         return b
     }
@@ -413,8 +419,6 @@ struct PlanGenerator {
         case .hansonsHalf:
             return hansonsHalf(settings, tier, constraints, peaks)
         case .firstHalf:
-            // Handled by the early return in generate().
-            // Returns empty so the guard catches it if ever reached.
             return []
         }
     }
@@ -440,15 +444,20 @@ struct PlanGenerator {
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
                                      isCutback: false)
-            let phase: String
-            if wk > p.peakWeekNumber { phase = "Taper" }
-            else {
+
+            let phase     : TrainingPhase
+            let phaseLabel: String
+            if wk > p.peakWeekNumber {
+                phase      = .taper
+                phaseLabel = "Taper"
+            } else {
                 let speedCutoff = max(4, Int((Double(n) * 0.28).rounded()))
-                phase = wk <= speedCutoff ? "Speed Phase" : "Strength Phase"
+                phase      = .build
+                phaseLabel = wk <= speedCutoff ? "Speed Phase" : "Strength Phase"
             }
 
             return WeekBlueprint(weekNumber: wk, phase: phase,
-                totalMiles: mi[i], longMiles: lm,
+                phaseLabel: phaseLabel, totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: pr, secondaryWorkout: sc,
                 isCutback: false, includesMediumLong: false,
                 mediumLongMiles: 0)
@@ -478,11 +487,13 @@ struct PlanGenerator {
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
                                      isCutback: isCut)
-            let phase: String
-            if isTap         { phase = "Taper" }
-            else if wk <= 5  { phase = "Aerobic Base" }
-            else if wk <= 11 { phase = "Lactate Threshold" }
-            else             { phase = "Race-Specific" }
+
+            let phase     : TrainingPhase
+            let phaseLabel: String
+            if isTap         { phase = .taper; phaseLabel = "Taper"             }
+            else if wk <= 5  { phase = .base;  phaseLabel = "Aerobic Base"      }
+            else if wk <= 11 { phase = .build; phaseLabel = "Lactate Threshold" }
+            else             { phase = .build; phaseLabel = "Race-Specific"     }
 
             let useML   = !isTap && !isCut
             let mlMiles = useML
@@ -490,7 +501,7 @@ struct PlanGenerator {
             let useLRMP = !isTap && wk >= n - 7 && lm >= 18
 
             return WeekBlueprint(weekNumber: wk, phase: phase,
-                totalMiles: mi[i], longMiles: lm,
+                phaseLabel: phaseLabel, totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: useLRMP ? .longRunWithMP : pr,
                 secondaryWorkout: .easy, isCutback: isCut,
                 includesMediumLong: useML, mediumLongMiles: mlMiles)
@@ -515,10 +526,15 @@ struct PlanGenerator {
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
                                      isCutback: isCut)
-            return WeekBlueprint(weekNumber: wk,
-                phase: isTap ? "Taper"
-                             : (isCut ? "Recovery Week" : "Base Building"),
-                totalMiles: mi[i], longMiles: lm,
+
+            let phase     : TrainingPhase
+            let phaseLabel: String
+            if isTap      { phase = .taper; phaseLabel = "Taper"          }
+            else if isCut { phase = .base;  phaseLabel = "Recovery Week"  }
+            else          { phase = .base;  phaseLabel = "Base Building"  }
+
+            return WeekBlueprint(weekNumber: wk, phase: phase,
+                phaseLabel: phaseLabel, totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: .easy, secondaryWorkout: .easy,
                 isCutback: isCut, includesMediumLong: false,
                 mediumLongMiles: 0)
@@ -548,10 +564,15 @@ struct PlanGenerator {
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
                                      isCutback: isCut)
-            return WeekBlueprint(weekNumber: wk,
-                phase: isTap ? "Taper"
-                             : (isCut ? "Recovery Week" : "Building"),
-                totalMiles: mi[i], longMiles: lm,
+
+            let phase     : TrainingPhase
+            let phaseLabel: String
+            if isTap      { phase = .taper; phaseLabel = "Taper"         }
+            else if isCut { phase = .build; phaseLabel = "Recovery Week" }
+            else          { phase = .build; phaseLabel = "Building"      }
+
+            return WeekBlueprint(weekNumber: wk, phase: phase,
+                phaseLabel: phaseLabel, totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: pr, secondaryWorkout: .easy,
                 isCutback: isCut, includesMediumLong: false,
                 mediumLongMiles: 0)
@@ -579,10 +600,15 @@ struct PlanGenerator {
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
                                      isCutback: isCut)
-            return WeekBlueprint(weekNumber: wk,
-                phase: isTap ? "Taper"
-                             : (isCut ? "Recovery Week" : "Base Building"),
-                totalMiles: mi[i], longMiles: lm,
+
+            let phase     : TrainingPhase
+            let phaseLabel: String
+            if isTap      { phase = .taper; phaseLabel = "Taper"         }
+            else if isCut { phase = .base;  phaseLabel = "Recovery Week" }
+            else          { phase = .base;  phaseLabel = "Base Building" }
+
+            return WeekBlueprint(weekNumber: wk, phase: phase,
+                phaseLabel: phaseLabel, totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: .easy, secondaryWorkout: .easy,
                 isCutback: isCut, includesMediumLong: false,
                 mediumLongMiles: 0)
@@ -612,10 +638,15 @@ struct PlanGenerator {
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
                                      isCutback: isCut)
-            return WeekBlueprint(weekNumber: wk,
-                phase: isTap ? "Taper"
-                             : (isCut ? "Recovery Week" : "Building"),
-                totalMiles: mi[i], longMiles: lm,
+
+            let phase     : TrainingPhase
+            let phaseLabel: String
+            if isTap      { phase = .taper; phaseLabel = "Taper"         }
+            else if isCut { phase = .build; phaseLabel = "Recovery Week" }
+            else          { phase = .build; phaseLabel = "Building"      }
+
+            return WeekBlueprint(weekNumber: wk, phase: phase,
+                phaseLabel: phaseLabel, totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: pr, secondaryWorkout: .easy,
                 isCutback: isCut, includesMediumLong: false,
                 mediumLongMiles: 0)
@@ -641,15 +672,20 @@ struct PlanGenerator {
                                      baseMileage: s.baseMileage, peaks: p,
                                      constraints: c, weeklyMileage: mi[i],
                                      isCutback: false)
-            let phase: String
-            if wk > p.peakWeekNumber { phase = "Taper" }
-            else {
+
+            let phase     : TrainingPhase
+            let phaseLabel: String
+            if wk > p.peakWeekNumber {
+                phase      = .taper
+                phaseLabel = "Taper"
+            } else {
                 let speedCutoff = max(4, Int((Double(n) * 0.28).rounded()))
-                phase = wk <= speedCutoff ? "Speed Phase" : "Strength Phase"
+                phase      = .build
+                phaseLabel = wk <= speedCutoff ? "Speed Phase" : "Strength Phase"
             }
 
             return WeekBlueprint(weekNumber: wk, phase: phase,
-                totalMiles: mi[i], longMiles: lm,
+                phaseLabel: phaseLabel, totalMiles: mi[i], longMiles: lm,
                 primaryWorkout: pr, secondaryWorkout: sc,
                 isCutback: false, includesMediumLong: false,
                 mediumLongMiles: 0)
@@ -697,8 +733,7 @@ struct PlanGenerator {
             if rest.contains(day) {
                 td = makeRest(day)
             } else if day == lrDay {
-                td = makeLongRun(day, blueprint, paces,
-                                 raceType: raceType)
+                td = makeLongRun(day, blueprint, paces, raceType: raceType)
             } else if planType.usesMidweekLongRun && day == mwDay {
                 td = makeMidweekLong(day, miles: mwMiles, paces: paces)
             } else if planType.usesCrossTraining,
@@ -732,6 +767,7 @@ struct PlanGenerator {
         return TrainingWeek(
             weekNumber: blueprint.weekNumber,
             phase:      blueprint.phase,
+            phaseLabel: blueprint.phaseLabel,
             days:       distributeMiles(days, blueprint, tier)
         )
     }
@@ -746,15 +782,15 @@ struct PlanGenerator {
     }
 
     static func makeLongRun(
-        _ day      : Weekday,
-        _ bp       : WeekBlueprint,
-        _ paces    : PaceEngine,
-        raceType   : RaceType = .marathon
+        _ day    : Weekday,
+        _ bp     : WeekBlueprint,
+        _ paces  : PaceEngine,
+        raceType : RaceType = .marathon
     ) -> TrainingDay {
-        let miles      = bp.longMiles
-        let isHalf     = raceType == .halfMarathon
-        let paceLabel  = isHalf ? "HMP" : "MP"
-        let raceLabel  = isHalf
+        let miles     = bp.longMiles
+        let isHalf    = raceType == .halfMarathon
+        let paceLabel = isHalf ? "HMP" : "MP"
+        let raceLabel = isHalf
             ? "goal half marathon pace" : "goal marathon pace"
 
         if bp.primaryWorkout == .longRunWithMP {
@@ -767,19 +803,22 @@ struct PlanGenerator {
                 paceNote: "Easy: \(paces.rangeString(paces.longRun)) " +
                           "→ \(paceLabel): \(paces.singleString(paces.MP))")
         }
-        let desc = bp.phase.contains("Taper")
+
+        // Use enum comparison — no more string check
+        let desc = bp.phase == .taper
             ? "Taper long run. Easy and relaxed — trust your training."
             : "Long run at fully conversational effort. " +
               "Speak in full sentences throughout."
+
         return TrainingDay(weekday: day, workoutType: .longRun,
             miles: miles, description: desc,
             paceNote: paces.rangeString(paces.longRun))
     }
 
     static func makeMidweekLong(
-        _ day  : Weekday,
-        miles  : Double,
-        paces  : PaceEngine
+        _ day : Weekday,
+        miles : Double,
+        paces : PaceEngine
     ) -> TrainingDay {
         TrainingDay(weekday: day, workoutType: .midweekLong, miles: miles,
             description: "Midweek longer run — longer than easy days, " +

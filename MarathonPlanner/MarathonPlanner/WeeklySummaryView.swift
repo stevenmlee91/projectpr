@@ -292,7 +292,7 @@ struct WeeklySummaryView: View {
                             .foregroundColor(.secondary)
                             .padding(.bottom, 4)
                     }
-                    Text(week.phase)
+                    Text(week.phaseLabel)
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(.secondary)
                 }

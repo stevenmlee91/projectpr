@@ -33,18 +33,56 @@ struct SavedPlan: Identifiable, Codable {
     }
 }
 
+// MARK: - Saved Week
+
 struct SavedWeek: Identifiable, Codable {
     let id         : UUID
     let weekNumber : Int
-    let phase      : String
+    let phase      : TrainingPhase   // canonical phase enum
+    let phaseLabel : String          // methodology-specific display label
     var days       : [SavedDay]
 
-    init(id: UUID = UUID(), weekNumber: Int,
-         phase: String, days: [SavedDay]) {
+    init(id: UUID = UUID(),
+         weekNumber: Int,
+         phase: TrainingPhase,
+         phaseLabel: String? = nil,
+         days: [SavedDay]) {
         self.id         = id
         self.weekNumber = weekNumber
         self.phase      = phase
+        self.phaseLabel = phaseLabel ?? phase.displayName
         self.days       = days
+    }
+
+    // MARK: - Migration Codable
+    // Decodes both new (TrainingPhase enum) and legacy (String) phase values.
+
+    enum CodingKeys: String, CodingKey {
+        case id, weekNumber, phase, phaseLabel, days
+    }
+
+    init(from decoder: Decoder) throws {
+        let c  = try decoder.container(keyedBy: CodingKeys.self)
+        id         = try c.decode(UUID.self,       forKey: .id)
+        weekNumber = try c.decode(Int.self,        forKey: .weekNumber)
+        days       = try c.decode([SavedDay].self, forKey: .days)
+
+        // Phase: try enum first, fall back to legacy String
+        if let enumPhase = try? c.decode(TrainingPhase.self, forKey: .phase) {
+            phase = enumPhase
+        } else if let legacyString = try? c.decode(String.self, forKey: .phase) {
+            phase = TrainingPhase.from(legacyString: legacyString)
+        } else {
+            phase = .build
+        }
+
+        // phaseLabel: use stored value, or derive from migrated phase
+        if let stored = try? c.decode(String.self, forKey: .phaseLabel),
+           !stored.isEmpty {
+            phaseLabel = stored
+        } else {
+            phaseLabel = phase.displayName
+        }
     }
 
     // MARK: - Mileage
@@ -77,11 +115,7 @@ struct SavedWeek: Identifiable, Codable {
     }
 
     // MARK: - Completion
-    // Rest days are never counted toward any completion metric.
-    // Cross-training days ARE counted — the runner must intentionally
-    // complete them.
 
-    /// Fraction of trackable workouts completed. Rest days excluded.
     var completionPercentage: Double {
         let trackable = days.filter { $0.isTrackable }
         guard !trackable.isEmpty else { return 1.0 }
@@ -92,8 +126,6 @@ struct SavedWeek: Identifiable, Codable {
         return Double(done) / Double(trackable.count)
     }
 
-    /// Number of trackable workouts marked complete or modified.
-    /// Rest days never contribute to this count.
     var completedDayCount: Int {
         days.filter {
             $0.isTrackable
@@ -102,11 +134,12 @@ struct SavedWeek: Identifiable, Codable {
         }.count
     }
 
-    /// Total number of trackable workout days (rest days excluded).
     var trackableDayCount: Int {
         days.filter { $0.isTrackable }.count
     }
 }
+
+// MARK: - Saved Day
 
 struct SavedDay: Identifiable, Codable {
     let id               : UUID
@@ -138,30 +171,10 @@ struct SavedDay: Identifiable, Codable {
         self.completionNote   = completionNote
     }
 
-    // MARK: - Day Classification
-
-    /// True only for Rest days. These are excluded from all
-    /// completion counts, percentages, and progress metrics.
-    var isRestDay: Bool {
-        workoutType == "Rest"
-    }
-
-    /// True for any day that should count toward completion.
-    /// Rest days return false. Everything else — including
-    /// Cross-Training — returns true.
-    var isTrackable: Bool {
-        workoutType != "Rest"
-    }
-
-    // MARK: - Date Helpers
-
-    var isToday: Bool {
-        Calendar.current.isDateInToday(date)
-    }
-
-    var isPast: Bool {
-        date < Calendar.current.startOfDay(for: Date())
-    }
+    var isRestDay:    Bool { workoutType == "Rest" }
+    var isTrackable:  Bool { workoutType != "Rest" }
+    var isToday:      Bool { Calendar.current.isDateInToday(date) }
+    var isPast:       Bool { date < Calendar.current.startOfDay(for: Date()) }
 }
 
 // MARK: - Monday-first Calendar
@@ -176,7 +189,6 @@ private var mondayCalendar: Calendar = {
 
 // MARK: - Date Helpers
 
-/// Days from Monday for a weekday name. Mon=0 … Sun=6
 private func mondayOffset(for weekdayName: String) -> Int {
     switch weekdayName.lowercased() {
     case "monday":    return 0
@@ -190,7 +202,6 @@ private func mondayOffset(for weekdayName: String) -> Int {
     }
 }
 
-/// Returns the Monday that starts the week containing `date`.
 private func mondayOfWeek(containing date: Date) -> Date {
     let weekday         = mondayCalendar.component(.weekday, from: date)
     let daysSinceMonday = (weekday + 5) % 7
@@ -216,10 +227,8 @@ func createSavedPlan(name: String,
     ) else { fatalError("Could not calculate plan start date") }
 
     let trainingWeeks = PlanGenerator.generate(settings: settings)
-    let savedWeeks    = buildSavedWeeks(
-        from:      trainingWeeks,
-        startDate: startDate
-    )
+    let savedWeeks    = buildSavedWeeks(from:      trainingWeeks,
+                                        startDate: startDate)
 
     return SavedPlan(
         name:      name,
@@ -259,7 +268,8 @@ func buildSavedWeeks(from trainingWeeks: [TrainingWeek],
         }
         return SavedWeek(
             weekNumber: week.weekNumber,
-            phase:      week.phase,
+            phase:      week.phase,        // TrainingPhase enum
+            phaseLabel: week.phaseLabel,   // methodology-specific label
             days:       savedDays
         )
     }
@@ -356,10 +366,8 @@ class PlanStore: ObservableObject {
                           actual: Double? = nil) {
         guard
             let pi = plans.firstIndex(where: { $0.id == planID }),
-            let wi = plans[pi].weeks.firstIndex(
-                where: { $0.id == weekID }),
-            let di = plans[pi].weeks[wi].days.firstIndex(
-                where: { $0.id == dayID })
+            let wi = plans[pi].weeks.firstIndex(where: { $0.id == weekID }),
+            let di = plans[pi].weeks[wi].days.firstIndex(where: { $0.id == dayID })
         else { return }
 
         plans[pi].weeks[wi].days[di].completionStatus = status
@@ -383,10 +391,8 @@ class PlanStore: ObservableObject {
                   note: String) {
         guard
             let pi = plans.firstIndex(where: { $0.id == planID }),
-            let wi = plans[pi].weeks.firstIndex(
-                where: { $0.id == weekID }),
-            let di = plans[pi].weeks[wi].days.firstIndex(
-                where: { $0.id == dayID })
+            let wi = plans[pi].weeks.firstIndex(where: { $0.id == weekID }),
+            let di = plans[pi].weeks[wi].days.firstIndex(where: { $0.id == dayID })
         else { return }
 
         plans[pi].weeks[wi].days[di].completionNote =
@@ -408,10 +414,8 @@ class PlanStore: ObservableObject {
         var newSettings      = plan.settings
         newSettings.schedule = newSchedule
         let trainingWeeks    = PlanGenerator.generate(settings: newSettings)
-        let saved            = buildSavedWeeks(
-            from:      trainingWeeks,
-            startDate: plan.startDate
-        )
+        let saved            = buildSavedWeeks(from:      trainingWeeks,
+                                               startDate: plan.startDate)
         return SavedPlan(
             id:        plan.id,
             name:      plan.name,
@@ -426,10 +430,8 @@ class PlanStore: ObservableObject {
     func regeneratePlan(_ plan: SavedPlan,
                         newSettings: UserSettings) -> SavedPlan {
         let trainingWeeks = PlanGenerator.generate(settings: newSettings)
-        let saved         = buildSavedWeeks(
-            from:      trainingWeeks,
-            startDate: plan.startDate
-        )
+        let saved         = buildSavedWeeks(from:      trainingWeeks,
+                                            startDate: plan.startDate)
         return SavedPlan(
             id:        plan.id,
             name:      plan.name,
@@ -452,8 +454,8 @@ class PlanStore: ObservableObject {
     private func loadPlans() {
         guard
             let data  = UserDefaults.standard.data(forKey: key),
-            let saved = try? JSONDecoder().decode(
-                [SavedPlan].self, from: data)
+            let saved = try? JSONDecoder().decode([SavedPlan].self,
+                                                  from: data)
         else { return }
         plans = saved
     }

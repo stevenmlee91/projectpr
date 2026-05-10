@@ -183,12 +183,11 @@ struct MilestoneDetector {
         if isLong {
             let nextWeekPhase = plan.weeks
                 .first { $0.weekNumber == currentWeek.weekNumber + 1 }?
-                .phase.lowercased() ?? ""
+                .phase
             let futureLongRuns = allDays.filter {
                 isLongRun($0) && $0.date > completedDay.date
             }
-            if nextWeekPhase.contains("taper")
-                || futureLongRuns.isEmpty {
+            if nextWeekPhase == .taper || futureLongRuns.isEmpty {
                 return .lastLongRunBeforeTaper
             }
         }

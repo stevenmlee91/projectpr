@@ -155,7 +155,6 @@ enum PlanType: String, CaseIterable, Identifiable, Codable {
     static func options(for raceType: RaceType) -> [PlanType] {
         switch raceType {
         case .halfMarathon:
-            // First Half listed first — most visible to beginners
             return [.firstHalf, .higdonHalfNovice,
                     .higdonHalfIntermediate, .hansonsHalf]
         case .marathon:
@@ -259,7 +258,7 @@ enum WorkoutType: String, Codable {
     case crossTrain       = "Cross-Training"
     case raceDay          = "Race Day 🏁"
     case shakeout         = "Shakeout Run"
-    case steadyRun        = "Steady Run"    // new — First Half only
+    case steadyRun        = "Steady Run"
 
     var effortLevel: Int {
         switch self {
@@ -332,19 +331,33 @@ struct TrainingDay: Identifiable, Codable {
 struct TrainingWeek: Identifiable, Codable {
     let id         : UUID
     let weekNumber : Int
-    let phase      : String
+    let phase      : TrainingPhase   // canonical phase enum
+    let phaseLabel : String          // methodology-specific display label
     let days       : [TrainingDay]
 
-    init(id: UUID = UUID(), weekNumber: Int,
-         phase: String, days: [TrainingDay]) {
+    init(id: UUID = UUID(),
+         weekNumber: Int,
+         phase: TrainingPhase,
+         phaseLabel: String? = nil,
+         days: [TrainingDay]) {
         self.id         = id
         self.weekNumber = weekNumber
         self.phase      = phase
+        self.phaseLabel = phaseLabel ?? phase.displayName
         self.days       = days
     }
 
     var totalMiles: Double { days.reduce(0) { $0 + $1.miles } }
     var label: String      { "Week \(weekNumber)" }
+
+    /// Returns a copy of this week with a new phase (and updated default label).
+    func settingPhase(_ newPhase: TrainingPhase) -> TrainingWeek {
+        TrainingWeek(id:         id,
+                     weekNumber: weekNumber,
+                     phase:      newPhase,
+                     phaseLabel: newPhase.displayName,
+                     days:       days)
+    }
 }
 
 // MARK: - User Schedule
@@ -380,7 +393,6 @@ struct UserSchedule: Codable, Equatable {
                 workoutDay2: .thursday, restDays: [.friday],
                 crossTrainDay: nil, midweekLongDay: .wednesday)
         case .firstHalf:
-            // Sat long run, Tue easy, Thu steady, Mon+Fri rest
             return UserSchedule(
                 longRunDay: .saturday, workoutDay1: .tuesday,
                 workoutDay2: .thursday, restDays: [.monday, .friday],
@@ -601,7 +613,7 @@ func calculatePeakTargets(method: PlanType,
 // MARK: - Method Constraints
 
 enum ProgressionStyle {
-    case cumulativeFatigue, periodicCutback, phasedQuality
+    case cumulativeFatigue, periodicCutback
 }
 
 struct MethodConstraints {

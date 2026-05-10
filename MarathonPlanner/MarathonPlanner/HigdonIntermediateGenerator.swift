@@ -31,10 +31,9 @@ struct HigdonIntermediateGenerator {
             let wk       = i + 1
             let total    = mileage[i]
             let lr       = longRuns[i]
-            let phase    = phaseName(week: wk, total: n)
+            let (phase, phaseLabel) = phaseInfo(week: wk, total: n)
             let isCut    = isCutback(week: wk, total: n)
-            let isTap    = wk > n - 3   // 3-week taper
-            // Introduce tempo from week 3 of the build block
+            let isTap    = wk > n - 3
             let offset   = 18 - n
             let canonical = wk + offset
             let useTempo = canonical >= 3 && !isTap && !isCut
@@ -42,6 +41,7 @@ struct HigdonIntermediateGenerator {
             weeks.append(buildWeek(
                 weekNumber: wk,
                 phase:      phase,
+                phaseLabel: phaseLabel,
                 total:      total,
                 longMiles:  lr,
                 schedule:   schedule,
@@ -60,8 +60,6 @@ struct HigdonIntermediateGenerator {
     }
 
     // MARK: - Weekly Mileage
-    // Same 3-week cutback cadence as Novice.
-    // Higher peak and more aggressive ramp for intermediate runners.
 
     static func weeklyMileageSchedule(n: Int,
                                        base: Double) -> [Double] {
@@ -102,18 +100,16 @@ struct HigdonIntermediateGenerator {
     }
 
     // MARK: - Long Run Progression
-    // Canonical 18-week Higdon Intermediate sequence.
-    // Peaks at 22 miles (two weeks at 20+ before taper).
 
     static func longRunSchedule(n: Int) -> [Double] {
         let canonical18: [Double] = [
-            8,  10, 12, 10,   // weeks 1–4   (w4 = cutback)
-            12, 13, 15, 12,   // weeks 5–8   (w8 = cutback)
-            15, 17, 18, 14,   // weeks 9–12  (w12 = cutback)
-            20, 16, 22,       // weeks 13–15 (peak at w15)
-            14,               // week 16 taper
-            8,                // week 17 taper
-            0                 // week 18 race (overwritten)
+            8,  10, 12, 10,
+            12, 13, 15, 12,
+            15, 17, 18, 14,
+            20, 16, 22,
+            14,
+            8,
+            0
         ]
 
         let clamped = canonical18.map { min($0, peakLong) }
@@ -132,25 +128,28 @@ struct HigdonIntermediateGenerator {
         return [4, 8, 12].contains(canonical)
     }
 
-    // MARK: - Phase Names
+    // MARK: - Phase Info
+    // Returns both the canonical TrainingPhase enum and the
+    // Higdon Intermediate-specific display label.
 
-    static func phaseName(week: Int, total: Int) -> String {
+    static func phaseInfo(week: Int, total: Int) -> (TrainingPhase, String) {
         let isTap  = week > total - 3
         let offset = 18 - total
         let c      = week + offset
 
-        if isTap   { return "Taper" }
-        if c <= 4  { return "Base Building" }
-        if c <= 9  { return "Aerobic Development" }
-        if c <= 14 { return "Marathon Preparation" }
-        return "Race Sharpening"
+        if isTap   { return (.taper, "Taper")                  }
+        if c <= 4  { return (.base,  "Base Building")          }
+        if c <= 9  { return (.base,  "Aerobic Development")    }
+        if c <= 14 { return (.build, "Marathon Preparation")   }
+        return             (.build,  "Race Sharpening")
     }
 
     // MARK: - Week Builder
 
     static func buildWeek(
         weekNumber : Int,
-        phase      : String,
+        phase      : TrainingPhase,   // canonical enum
+        phaseLabel : String,          // Higdon-specific display
         total      : Double,
         longMiles  : Double,
         schedule   : UserSchedule,
@@ -160,16 +159,14 @@ struct HigdonIntermediateGenerator {
         totalWeeks : Int
     ) -> TrainingWeek {
         let lrDay  = schedule.longRunDay
-        let q1Day  = schedule.workoutDay1   // tempo day (Tue/Wed)
-        let mwDay  = schedule.midweekLongDay // midweek longer run
-        let ctDay  = schedule.crossTrainDay  // cross-training
+        let q1Day  = schedule.workoutDay1
+        let mwDay  = schedule.midweekLongDay
+        let ctDay  = schedule.crossTrainDay
         let rests  = schedule.restDays
 
         let longM  = min(max(longMiles, 8), peakLong)
         let remain = max(0, min(total, peakWeekly) - longM)
 
-        // Intermediate split: tempo/quality + midweek long + easy
-        // Cross-train day takes a portion as aerobic cross-work
         let tempoM  = useTempo
             ? min(8.0, max(4.0, (remain * 0.22).rounded(toPlaces: 1)))
             : 0
@@ -212,9 +209,12 @@ struct HigdonIntermediateGenerator {
             days.append(td)
         }
 
-        return TrainingWeek(weekNumber: weekNumber,
-                            phase:      phase,
-                            days:       days)
+        return TrainingWeek(
+            weekNumber: weekNumber,
+            phase:      phase,       // TrainingPhase enum
+            phaseLabel: phaseLabel,  // "Base Building", "Aerobic Development", etc.
+            days:       days
+        )
     }
 
     // MARK: - Day Makers
@@ -311,12 +311,7 @@ struct HigdonIntermediateGenerator {
     static func makeTempo(_ day       : Weekday,
                            miles      : Double,
                            weekNumber : Int) -> TrainingDay {
-        // Higdon tempo is NOT a structured threshold session.
-        // It is a comfortably hard sustained effort — faster than easy,
-        // not as hard as racing. Think: half marathon effort for a few miles.
-        let offset    = 18 - 18  // always use canonical week
-        let canonical = weekNumber + offset
-
+        let canonical  = weekNumber
         let tempoMiles = max(2, min(6, canonical / 3))
         let warmup     = 1
         let cooldown   = 1

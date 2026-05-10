@@ -32,13 +32,14 @@ struct HigdonNoviceGenerator {
             let wk    = i + 1
             let total = mileage[i]
             let lr    = longRuns[i]
-            let phase = phaseName(week: wk, total: n)
+            let (phase, phaseLabel) = phaseInfo(week: wk, total: n)
             let isCut = isCutback(week: wk, total: n)
             let isTap = wk > n - 3   // 3-week taper
 
             weeks.append(buildWeek(
                 weekNumber: wk,
                 phase:      phase,
+                phaseLabel: phaseLabel,
                 total:      total,
                 longMiles:  lr,
                 schedule:   schedule,
@@ -56,13 +57,11 @@ struct HigdonNoviceGenerator {
     }
 
     // MARK: - Weekly Mileage
-    // Cutback every 3 weeks (true Higdon cadence).
-    // Peak = 40 mpw. Conservative ramp.
 
     static func weeklyMileageSchedule(n: Int,
                                        base: Double) -> [Double] {
         let peak       = peakWeekly
-        let taperStart = n - 2       // weeks n-2, n-1, n are taper
+        let taperStart = n - 2
         let start      = min(max(base, 15), 25).rounded(toPlaces: 0)
 
         var result  : [Double] = []
@@ -73,23 +72,17 @@ struct HigdonNoviceGenerator {
             let val : Double
 
             if wk > taperStart + 1 {
-                // Race week — minimal
                 val = (peak * 0.25).rounded(toPlaces: 0)
             } else if wk == taperStart + 1 {
-                // Second taper week
                 val = (peak * 0.55).rounded(toPlaces: 0)
             } else if wk == taperStart {
-                // First taper week
                 val = (peak * 0.75).rounded(toPlaces: 0)
             } else if wk == taperStart - 1 {
-                // Peak week (just before taper)
                 val = peak
                 current = peak
             } else if isCutback(week: wk, total: n) {
-                // Higdon cuts back every 3rd build week
                 val = max((current * 0.80).rounded(toPlaces: 0), 15)
             } else {
-                // Conservative linear ramp, max 10% per week
                 let buildWeeks = taperStart - 2
                 let progress   = Double(i) / Double(buildWeeks)
                 let target     = start + (peak - start) * progress
@@ -104,20 +97,16 @@ struct HigdonNoviceGenerator {
     }
 
     // MARK: - Long Run Progression
-    // Classic Higdon Novice curve:
-    // Builds to 20 miles, held once, then tapers.
-    // Cutback long runs every 3 weeks.
 
     static func longRunSchedule(n: Int) -> [Double] {
-        // Canonical 18-week Higdon Novice sequence
         let canonical18: [Double] = [
-            6,  8,  10, 8,    // weeks 1–4   (w4 = cutback)
-            10, 11, 13, 10,   // weeks 5–8   (w8 = cutback)
-            13, 15, 16, 12,   // weeks 9–12  (w12 = cutback)
-            18, 14, 20,       // weeks 13–15 (peak at w15)
-            12,               // week 16 taper
-            8,                // week 17 taper
-            0                 // week 18 race (overwritten)
+            6,  8,  10, 8,
+            10, 11, 13, 10,
+            13, 15, 16, 12,
+            18, 14, 20,
+            12,
+            8,
+            0
         ]
 
         let clamped = canonical18.map { min($0, peakLong) }
@@ -129,7 +118,6 @@ struct HigdonNoviceGenerator {
     }
 
     // MARK: - Cutback Detection
-    // True Higdon cadence: every 3rd build week steps back.
 
     static func isCutback(week: Int, total: Int) -> Bool {
         let offset    = 18 - total
@@ -137,25 +125,28 @@ struct HigdonNoviceGenerator {
         return [4, 8, 12].contains(canonical)
     }
 
-    // MARK: - Phase Names
+    // MARK: - Phase Info
+    // Returns both the canonical TrainingPhase enum and the
+    // Higdon-specific display label.
 
-    static func phaseName(week: Int, total: Int) -> String {
+    static func phaseInfo(week: Int, total: Int) -> (TrainingPhase, String) {
         let isTap  = week > total - 3
         let offset = 18 - total
         let c      = week + offset
 
-        if isTap   { return "Taper" }
-        if c <= 4  { return "Getting Started" }
-        if c <= 9  { return "Building Endurance" }
-        if c <= 14 { return "Going the Distance" }
-        return "Race Preparation"
+        if isTap   { return (.taper, "Taper")                    }
+        if c <= 4  { return (.base,  "Getting Started")          }
+        if c <= 9  { return (.base,  "Building Endurance")       }
+        if c <= 14 { return (.build, "Going the Distance")       }
+        return             (.build,  "Race Preparation")
     }
 
     // MARK: - Week Builder
 
     static func buildWeek(
         weekNumber : Int,
-        phase      : String,
+        phase      : TrainingPhase,   // canonical enum
+        phaseLabel : String,          // Higdon-specific display
         total      : Double,
         longMiles  : Double,
         schedule   : UserSchedule,
@@ -164,20 +155,18 @@ struct HigdonNoviceGenerator {
         totalWeeks : Int
     ) -> TrainingWeek {
         let lrDay = schedule.longRunDay
-        let q1Day = schedule.workoutDay1   // mid-week easy
-        let q2Day = schedule.workoutDay2   // second easy
+        let q1Day = schedule.workoutDay1
+        let q2Day = schedule.workoutDay2
         let rests = schedule.restDays
         let mwDay = schedule.midweekLongDay
 
         let longM  = min(max(longMiles, 6), peakLong)
         let remain = max(0, min(total, peakWeekly) - longM)
 
-        // Three easy running days split the remaining miles
-        // Higdon Novice: Tue easy, Wed medium-easy, Sat short easy
-        let thirdM  = (remain * 0.28).rounded(toPlaces: 1)  // shortest
-        let easyM   = (remain * 0.38).rounded(toPlaces: 1)  // medium
+        let thirdM  = (remain * 0.28).rounded(toPlaces: 1)
+        let easyM   = (remain * 0.38).rounded(toPlaces: 1)
         let midM    = max(0, remain - thirdM - easyM)
-            .rounded(toPlaces: 1)  // mid-week
+            .rounded(toPlaces: 1)
 
         var days: [TrainingDay] = []
 
@@ -193,7 +182,6 @@ struct HigdonNoviceGenerator {
                                  isTaper:    isTaper,
                                  isCutback:  isCutback)
             } else if day == mwDay {
-                // Mid-week medium easy — the "Wednesday run" in Higdon
                 td = makeMidweekEasy(day, miles: midM,
                                      weekNumber: weekNumber,
                                      isTaper: isTaper)
@@ -206,16 +194,18 @@ struct HigdonNoviceGenerator {
                                    weekNumber: weekNumber,
                                    isTaper: isTaper)
             } else {
-                // Any undesignated day becomes rest
                 td = makeRest(day, isTaper: isTaper)
             }
 
             days.append(td)
         }
 
-        return TrainingWeek(weekNumber: weekNumber,
-                            phase:      phase,
-                            days:       days)
+        return TrainingWeek(
+            weekNumber: weekNumber,
+            phase:      phase,       // TrainingPhase enum
+            phaseLabel: phaseLabel,  // "Getting Started", "Building Endurance", etc.
+            days:       days
+        )
     }
 
     // MARK: - Day Makers

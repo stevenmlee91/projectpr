@@ -54,6 +54,7 @@
 		B08F5A382FAEFC8500BFFC53 /* TrainingPhaseEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A372FAEFC8500BFFC53 /* TrainingPhaseEngine.swift */; };
 		B08F5A3C2FAFF71600BFFC53 /* HidgonNoviceGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A3B2FAFF71600BFFC53 /* HidgonNoviceGenerator.swift */; };
 		B08F5A3E2FAFF72700BFFC53 /* HigdonIntermediateGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A3D2FAFF72700BFFC53 /* HigdonIntermediateGenerator.swift */; };
+		B08F5A442FB0492D00BFFC53 /* TrainingPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A432FB0492D00BFFC53 /* TrainingPhase.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -136,6 +137,7 @@
 		B08F5A372FAEFC8500BFFC53 /* TrainingPhaseEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPhaseEngine.swift; sourceTree = "<group>"; };
 		B08F5A3B2FAFF71600BFFC53 /* HidgonNoviceGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HidgonNoviceGenerator.swift; sourceTree = "<group>"; };
 		B08F5A3D2FAFF72700BFFC53 /* HigdonIntermediateGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HigdonIntermediateGenerator.swift; sourceTree = "<group>"; };
+		B08F5A432FB0492D00BFFC53 /* TrainingPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPhase.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -206,6 +208,7 @@
 				B08F59CB2FA4778600BFFC53 /* Info.plist */,
 				B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */,
 				B08F5A1B2FA70E0700BFFC53 /* OnBoardingView.swift */,
+				B08F5A432FB0492D00BFFC53 /* TrainingPhase.swift */,
 				B075261A2F9EC478008F9552 /* SettingsView.swift */,
 				B08F5A1D2FA7F4F300BFFC53 /* DailyInsightEngine.swift */,
 				B08F5A2B2FAC281D00BFFC53 /* OffSeasonEngine.swift */,
@@ -441,6 +444,7 @@
 				B08F5A2A2FAB0B6200BFFC53 /* MilestoneDetector.swift in Sources */,
 				B08F5A202FA7F50E00BFFC53 /* DailyInsightCard.swift in Sources */,
 				B08F59CF2FA565B400BFFC53 /* ElevationChartView.swift in Sources */,
+				B08F5A442FB0492D00BFFC53 /* TrainingPhase.swift in Sources */,
 				B08F5A382FAEFC8500BFFC53 /* TrainingPhaseEngine.swift in Sources */,
 				B08F59CA2FA46B0000BFFC53 /* RouteBuilderView.swift in Sources */,
 				B08F5A1C2FA70E0700BFFC53 /* OnBoardingView.swift in Sources */,
