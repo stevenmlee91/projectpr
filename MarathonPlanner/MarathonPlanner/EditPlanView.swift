@@ -22,18 +22,20 @@ struct EditPlanView: View {
     }
 
     private var requiresFullRegen: Bool {
-        editedSettings.goalTimeMinutes != plan.settings.goalTimeMinutes
-        || editedSettings.baseMileage  != plan.settings.baseMileage
-        || editedSettings.planType     != plan.settings.planType
-        || editedSettings.planLength   != plan.settings.planLength
+        editedSettings.goalTimeMinutes  != plan.settings.goalTimeMinutes
+        || editedSettings.baseMileage   != plan.settings.baseMileage
+        || editedSettings.planType      != plan.settings.planType
+        || editedSettings.planLength    != plan.settings.planLength
+        || editedSettings.taperDuration != plan.settings.taperDuration
     }
 
     private var hasAnyChange: Bool {
-        editedSettings.goalTimeMinutes != plan.settings.goalTimeMinutes
-        || editedSettings.baseMileage  != plan.settings.baseMileage
-        || editedSettings.planType     != plan.settings.planType
-        || editedSettings.planLength   != plan.settings.planLength
-        || editedSettings.schedule     != plan.settings.schedule
+        editedSettings.goalTimeMinutes  != plan.settings.goalTimeMinutes
+        || editedSettings.baseMileage   != plan.settings.baseMileage
+        || editedSettings.planType      != plan.settings.planType
+        || editedSettings.planLength    != plan.settings.planLength
+        || editedSettings.taperDuration != plan.settings.taperDuration
+        || editedSettings.schedule      != plan.settings.schedule
     }
 
     // Available plan types filtered to same race type as original plan
@@ -631,6 +633,9 @@ struct EditPlanView: View {
         }
         if old.planLength != new.planLength {
             notes.append("Plan length: \(old.planLength.rawValue) → \(new.planLength.rawValue) weeks")
+        }
+        if old.taperDuration != new.taperDuration {
+            notes.append("Taper: \(old.taperDuration.label) → \(new.taperDuration.label) (full regeneration)")
         }
         if old.schedule.longRunDay != new.schedule.longRunDay {
             notes.append("Long run: \(old.schedule.longRunDay.fullName) → \(new.schedule.longRunDay.fullName)")
