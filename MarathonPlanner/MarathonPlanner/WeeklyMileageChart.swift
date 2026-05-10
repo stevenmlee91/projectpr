@@ -36,7 +36,6 @@ struct WeeklyMileageChartView: View {
     // MARK: - Phase Parameters
 
     private var taperWeeks : Int { TrainingPhaseEngine.taperWeeks(for: plan) }
-    private var peakWeeks  : Int { TrainingPhaseEngine.peakWeeks(for: plan)  }
     private var totalWeeks : Int { plan.weeks.count }
 
     private var peakWeekNum: Int {
@@ -55,7 +54,7 @@ struct WeeklyMileageChartView: View {
                 weekNumber:  week.weekNumber,
                 totalWeeks:  totalWeeks,
                 taperWeeks:  taperWeeks,
-                peakWeeks:   peakWeeks
+                peakWeekNumber: peakWeekNum      // ← data-derived, not a count
             )
 
             let chartPhase: ChartPhase

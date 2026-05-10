@@ -3,63 +3,78 @@ import Foundation
 // MARK: - Training Phase
 
 enum TrainingPhase: String {
-    case base   = "Base"
-    case build  = "Build"
-    case peak   = "Peak"
-    case taper  = "Taper"
-    case race   = "Race"
+    case base  = "Base"
+    case build = "Build"
+    case peak  = "Peak"
+    case taper = "Taper"
+    case race  = "Race"
 }
 
 // MARK: - Phase Engine
 
 struct TrainingPhaseEngine {
 
-    // MARK: - Public API
+    // MARK: - Core Phase Assignment
 
-    /// Assigns exactly one TrainingPhase to each week index (1-based).
-    /// This is the single source of truth for phase classification.
-    /// Week labels on SavedWeek.phase are used only as display text —
-    /// never for logic decisions.
     static func phase(
-        weekNumber  : Int,
-        totalWeeks  : Int,
-        taperWeeks  : Int,   // typically 1 for half, 2–3 for marathon
-        peakWeeks   : Int    // typically 1–2
+        weekNumber    : Int,
+        totalWeeks    : Int,
+        taperWeeks    : Int,
+        peakWeekNumber: Int
     ) -> TrainingPhase {
-
-        let raceWeek  = totalWeeks
+        let raceWeek   = totalWeeks
         let taperStart = raceWeek - taperWeeks
-        let peakStart  = taperStart - peakWeeks
 
-        // Priority order — exactly one phase assigned
-        if weekNumber == raceWeek  { return .race  }
-        if weekNumber >= taperStart { return .taper }
-        if weekNumber >= peakStart  { return .peak  }
+        if weekNumber == raceWeek       { return .race  }
+        if weekNumber >= taperStart     { return .taper }
+        if weekNumber == peakWeekNumber { return .peak  }
 
-        // Split remaining weeks into base and build
-        let buildWeeks = max(1, peakStart - 1)
-        let baseEnd    = max(1, buildWeeks / 2)
-
-        if weekNumber <= baseEnd { return .base }
-        return .build
+        let prePeakEnd = max(1, peakWeekNumber - 1)
+        let baseEnd    = max(1, prePeakEnd / 2)
+        return weekNumber <= baseEnd ? .base : .build
     }
 
-    /// Derives taper length from a SavedPlan's settings.
-    /// Half marathon = 1 week. Marathon = taperDuration setting.
+    // MARK: - Taper Weeks
+    //
+    // taperDuration.rawValue (e.g. 2) counts the race week itself.
+    // The engine handles race week separately, so the actual taper
+    // window is always taperDuration - 1.
+    //
+    // Examples:
+    //   taperDuration = 2  →  1 taper week  +  1 race week  ✓
+    //   taperDuration = 3  →  2 taper weeks +  1 race week  ✓
+
     static func taperWeeks(for plan: SavedPlan) -> Int {
-        plan.settings.raceType == .halfMarathon
-            ? 1
-            : plan.settings.taperDuration.rawValue
+        max(1, plan.settings.taperDuration.rawValue - 1)
     }
 
-    /// Derives peak weeks — always 1 for simplicity.
-    static func peakWeeks(for plan: SavedPlan) -> Int { 1 }
+    // MARK: - Peak Week Detection (data-derived)
+    //
+    // Scans actual planned mileage across all pre-taper, pre-race weeks.
+    // Tiebreaker: later week wins.
 
-    /// Returns the canonical peak week number for a plan.
     static func peakWeekNumber(for plan: SavedPlan) -> Int {
-        let total  = plan.weeks.count
-        let taper  = taperWeeks(for: plan)
-        let peak   = peakWeeks(for: plan)
-        return total - taper - peak + 1
+        let total      = plan.weeks.count
+        let taper      = taperWeeks(for: plan)
+        let taperStart = total - taper      // first taper week number
+
+        // Exclude taper weeks and race week from consideration
+        let candidates = plan.weeks.filter {
+            $0.weekNumber < taperStart && $0.weekNumber < total
+        }
+
+        guard !candidates.isEmpty else {
+            return max(1, taperStart - 1)
+        }
+
+        // Higher mileage wins; later week wins ties
+        let peak = candidates.max { a, b in
+            if a.totalMiles == b.totalMiles {
+                return a.weekNumber < b.weekNumber
+            }
+            return a.totalMiles < b.totalMiles
+        }
+
+        return peak?.weekNumber ?? max(1, taperStart - 1)
     }
 }

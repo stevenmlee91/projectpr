@@ -308,8 +308,7 @@ struct PlanGenerator {
         totalWeeks : Int,
         constraints: MethodConstraints
     ) -> (primary: WorkoutType, secondary: WorkoutType) {
-        let taperCutoff = method == .pfitz
-            ? totalWeeks - 3 : totalWeeks - 2
+        let taperCutoff = method == .pfitz ? totalWeeks - 2 : totalWeeks - 1
         let isTaper  = week >= taperCutoff
         let tooEarly = week < max(tier.qualityIntroWeek,
                                    constraints.earliestQualityWeek)
@@ -318,7 +317,8 @@ struct PlanGenerator {
 
         switch method {
         case .hansons:
-            return week <= 5
+            let speedCutoff = max(4, Int((Double(totalWeeks) * 0.28).rounded()))
+            return week <= speedCutoff
                 ? (.speedWork, .marathonPace)
                 : (.strengthMP, .marathonPace)
         case .hansonsHalf:
@@ -457,8 +457,10 @@ struct PlanGenerator {
                                      isCutback: false)
             let phase: String
             if wk > p.peakWeekNumber { phase = "Taper" }
-            else if wk <= 5          { phase = "Speed Phase" }
-            else                     { phase = "Strength Phase" }
+            else {
+                let speedCutoff = max(4, Int((Double(n) * 0.28).rounded()))
+                phase = wk <= speedCutoff ? "Speed Phase" : "Strength Phase"
+            }
 
             return WeekBlueprint(weekNumber: wk, phase: phase,
                 totalMiles: mi[i], longMiles: lm,
@@ -691,8 +693,10 @@ struct PlanGenerator {
                                      isCutback: false)
             let phase: String
             if wk > p.peakWeekNumber { phase = "Taper" }
-            else if wk <= 4          { phase = "Speed Phase" }
-            else                     { phase = "Strength Phase" }
+            else {
+                let speedCutoff = max(4, Int((Double(n) * 0.28).rounded()))
+                phase = wk <= speedCutoff ? "Speed Phase" : "Strength Phase"
+            }
 
             return WeekBlueprint(weekNumber: wk, phase: phase,
                 totalMiles: mi[i], longMiles: lm,
