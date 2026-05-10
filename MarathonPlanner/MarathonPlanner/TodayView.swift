@@ -332,10 +332,10 @@ struct TodayWorkoutCard: View {
             VStack(alignment: .leading, spacing: 16) {
                 milesAndPace
                 descriptionText
-                if !liveDay.paceNote.isEmpty
-                    && liveDay.paceNote != "—" {
+                if !liveDay.paceNote.isEmpty && liveDay.paceNote != "—" {
                     paceNote
                 }
+                coachingCard        // ← ADD THIS LINE
                 completionControls
                 if showingActualMiles { actualMilesRow }
             }
@@ -818,6 +818,25 @@ struct TodayWorkoutCard: View {
         }
         .padding(.top, 4)
         .transition(.move(edge: .top).combined(with: .opacity))
+    }
+    
+    private var coachingCard: some View {
+        Group {
+            if let workoutType = WorkoutType(rawValue: liveDay.workoutType),
+               let coaching = WorkoutCoachingEngine.content(
+                   workoutType: workoutType,
+                   planType:    ctx.plan.settings.planType,
+                   phase:       ctx.week.phase,
+                   weekNumber:  ctx.weekNumber,
+                   totalWeeks:  ctx.totalWeeks,
+                   raceType:    ctx.plan.settings.raceType
+               ) {
+                WorkoutCoachingCard(
+                    content:     coaching,
+                    accentColor: workoutType.coachingAccentColor
+                )
+            }
+        }
     }
 
     // MARK: Styling

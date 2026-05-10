@@ -55,6 +55,8 @@
 		B08F5A3C2FAFF71600BFFC53 /* HidgonNoviceGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A3B2FAFF71600BFFC53 /* HidgonNoviceGenerator.swift */; };
 		B08F5A3E2FAFF72700BFFC53 /* HigdonIntermediateGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A3D2FAFF72700BFFC53 /* HigdonIntermediateGenerator.swift */; };
 		B08F5A442FB0492D00BFFC53 /* TrainingPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A432FB0492D00BFFC53 /* TrainingPhase.swift */; };
+		B08F5A462FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A452FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift */; };
+		B08F5A482FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A472FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -138,6 +140,8 @@
 		B08F5A3B2FAFF71600BFFC53 /* HidgonNoviceGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HidgonNoviceGenerator.swift; sourceTree = "<group>"; };
 		B08F5A3D2FAFF72700BFFC53 /* HigdonIntermediateGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HigdonIntermediateGenerator.swift; sourceTree = "<group>"; };
 		B08F5A432FB0492D00BFFC53 /* TrainingPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPhase.swift; sourceTree = "<group>"; };
+		B08F5A452FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCoachEngine.swift; sourceTree = "<group>"; };
+		B08F5A472FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCoachingCard.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -249,6 +253,8 @@
 				B08F5A332FADAD2E00BFFC53 /* WorkoutCompletionButton.swift */,
 				B07526182F9EC44E008F9552 /* AppearanceManager.swift */,
 				B07526142F9E6FF4008F9552 /* TodayView.swift */,
+				B08F5A452FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift */,
+				B08F5A472FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift */,
 				B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */,
 				B08F5A292FAB0B6200BFFC53 /* MilestoneDetector.swift */,
 				B08F5A232FAB067A00BFFC53 /* WeeklySummaryManager.swift */,
@@ -424,6 +430,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B08F5A462FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift in Sources */,
 				B08F5A242FAB067A00BFFC53 /* WeeklySummaryManager.swift in Sources */,
 				B08F59BE2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift in Sources */,
 				B0A62DA92F9862340093719D /* PlanGenerator.swift in Sources */,
@@ -439,6 +446,7 @@
 				B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */,
 				B08F5A3C2FAFF71600BFFC53 /* HidgonNoviceGenerator.swift in Sources */,
 				B08F5A342FADAD2E00BFFC53 /* WorkoutCompletionButton.swift in Sources */,
+				B08F5A482FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift in Sources */,
 				B08F59C82FA46AE800BFFC53 /* RouteMapView.swift in Sources */,
 				B08F5A1E2FA7F4F300BFFC53 /* DailyInsightEngine.swift in Sources */,
 				B08F5A2A2FAB0B6200BFFC53 /* MilestoneDetector.swift in Sources */,
