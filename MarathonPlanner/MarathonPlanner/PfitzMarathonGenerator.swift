@@ -2,23 +2,21 @@ import Foundation
 
 // MARK: - Pfitz Marathon Generator
 //
-// Pete Pfitzinger's Advanced Marathoning — 18/55 — with adaptive onboarding.
+// Pete Pfitzinger's Advanced Marathoning — 18/55 — with corrected progression engine.
 //
-// COACHING PRINCIPLE:
-//   A 25 mpw runner does not open week 1 of a Pfitz plan and see 40 miles.
-//   The aerobic density that defines Pfitz is built progressively.
-//   The philosophy is preserved. The entry into the philosophy is personalized.
+// THE CORE BUG THAT WAS FIXED:
+//   Previous: taper % applied to peakWeekly (55).
+//   A 25 mpw runner building to 40 mpw got a 43 mpw "taper week 1."
+//   This breaks trust immediately and is physiologically indefensible.
 //
-// ADAPTATION SYSTEM:
-//   adaptiveStart = base + small first-week bump, capped at 68% of peak.
-//   MLR volume scales with actual weekly mileage, not canonical week alone.
-//   LT segment length scales with weekly mileage.
-//   As mileage builds, sessions grow — the runner earns the full structure.
+// THE FIX:
+//   achievablePeak = what this runner can realistically reach in available build weeks.
+//   Smooth progression targets achievablePeak, not the methodology ceiling.
+//   Taper applies to achievedPeak (actual max in build schedule).
 //
 // THE DEFINING FEATURE — MEDIUM-LONG RUN:
-//   Present EVERY week without exception. Never removed, only scaled.
-//   At 28 mpw: MLR might be 9-10 miles. At 50 mpw: 15-16 miles.
-//   The habit and intent are always there — the volume is proportional.
+//   Present EVERY week without exception. Volume scales with weekly mileage.
+//   Never absent. The habit is non-negotiable. The distance is proportional.
 
 struct PfitzMarathonGenerator {
 
@@ -28,83 +26,21 @@ struct PfitzMarathonGenerator {
     private static let longRunPeak      : Double = 22
     private static let raceSpecificStart: Int    = 13
     private static let ltPhaseStart     : Int    = 7
+    private static let cutbackWeeks     : Set<Int> = [6, 11]  // canonical Pfitz cutbacks
+    private static let cutbackCount     : Int    = 2
 
-    // MARK: - Adaptive LT Workout
-    //
-    // LT miles at pace scale with actual weekly mileage.
-    // A runner at 30 mpw gets 4 miles at LT. At 50 mpw: 7 miles.
-    // This prevents a low-volume runner from attempting a 7-mile LT block
-    // that represents 25% of their weekly total.
+    // MARK: - Base Mileage Recommendation
 
-    private static func ltWorkout(canonical: Int, weekMiles: Double,
-                                   isTaper: Bool) -> (total: Double, ltMiles: Double) {
-        if isTaper {
-            let ltM = max(3.0, weekMiles * 0.09)
-            return (total: ltM + 4.0, ltMiles: ltM)
-        }
-
-        // Canonical progression — maximum LT miles at full methodology volume
-        let canonicalLT: Double
-        switch canonical {
-        case ..<5:    canonicalLT = 4.0
-        case 5...6:   canonicalLT = 5.0
-        case 7...9:   canonicalLT = 5.0
-        case 10...12: canonicalLT = 6.0
-        case 13...15: canonicalLT = 7.0
-        default:      canonicalLT = 5.0
-        }
-
-        // Scale by actual weekly mileage — LT should be ~11-13% of weekly total
-        let volumeBasedLT = weekMiles * 0.12
-        let ltM = min(canonicalLT, max(volumeBasedLT, 3.0)).rounded(toPlaces: 1)
-        return (total: ltM + 4.0, ltMiles: ltM)
-    }
-
-    // MARK: - Adaptive Medium-Long Run
-    //
-    // Present EVERY week — this is the Pfitz non-negotiable.
-    // But volume scales with actual weekly mileage.
-    // At 28 mpw: MLR ≈ 9 miles (32% of weekly). At 50 mpw: 15 miles.
-    // The runner always has the MLR habit. The distance is proportional.
-
-    private static func mlrMiles(canonical: Int, weekMiles: Double,
-                                  isTaper: Bool, taperWeeks: Int,
-                                  taperPos: Int) -> Double {
-        if isTaper {
-            switch taperPos {
-            case 1: return max(9.0, weekMiles * 0.28)
-            case 2: return max(8.0, weekMiles * 0.24)
-            default: return max(7.0, weekMiles * 0.20)
-            }
-        }
-
-        // Canonical ceiling — what a full-mileage runner gets
-        let canonicalMLR: Double
-        switch canonical {
-        case ..<5:    canonicalMLR = 11.0
-        case 5...6:   canonicalMLR = 12.0
-        case 7...9:   canonicalMLR = 13.0
-        case 10...12: canonicalMLR = 15.0
-        case 13...15: canonicalMLR = 16.0
-        default:      canonicalMLR = 13.0
-        }
-
-        // Scale by actual weekly mileage — MLR ≈ 27-30% of weekly total
-        let volumeMLR = weekMiles * 0.28
-        return min(canonicalMLR, max(volumeMLR, 9.0)).rounded(toPlaces: 0)
-    }
-
-    // MARK: - MP Finish Sections (Phase 3 only)
-
-    private static func mpFinishMiles(canonical: Int,
-                                       weekMiles: Double) -> Int? {
-        switch canonical {
-        case 13:    return nil
-        case 14:    return max(4, Int(weekMiles * 0.11))   // scales with volume
-        case 15:    return max(5, Int(weekMiles * 0.14))
-        case 16:    return max(6, Int(weekMiles * 0.17))
-        case 17:    return nil
-        default:    return nil
+    static func baseRecommendation(for base: Double) -> String? {
+        switch base {
+        case ..<25:
+            return "Pfitz 18/55 is built around aerobic density that requires a real foundation. Entering from \(Int(base)) mpw, your first 4–5 weeks are an intentional onboarding phase before the full medium-long run + LT + long run structure becomes viable. Consider whether the Higdon Intermediate plan — which builds that foundation — might be a better starting point."
+        case 25..<35:
+            return "Your base is developing. The first 2–3 weeks use general aerobic runs in place of LT sessions while your body adapts to the Pfitz weekly density. By week 4, the full structure begins. This is a legitimate way to enter — just be conservative with early pacing."
+        case 35..<40:
+            return "A solid base for Pfitz. The first week uses a slightly lighter LT session before canonical volume begins. You will feel the plan's full density within 2 weeks."
+        default:
+            return nil
         }
     }
 
@@ -117,7 +53,8 @@ struct PfitzMarathonGenerator {
         let paces    = PaceEngine(goalMinutes: settings.goalTimeMinutes)
         let mileage  = weeklyMileageSchedule(n: n, base: settings.baseMileage,
                                               taperWeeks: taperWks)
-        let longRuns = longRunSchedule(n: n, taperWeeks: taperWks)
+        let longRuns = longRunSchedule(n: n, taperWeeks: taperWks,
+                                        base: settings.baseMileage)
 
         var weeks: [TrainingWeek] = []
         for i in 0..<n {
@@ -129,18 +66,19 @@ struct PfitzMarathonGenerator {
                                                   taperWeeks: taperWks)
 
             weeks.append(buildWeek(
-                weekNumber: wk,
-                canonical:  canonical,
-                phase:      tPhase,
-                phaseLabel: phaseLabel,
-                totalMiles: mileage[i],
-                longMiles:  longRuns[i],
-                schedule:   schedule,
-                isTaper:    isTap,
-                taperPos:   taperPos,
-                taperWeeks: taperWks,
-                totalWeeks: n,
-                paces:      paces
+                weekNumber:  wk,
+                canonical:   canonical,
+                phase:       tPhase,
+                phaseLabel:  phaseLabel,
+                totalMiles:  mileage[i],
+                longMiles:   longRuns[i],
+                schedule:    schedule,
+                isTaper:     isTap,
+                taperPos:    taperPos,
+                taperWeeks:  taperWks,
+                totalWeeks:  n,
+                baseMileage: settings.baseMileage,
+                paces:       paces
             ))
         }
 
@@ -148,77 +86,124 @@ struct PfitzMarathonGenerator {
                                             raceType: .marathon)
     }
 
-    // MARK: - Weekly Mileage Schedule
+    // MARK: - Weekly Mileage Schedule (FIXED)
     //
-    // ADAPTIVE ONBOARDING:
-    //   adaptiveStart derived from base, not from a 40-mile methodology floor.
-    //   A 25 mpw runner enters at ~27 mpw. A 48 mpw runner at ~51 mpw.
-    //   Cap: 68% of peak (37 mpw on a 55-peak plan).
-    //   Ramp: 9% max per week (Pfitz is dense — conservative ramp protects).
+    // Same progression engine fix as Hansons.
+    // Pfitz specifics: canonical cutbacks at 6 and 11, 9% ramp (slightly
+    // more permissive than Hansons 8% — Pfitz builds more aggressively).
 
     static func weeklyMileageSchedule(n: Int, base: Double,
                                        taperWeeks: Int) -> [Double] {
-        let peak = peakWeekly
+        let peak       = peakWeekly
+        let buildWeeks = n - taperWeeks
 
-        // Adaptive start — from where the runner actually is
-        let adaptiveStart = min(
-            max(base + 2.0, base * 1.08),
-            peak * 0.68
-        ).rounded(toPlaces: 0)
+        let adaptiveStart = min(base * 1.08 + 1.0, peak * 0.95)
+            .rounded(toPlaces: 0)
 
+        let effectiveBuildWeeks = Double(buildWeeks - cutbackCount)
+        let rawAchievable = adaptiveStart * pow(1.10, effectiveBuildWeeks)
+        let achievablePeak = min(peak, rawAchievable).rounded(toPlaces: 0)
+
+        var result  : [Double] = []
+        var current             = adaptiveStart
+
+        for i in 0..<buildWeeks {
+            let wk        = i + 1
+            let canonical = wk + (18 - n)
+
+            let progress     = buildWeeks > 1
+                ? Double(i) / Double(buildWeeks - 1)
+                : 1.0
+            let smoothTarget = adaptiveStart + (achievablePeak - adaptiveStart) * progress
+
+            if cutbackWeeks.contains(canonical) {
+                let val = max(adaptiveStart, (current * 0.85).rounded(toPlaces: 0))
+                result.append(val)
+                // current does NOT update on cutbacks
+            } else {
+                let capped = min(smoothTarget, current * 1.09)  // 9% Pfitz ramp
+                let val    = min(max(capped.rounded(toPlaces: 0), adaptiveStart),
+                                 achievablePeak)
+                result.append(val)
+                current = val
+            }
+        }
+
+        // TAPER FROM ACHIEVED PEAK — not from methodology peak.
+        let achievedPeak = result.max() ?? achievablePeak
         let taperPcts: [Double] = taperWeeks == 3
             ? [0.85, 0.70, 0.45]
             : [0.78, 0.45]
-
-        var result : [Double] = []
-        var current             = adaptiveStart
-
-        for i in 0..<n {
-            let wk        = i + 1
-            let taperPos  = wk - (n - taperWeeks)
-            let canonical = wk + (18 - n)
-
-            if taperPos > 0 {
-                let pct = taperPcts[min(taperPos - 1, taperPcts.count - 1)]
-                result.append((peak * pct).rounded(toPlaces: 0))
-                continue
-            }
-
-            if [6, 11].contains(canonical) {
-                let cutback = max((current * 0.85).rounded(toPlaces: 0),
-                                  adaptiveStart)
-                result.append(cutback)
-            } else {
-                let buildWks = max(1, n - taperWeeks - 1)
-                let progress = Double(i) / Double(buildWks)
-                let target   = adaptiveStart + (peak - adaptiveStart) * progress
-                let capped   = min(target, current * 1.09)   // 9% max ramp
-                let val      = min(max(capped.rounded(toPlaces: 0), adaptiveStart), peak)
-                current = val
-                result.append(val)
-            }
+        for pct in taperPcts {
+            result.append(max(adaptiveStart, (achievedPeak * pct).rounded(toPlaces: 0)))
         }
+
         return result
     }
 
-    // MARK: - Long Run Schedule
+    // MARK: - Adaptive Long Run Schedule (FIXED for low-base runners)
+    //
+    // Previous: all runners inherited canonical18[offset] regardless of base.
+    // A 25 mpw runner could see 17-mile long runs in week 1.
+    //
+    // Now: advanced runners get canonical schedule; others start from base-appropriate
+    // point and build linearly toward longRunPeak. Max +2 miles/week.
+    // Taper from achievedPeak, not from longRunPeak.
 
-    static func longRunSchedule(n: Int, taperWeeks: Int) -> [Double] {
-        let canonical18: [Double] = [
-            16, 17, 17, 18,
-            18, 15,
-            18, 19, 20, 20,
-            17,
-            20, 22, 22,
-            22, 18,
-            15, 0
-        ]
+    static func longRunSchedule(n: Int, taperWeeks: Int, base: Double) -> [Double] {
+        let tier   = RunnerReadinessTier.from(base: base)
         let offset = 18 - n
-        if offset > 0 {
-            let trimmed = Array(canonical18.dropFirst(min(offset, canonical18.count)))
-            return trimmed.prefix(n).map { min($0, longRunPeak) }
+
+        if tier == .advanced {
+            let canonical18: [Double] = [
+                16, 17, 17, 18, 18, 15,
+                18, 19, 20, 20, 17,
+                20, 22, 22, 22, 18, 15, 0
+            ]
+            let adjusted = offset > 0
+                ? Array(canonical18.dropFirst(min(offset, canonical18.count)))
+                : canonical18
+            let buildSlice = Array(adjusted.prefix(n - taperWeeks))
+            let achievedPeak = buildSlice.max() ?? longRunPeak
+            let taperLRs: [Double] = taperWeeks == 3
+                ? [(achievedPeak * 0.72).rounded(toPlaces: 0),
+                   (achievedPeak * 0.54).rounded(toPlaces: 0), 0]
+                : [(achievedPeak * 0.68).rounded(toPlaces: 0), 0]
+            return buildSlice + taperLRs
         }
-        return canonical18.prefix(n).map { min($0, longRunPeak) }
+
+        // Non-advanced: build from base-appropriate starting point
+        let longStart = max(base * tier.longRunStartFraction, 8.0).rounded(toPlaces: 0)
+        let buildWeeks = n - taperWeeks
+
+        var schedule: [Double] = []
+        var current = longStart
+
+        for i in 0..<buildWeeks {
+            let wk        = i + 1
+            let canonical = wk + offset
+            let isCutback = cutbackWeeks.contains(canonical)
+
+            if isCutback {
+                let val = max(longStart, (current - 2.0)).rounded(toPlaces: 0)
+                schedule.append(val)
+            } else {
+                let progress = Double(i) / Double(max(1, buildWeeks - 1))
+                let target   = longStart + (longRunPeak - longStart) * progress
+                let next     = min(target.rounded(toPlaces: 0),
+                                   min(current + 2.0, longRunPeak))
+                schedule.append(next)
+                current = next
+            }
+        }
+
+        let achievedLongPeak = schedule.max() ?? longStart
+        let taperLRs: [Double] = taperWeeks == 3
+            ? [(achievedLongPeak * 0.72).rounded(toPlaces: 0),
+               (achievedLongPeak * 0.54).rounded(toPlaces: 0), 0]
+            : [(achievedLongPeak * 0.68).rounded(toPlaces: 0), 0]
+
+        return schedule + taperLRs
     }
 
     // MARK: - Phase Info
@@ -234,40 +219,140 @@ struct PfitzMarathonGenerator {
         return                             (.build, "Race-Specific Phase")
     }
 
+    // MARK: - Stress-Aware MLR Day
+
+    private static func effectiveMlrDay(schedule: UserSchedule) -> Weekday {
+        let ltDay    = schedule.workoutDay1
+        let mwDay    = schedule.midweekLongDay
+        let adjacent = abs(ltDay.rawValue - mwDay.rawValue) == 1
+        guard adjacent else { return mwDay }
+        let shiftedRaw = (mwDay.rawValue % 7) + 1
+        guard let shifted = Weekday(rawValue: shiftedRaw) else { return mwDay }
+        let taken = Set([schedule.longRunDay, ltDay] + schedule.restDays)
+        return taken.contains(shifted) ? mwDay : shifted
+    }
+
+    // MARK: - Budget-First Session Allocation
+
+    private struct WeekAllocation {
+        let longM    : Double
+        let mlrM     : Double
+        let ltTotal  : Double
+        let ltAtPace : Double
+        let recovPerDay: Double
+    }
+
+    private static func allocate(totalMiles: Double, longMiles: Double,
+                                  canonical: Int, isTaper: Bool,
+                                  taperWeeks: Int, taperPos: Int) -> WeekAllocation {
+        let longM = min(longMiles, longRunPeak)
+        let budgetAfterLong = max(0, totalMiles - longM)
+
+        let targetMLR = rawMlrMiles(canonical: canonical, weekMiles: totalMiles,
+                                     isTaper: isTaper, taperWeeks: taperWeeks,
+                                     taperPos: taperPos)
+        let mlrM = min(targetMLR, budgetAfterLong * 0.45).rounded(toPlaces: 1)
+        let budgetAfterMLR = max(0, budgetAfterLong - mlrM)
+
+        let (targetLTTotal, targetLTAtPace) = rawLtWorkout(canonical: canonical,
+                                                             weekMiles: totalMiles,
+                                                             isTaper: isTaper)
+        let ltTotal    = min(targetLTTotal, budgetAfterMLR * 0.60).rounded(toPlaces: 1)
+        let ltFraction = targetLTTotal > 0 ? targetLTAtPace / targetLTTotal : 0.5
+        let ltAtPace   = (ltTotal * ltFraction).rounded(toPlaces: 1)
+        let budgetAfterLT = max(0, budgetAfterMLR - ltTotal)
+
+        // NO floor on recovery — prevents mileage overflow
+        let recovPerDay = budgetAfterLT > 0
+            ? (budgetAfterLT / 2.0).rounded(toPlaces: 1)
+            : 0.0
+
+        return WeekAllocation(longM: longM, mlrM: mlrM, ltTotal: ltTotal,
+                               ltAtPace: ltAtPace, recovPerDay: recovPerDay)
+    }
+
+    private static func rawMlrMiles(canonical: Int, weekMiles: Double,
+                                     isTaper: Bool, taperWeeks: Int,
+                                     taperPos: Int) -> Double {
+        if isTaper {
+            switch taperPos {
+            case 1: return (weekMiles * 0.28).rounded(toPlaces: 0)
+            case 2: return (weekMiles * 0.24).rounded(toPlaces: 0)
+            default: return (weekMiles * 0.20).rounded(toPlaces: 0)
+            }
+        }
+        let canonical_: Double
+        switch canonical {
+        case ..<5:    canonical_ = 11.0
+        case 5...6:   canonical_ = 12.0
+        case 7...9:   canonical_ = 13.0
+        case 10...12: canonical_ = 15.0
+        case 13...15: canonical_ = 16.0
+        default:      canonical_ = 13.0
+        }
+        return min(canonical_, max(weekMiles * 0.28, 9.0)).rounded(toPlaces: 0)
+    }
+
+    private static func rawLtWorkout(canonical: Int,
+                                      weekMiles: Double,
+                                      isTaper: Bool) -> (total: Double, atPace: Double) {
+        if isTaper {
+            let lt = max(3.0, weekMiles * 0.09)
+            return (total: lt + 4.0, atPace: lt)
+        }
+        let canonical_: Double
+        switch canonical {
+        case ..<5:    canonical_ = 4.0
+        case 5...6:   canonical_ = 5.0
+        case 7...9:   canonical_ = 5.0
+        case 10...12: canonical_ = 6.0
+        case 13...15: canonical_ = 7.0
+        default:      canonical_ = 5.0
+        }
+        let lt = min(canonical_, max(weekMiles * 0.12, 3.0)).rounded(toPlaces: 1)
+        return (total: lt + 4.0, atPace: lt)
+    }
+
+    private static func mpFinishMiles(canonical: Int, weekMiles: Double) -> Int? {
+        switch canonical {
+        case 14: return max(4, Int(weekMiles * 0.11))
+        case 15: return max(5, Int(weekMiles * 0.14))
+        case 16: return max(6, Int(weekMiles * 0.17))
+        default: return nil
+        }
+    }
+
     // MARK: - Week Builder
 
     static func buildWeek(
-        weekNumber : Int,
-        canonical  : Int,
-        phase      : TrainingPhase,
-        phaseLabel : String,
-        totalMiles : Double,
-        longMiles  : Double,
-        schedule   : UserSchedule,
-        isTaper    : Bool,
-        taperPos   : Int,
-        taperWeeks : Int,
-        totalWeeks : Int,
-        paces      : PaceEngine
+        weekNumber  : Int,
+        canonical   : Int,
+        phase       : TrainingPhase,
+        phaseLabel  : String,
+        totalMiles  : Double,
+        longMiles   : Double,
+        schedule    : UserSchedule,
+        isTaper     : Bool,
+        taperPos    : Int,
+        taperWeeks  : Int,
+        totalWeeks  : Int,
+        baseMileage : Double,
+        paces       : PaceEngine
     ) -> TrainingWeek {
-        let restSet  = Set(schedule.restDays)
-        let lrDay    = schedule.longRunDay
-        let ltDay    = schedule.workoutDay1
-        let mlrDay   = schedule.midweekLongDay
+        let tier            = RunnerReadinessTier.from(base: baseMileage)
+        let inLTOnboarding  = canonical < tier.ltIntroCanonical && !isTaper
+        let trainingDepth   = Double(weekNumber) / Double(totalWeeks)
 
-        let longM = min(max(longMiles, 10), longRunPeak)
-        let (ltTotal, ltMilesAtPace) = ltWorkout(canonical: canonical,
-                                                   weekMiles: totalMiles,
-                                                   isTaper: isTaper)
-        let mlrM = mlrMiles(canonical: canonical, weekMiles: totalMiles,
-                             isTaper: isTaper, taperWeeks: taperWeeks,
-                             taperPos: taperPos)
+        let restSet = Set(schedule.restDays)
+        let lrDay   = schedule.longRunDay
+        let ltDay   = schedule.workoutDay1
+        let mlrDay  = effectiveMlrDay(schedule: schedule)
         let mpSection = isTaper ? nil : mpFinishMiles(canonical: canonical,
                                                        weekMiles: totalMiles)
 
-        let structured  = longM + ltTotal + mlrM
-        let recovTotal  = max(0, totalMiles - structured)
-        let recovPerDay = max(5.0, (recovTotal / 2.0).rounded(toPlaces: 1))
+        let alloc = allocate(totalMiles: totalMiles, longMiles: longMiles,
+                              canonical: canonical, isTaper: isTaper,
+                              taperWeeks: taperWeeks, taperPos: taperPos)
 
         var days: [TrainingDay] = []
 
@@ -278,25 +363,39 @@ struct PfitzMarathonGenerator {
                 td = makeRest(day, isTaper: isTaper)
             } else if day == lrDay {
                 if let mpMiles = mpSection {
-                    td = makeLongRunWithMP(day, longMiles: longM, mpMiles: mpMiles,
-                                           weekNumber: weekNumber,
-                                           totalWeeks: totalWeeks, paces: paces)
+                    td = makeLongRunWithMP(day, longMiles: alloc.longM, mpMiles: mpMiles,
+                                           weekNumber: weekNumber, totalWeeks: totalWeeks,
+                                           paces: paces)
                 } else {
-                    td = makeLongRun(day, miles: longM, canonical: canonical,
+                    td = makeLongRun(day, miles: alloc.longM, canonical: canonical,
                                      weekNumber: weekNumber, totalWeeks: totalWeeks,
-                                     isTaper: isTaper, paces: paces)
+                                     isTaper: isTaper, trainingDepth: trainingDepth,
+                                     tier: tier, paces: paces)
                 }
             } else if day == ltDay {
-                td = makeLTRun(day, totalMiles: ltTotal, ltMiles: ltMilesAtPace,
-                                canonical: canonical, weekMiles: totalMiles,
-                                isTaper: isTaper, paces: paces)
+                if inLTOnboarding {
+                    td = makeGeneralAerobicRun(day, miles: alloc.ltTotal,
+                                               canonical: canonical, weekNumber: weekNumber,
+                                               tier: tier, paces: paces)
+                } else {
+                    td = makeLTRun(day, totalMiles: alloc.ltTotal,
+                                    ltMiles: alloc.ltAtPace, canonical: canonical,
+                                    isTaper: isTaper, trainingDepth: trainingDepth,
+                                    paces: paces)
+                }
             } else if day == mlrDay {
-                td = makeMediumLongRun(day, miles: mlrM, canonical: canonical,
-                                        weekNumber: weekNumber, weekMiles: totalMiles,
-                                        isTaper: isTaper, paces: paces)
+                td = makeMediumLongRun(day, miles: alloc.mlrM, canonical: canonical,
+                                        weekNumber: weekNumber, isTaper: isTaper,
+                                        trainingDepth: trainingDepth, tier: tier,
+                                        paces: paces)
             } else {
-                td = makeRecoveryRun(day, miles: recovPerDay, weekNumber: weekNumber,
-                                     isTaper: isTaper, paces: paces)
+                if alloc.recovPerDay > 0 {
+                    td = makeRecoveryRun(day, miles: alloc.recovPerDay,
+                                         weekNumber: weekNumber, isTaper: isTaper,
+                                         paces: paces)
+                } else {
+                    td = makeRest(day, isTaper: isTaper)
+                }
             }
 
             days.append(td)
@@ -310,174 +409,172 @@ struct PfitzMarathonGenerator {
 
     static func makeRest(_ day: Weekday, isTaper: Bool) -> TrainingDay {
         let desc = isTaper
-            ? "Rest day. You are in the taper. The adaptations from months of training are consolidating. This rest is part of the preparation, not a pause in it."
-            : "Rest day. After the aerobic load of the LT session, medium-long run, and long run, this rest allows genuine recovery. Your body synthesizes the adaptations here."
+            ? "Rest day. The adaptations from months of training are consolidating. This rest is part of the preparation."
+            : "Rest day. After the LT session, medium-long run, and long run, your body synthesizes the adaptations here. This is not a gap in training — it is where the training takes effect."
         return TrainingDay(weekday: day, workoutType: .rest, miles: 0,
                            description: desc, paceNote: "—")
     }
 
-    static func makeLTRun(_ day       : Weekday,
-                           totalMiles : Double,
-                           ltMiles    : Double,
-                           canonical  : Int,
-                           weekMiles  : Double,
-                           isTaper    : Bool,
-                           paces      : PaceEngine) -> TrainingDay {
+    static func makeGeneralAerobicRun(_ day       : Weekday,
+                                       miles      : Double,
+                                       canonical  : Int,
+                                       weekNumber : Int,
+                                       tier       : RunnerReadinessTier,
+                                       paces      : PaceEngine) -> TrainingDay {
+        let gaRange = paces.rangeString(paces.generalAero)
+
+        let rationale: String
+        switch tier {
+        case .rebuilding:
+            rationale = "You are in the onboarding phase. These general aerobic runs establish the aerobic layering habit before LT intensity is introduced. Your body is adapting to the dual-stimulus structure — this run plus the medium-long run — before the harder threshold demand is added."
+        case .developing:
+            rationale = "General aerobic running this week builds your base before LT sessions begin. The full Pfitz structure — with threshold work — arrives in the coming weeks."
+        default:
+            rationale = "General aerobic run to establish the week's aerobic layering before full LT sessions begin."
+        }
+
+        let desc = """
+General aerobic run: \(String(format: "%.0f", miles)) miles at sustained aerobic effort.
+
+Run at \(gaRange) — comfortably sustained, not easy and not hard.
+
+\(rationale)
+"""
+        return TrainingDay(weekday: day, workoutType: .generalAerobic, miles: miles,
+                           description: desc,
+                           paceNote: "\(gaRange) — general aerobic, sustained")
+    }
+
+    static func makeLTRun(_ day          : Weekday,
+                           totalMiles    : Double,
+                           ltMiles       : Double,
+                           canonical     : Int,
+                           isTaper       : Bool,
+                           trainingDepth : Double,
+                           paces         : PaceEngine) -> TrainingDay {
         let ltPace = PaceEngine.format(paces.pfitzLT)
         let ltHigh = PaceEngine.format(paces.pfitzLT - 10)
         let ltLow  = PaceEngine.format(paces.pfitzLT + 10)
 
-        let tapNote = isTaper ? "\n\nTaper week — run the LT section at effort, not a specific pace. Your freshening legs may want to go faster. Resist." : ""
+        let tapNote = isTaper
+            ? "\n\nTaper week — run the LT section at effort, not a specific pace."
+            : ""
 
-        let volumeNote: String
-        if weekMiles < peakWeekly * 0.70 {
-            volumeNote = "\n\nLT session length is calibrated to your current weekly volume. As your mileage builds, the LT segment will progressively lengthen."
-        } else {
-            volumeNote = ""
-        }
-
-        let phaseContext: String
-        switch canonical {
-        case ..<7:
-            phaseContext = "In the endurance phase, LT work establishes the aerobic ceiling your marathon pace will sit beneath. These sessions are foundational — not your hardest workouts yet."
-        case 7...12:
-            phaseContext = "LT development is the primary physiological focus of this phase. Each session raises the pace you can sustain for extended periods — which directly translates to what you can hold for 26.2 miles."
+        let depthNote: String
+        switch trainingDepth {
+        case ..<0.35:
+            depthNote = "In the endurance phase, LT work establishes the aerobic ceiling your marathon pace will sit beneath. The threshold pace you can sustain is expanding week by week."
+        case 0.35..<0.65:
+            depthNote = "LT development is the primary focus of this phase. Each session raises the pace you can sustain aerobically — directly translating to what you can hold for 26.2 miles."
         default:
-            phaseContext = "In the race-specific phase, LT work maintains aerobic sharpness alongside the marathon-pace long runs."
+            depthNote = "In the race-specific phase, LT work maintains sharpness alongside marathon-pace long runs. These sessions prevent you from becoming purely a slow, long-distance specialist."
         }
 
         let desc = """
-Lactate threshold run: \(String(format: "%.0f", totalMiles)) miles with \(String(format: "%.0f", ltMiles)) miles at LT pace.
+Lactate threshold run: \(String(format: "%.0f", totalMiles)) miles with \(String(format: "%.0f", ltMiles)) miles at LT pace.\(tapNote)
 
-Warmup ~2 miles easy. LT section: \(String(format: "%.0f", ltMiles)) miles at \(ltHigh)–\(ltLow)/mi. \
-Cooldown ~2 miles easy.\(tapNote)
+Warmup ~2 miles easy. LT section: \(String(format: "%.0f", ltMiles)) miles at \(ltHigh)–\(ltLow)/mi \
+— sustained and hard, not all-out. Cooldown ~2 miles easy.
 
-LT pace sits at the boundary of your aerobic and anaerobic systems — roughly your 25K to 30K \
-race pace. Sustaining this pace trains your body to clear lactate more effectively, raising the \
-pace you can hold aerobically.
+LT pace sits at the boundary of your aerobic and anaerobic systems. Sustaining it trains \
+your body to clear lactate more effectively, raising the pace you can hold aerobically.
 
-\(phaseContext)
-
-The effort should feel controlled and hard — breathing is purposeful and rapid, but you are not \
-at the edge of your capacity.\(volumeNote)
+\(depthNote)
 """
         return TrainingDay(weekday: day, workoutType: .lactateThreshold,
                            miles: totalMiles, description: desc,
                            paceNote: "~\(ltPace)/mi for the LT section — 25K–30K race effort")
     }
 
-    static func makeMediumLongRun(_ day       : Weekday,
-                                   miles      : Double,
-                                   canonical  : Int,
-                                   weekNumber : Int,
-                                   weekMiles  : Double,
-                                   isTaper    : Bool,
-                                   paces      : PaceEngine) -> TrainingDay {
+    static func makeMediumLongRun(_ day          : Weekday,
+                                   miles         : Double,
+                                   canonical     : Int,
+                                   weekNumber    : Int,
+                                   isTaper       : Bool,
+                                   trainingDepth : Double,
+                                   tier          : RunnerReadinessTier,
+                                   paces         : PaceEngine) -> TrainingDay {
         let gaRange = paces.rangeString(paces.generalAero)
 
-        let volumeNote: String
-        if weekMiles < peakWeekly * 0.70 {
-            volumeNote = "\n\nThe medium-long run is scaled to your current weekly volume — it will grow as your training base develops. The habit and intent are always present. The distance is proportional to where you are."
-        } else {
-            volumeNote = ""
+        let growthNote = (tier == .rebuilding || tier == .developing)
+            ? "\n\nAs your weekly mileage grows across the plan, this run lengthens — it always represents a consistent fraction of your total aerobic work, not a fixed distance."
+            : ""
+
+        let depthNote: String
+        switch trainingDepth {
+        case ..<0.33:
+            depthNote = "The medium-long run is the defining feature of Pfitz training — a second major aerobic stimulus every week without exception. You are establishing the habit. The distance grows as your base builds."
+        case 0.33..<0.67:
+            depthNote = "Every Pfitz week contains this run. Not most weeks — every week. The LT session builds your ceiling. The long run builds outer endurance. This run fills the space between them, creating the depth that makes the final 10K manageable."
+        default:
+            depthNote = "In the race-specific phase, this run provides continuous aerobic stimulus between your marathon-pace long runs and LT sessions. By race day, your body knows how to run on accumulated aerobic stress. That is the Pfitz advantage."
         }
 
-        let descs: [String] = [
-            """
+        let tapDesc = "Medium-long run: \(Int(miles)) miles during taper. Shorter than recent MLRs — but still present. The medium-long run never disappears in Pfitz, it only reduces. General aerobic effort throughout."
+
+        let buildDesc = """
 Medium-long run: \(Int(miles)) miles at general aerobic effort.
 
-The medium-long run is the defining feature of Pfitz training — a second major aerobic stimulus \
-every single week without exception. Combined with your long run, it creates aerobic density that \
-plans at similar mileage on fewer days cannot replicate.
+Run at \(gaRange) — not a recovery jog, not a hard effort. Sustained aerobic work at medium intensity.
 
-Run at \(gaRange). Comfortably aerobic throughout — not easy, not hard.\(volumeNote)
-""",
-            """
-Medium-long run: \(Int(miles)) miles general aerobic.
-
-Every Pfitz week contains this run. Not most weeks — every week. The LT session builds your \
-aerobic ceiling. The long run builds outer-edge endurance. The medium-long run fills the space \
-between them, creating depth that makes the difference in the final 10K.
-
-Run at \(gaRange). Comfortably aerobic.\(volumeNote)
-""",
-            """
-Medium-long run: \(Int(miles)) miles.
-
-The second major aerobic stimulus of your week. Your long run will be run on legs that have \
-already done this. That combination across a short window is the Pfitz mechanism.
-
-General aerobic effort — \(gaRange). Not a recovery jog. Not a workout. Sustained aerobic \
-development at medium intensity.\(volumeNote)
-""",
-            """
-Medium-long run: \(Int(miles)) miles at general aerobic effort.
-
-Most plans have one major aerobic event per week: the long run. Pfitz has two. This is why \
-Pfitz runners at 55 miles per week often outperform runners at 60 miles on other plans — the \
-aerobic density matters as much as the total volume.
-
-Effort: \(gaRange). Honest work — not a struggle, not a stroll.\(volumeNote)
+\(depthNote)\(growthNote)
 """
-        ]
 
-        let desc = isTaper
-            ? "Medium-long run: \(Int(miles)) miles during taper. Shorter than your recent MLRs — but still present. The medium-long run never disappears in Pfitz, it reduces. Run at general aerobic effort, controlled and steady."
-            : descs[weekNumber % descs.count]
-
-        return TrainingDay(weekday: day, workoutType: .mediumLong,
-                           miles: miles, description: desc,
+        return TrainingDay(weekday: day, workoutType: .mediumLong, miles: miles,
+                           description: isTaper ? tapDesc : buildDesc,
                            paceNote: "\(gaRange) — general aerobic, comfortably sustained")
     }
 
-    static func makeLongRun(_ day       : Weekday,
-                             miles      : Double,
-                             canonical  : Int,
-                             weekNumber : Int,
-                             totalWeeks : Int,
-                             isTaper    : Bool,
-                             paces      : PaceEngine) -> TrainingDay {
+    static func makeLongRun(_ day          : Weekday,
+                             miles         : Double,
+                             canonical     : Int,
+                             weekNumber    : Int,
+                             totalWeeks    : Int,
+                             isTaper       : Bool,
+                             trainingDepth : Double,
+                             tier          : RunnerReadinessTier,
+                             paces         : PaceEngine) -> TrainingDay {
         let lrRange     = paces.rangeString(paces.longRun)
         let weeksToRace = totalWeeks - weekNumber
+
+        let growthNote = (tier == .rebuilding || tier == .developing)
+            ? "\n\nYour long run starts conservatively and builds progressively. You are growing into the aerobic density Pfitz demands."
+            : ""
 
         let desc: String
         switch (isTaper, weeksToRace) {
         case (true, 1):
-            desc = "Final long run before the race. Run easy and enjoy it. Your fitness is built. This run maintains rhythm and neuromuscular freshness."
+            desc = "Final long run before the race. Run easy. Your fitness is built — this run maintains rhythm and neuromuscular freshness."
         case (true, _):
-            desc = "Taper long run. Shorter, easier, and that is correct. The aerobic work is done. These taper runs maintain rhythm while your body consolidates months of adaptation."
-        case (false, _) where canonical == 11:
+            desc = "Taper long run. Shorter, easier, correct. The aerobic work is done. These taper runs maintain rhythm while your body consolidates months of adaptation."
+        case (false, _) where cutbackWeeks.contains(canonical):
             desc = """
 Long run: \(Int(miles)) miles — recovery week.
 
-A planned reduction in the long run. You have been building consistently — this lighter long run \
-allows adaptation to catch up. Run easy at \(lrRange). Do not treat this as an opportunity to \
-push. The following weeks will be your longest of the cycle.
+A planned reduction. You have been building consistently — this lighter long run allows \
+adaptation to catch up. Run easy at \(lrRange). The following weeks will be your longest.
 """
         case (false, _) where miles >= 20:
             desc = """
 Long run: \(Int(miles)) miles at easy aerobic effort.
 
-Start conservatively — the first 8 miles should feel almost too easy. As the run progresses, \
-your pace may naturally drift slightly. Let it, as long as you remain aerobic.
+Start conservatively — the first 8 miles should feel almost too easy. The medium-long run \
+earlier this week means you are running this on legs that have already done meaningful \
+aerobic work. That combination is the Pfitz engine.
 
-The medium-long run earlier this week means you are running this on legs that have already done \
-meaningful aerobic work. That combination is the Pfitz engine.
-
-Run at \(lrRange).
+Run at \(lrRange) throughout.\(growthNote)
 """
         default:
             desc = """
 Long run: \(Int(miles)) miles easy.
 
 Run at \(lrRange) — genuinely aerobic throughout. This run and the medium-long run are Pfitz's \
-dual-aerobic framework: two major stimuli per week developing the endurance to sustain effort \
-late in a race.
+dual-aerobic framework: two major stimuli per week developing the endurance to sustain effort late in a race.\(growthNote)
 """
         }
 
-        return TrainingDay(weekday: day, workoutType: .longRun,
-                           miles: miles, description: desc,
+        return TrainingDay(weekday: day, workoutType: .longRun, miles: miles,
+                           description: desc,
                            paceNote: "\(lrRange) — easy aerobic throughout")
     }
 
@@ -489,21 +586,19 @@ late in a race.
                                    paces      : PaceEngine) -> TrainingDay {
         let mpPace    = PaceEngine.format(paces.MP)
         let lrRange   = paces.rangeString(paces.longRun)
-        let easyMiles = Int(longMiles) - mpMiles
+        let easyMiles = max(0, Int(longMiles) - mpMiles)
 
         let desc = """
 Long run with marathon pace finish: \(Int(longMiles)) miles — first \(easyMiles) miles easy, \
 final \(mpMiles) miles at marathon pace.
 
-First \(easyMiles) miles: \(lrRange). Deliberately easy. Build aerobic momentum without \
-accumulating fatigue.
+First \(easyMiles) miles: \(lrRange). Deliberately easy. Build aerobic momentum.
 
-Final \(mpMiles) miles: \(mpPace)/mi — your goal marathon pace. Not faster, not slower. This \
-section teaches your body what marathon effort feels like when you are genuinely tired, which \
-is exactly what the second half of the race will demand.
+Final \(mpMiles) miles: \(mpPace)/mi — your goal marathon pace, not faster. This section \
+teaches your body what marathon effort feels like when you are genuinely tired. That is \
+exactly what the second half of the race will require.
 
-If the marathon pace section feels very hard today, that is valuable information. If it feels \
-controlled, your fitness is where it needs to be.
+If the marathon pace section feels controlled, your fitness is where it needs to be.
 """
         return TrainingDay(weekday: day, workoutType: .longRunWithMP,
                            miles: longMiles, description: desc,
@@ -515,18 +610,18 @@ controlled, your fitness is where it needs to be.
                                  weekNumber : Int,
                                  isTaper    : Bool,
                                  paces      : PaceEngine) -> TrainingDay {
-        let recovPace = PaceEngine.format(paces.recovery)
+        let recovPace = paces.singleString(paces.recovery)
         let descs: [String] = [
-            "Recovery run. Genuinely easy — slower than your easy pace. After the aerobic load of this week's LT session, medium-long run, and long run, your job today is active recovery. Move the blood, flush the legs, add nothing new to your fatigue account.",
-            "Recovery run. The cardiovascular system recovers faster than the muscles and connective tissue. Your perceived effort will underestimate how much recovery your legs still need. Run slower than feels necessary.",
-            "Recovery run. These slow miles serve a specific purpose: enhanced blood flow and glycogen replenishment without triggering a new training stimulus. Run easy enough that your heart rate stays genuinely low.",
-            "Recovery run. In Pfitz training, recovery runs are not easy runs — they are specifically slow to serve the physiological purpose of accelerating recovery without adding training stress."
+            "Recovery run. Genuinely easy — slower than your easy pace. After the LT session, medium-long run, and long run, your job today is active recovery without adding new stimulus.",
+            "Recovery run. The cardiovascular system recovers faster than the muscles. Run slower than feels necessary — perceived effort underestimates how much recovery your legs still need.",
+            "Recovery run. Enhanced blood flow and glycogen replenishment without triggering a new training stimulus. Keep heart rate genuinely low.",
+            "Recovery run. In Pfitz training, recovery runs are explicitly slow — not just 'easy.' They serve a specific purpose: accelerating recovery between major aerobic events."
         ]
         let desc = descs[weekNumber % descs.count]
         let note = isTaper ? "Taper recovery — extra easy, just keep the legs moving"
-                           : "~\(recovPace)/mi — recovery effort, genuinely slow"
+                           : "~\(recovPace)/mi — slower than easy, deliberate"
 
-        return TrainingDay(weekday: day, workoutType: .recovery,
-                           miles: miles, description: desc, paceNote: note)
+        return TrainingDay(weekday: day, workoutType: .recovery, miles: miles,
+                           description: desc, paceNote: note)
     }
 }

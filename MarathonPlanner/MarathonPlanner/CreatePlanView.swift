@@ -71,6 +71,9 @@ struct CreatePlanView: View {
                     heroSection
                         .padding(.bottom, 32)
                     formContent
+                    ReadinessCardIfNeeded(settings: settings)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 8)
                     generateButton
                         .padding(.top, 8)
                         .padding(.bottom, 40)
