@@ -1,838 +1,512 @@
-// HansonsMarathonGenerator.swift
-// Mile Zero
-//
-// Hansons-inspired marathon training generator.
-//
-// PHASE STRUCTURE:
-//   Base → Speed Development → Strength Build → Marathon Focus → Taper
-//
-// DAY MAPPING:
-//   HansonsDayMap is computed ONCE from the user's schedule at plan start.
-//   All weeks use the same map. Days never drift. Workout content evolves;
-//   day assignments do not.
-//
-// REST DAY:
-//   Treated as non-negotiable. The first check in every day assignment.
-//   The safety net enforces this a second time after the full map is built.
-//
-// LONG RUN CAP:
-//   16 miles. Hard limit. Never exceeded regardless of plan length,
-//   peak mileage, or goal time. Enforced at both calculation and creation.
-
 import Foundation
 
-// MARK: - Phase System
-
-private enum HansonsPhase {
-    /// Easy aerobic foundation. No quality sessions.
-    case base
-    /// Short fast intervals. Economy, leg turnover, aerobic power.
-    case speedDevelopment
-    /// Intervals lengthen. Threshold work grows. Fatigue resistance builds.
-    case strengthBuild
-    /// Peak marathon-specific work. Longest pace intervals. Maximum specificity.
-    case marathonFocus
-    /// Volume reduction. Intensity maintained. Legs sharpen for race day.
-    case taper
-}
-
-// MARK: - Day Map
+// MARK: - Hansons Marathon Generator
 //
-// Computed once from UserSchedule at plan generation time.
-// Immutable for the life of the plan.
+// Authentic Hansons Marathon Method — with intelligent adaptive onboarding.
+//
+// COACHING PRINCIPLE:
+//   Real coaching starts from where the runner IS, not where the methodology
+//   eventually wants them to be. A 25 mpw runner does not open week 1 and
+//   see 40 miles. They see a believable, challenging next step.
+//
+// ADAPTATION SYSTEM:
+//   adaptiveStart = where the runner actually enters the plan
+//   Derived from baseMileage, not from a methodology floor.
+//   Quality session volumes scale with actual weekly mileage, not week number alone.
+//   The Hansons philosophy (cumulative fatigue, 6 days, speed→strength) is preserved.
+//   The entry point into that philosophy is personalized.
+//
+// WEEKLY STRUCTURE (always 6 running days):
+//   Rest (Monday default) → Q1 Speed/Strength → Easy → Tempo → Easy → Long → Easy
+//
+// SPEED PHASE (canonical weeks 1-8): 400m–1200m intervals at 10K effort
+// STRENGTH PHASE (canonical weeks 9+): 1–4 mile repeats at marathon pace
 
-private struct HansonsDayMap {
-    /// Days with zero workouts — always enforced.
-    let rest:             Set<Weekday>
-    /// Long run day — from user's longRunDay selection.
-    let longRun:          Weekday
-    /// Primary quality session (Speed → Marathon-Specific) — from workoutDay1.
-    let primaryQuality:   Weekday
-    /// Secondary quality session (Strength → Pace Intervals) — from workoutDay2.
-    let secondaryQuality: Weekday
-    /// Threshold/Tempo session — resolved from remaining available days.
-    let threshold:        Weekday?
-    /// Active recovery — day after long run, if it is not a rest day.
-    let postLongRun:      Weekday?
-}
+struct HansonsMarathonGenerator {
 
-// MARK: - Generator
+    // MARK: - Constants
 
-enum HansonsMarathonGenerator {
+    private static let peakWeekly    : Double = 55
+    private static let longRunCap    : Double = 16
+    private static let strengthStart : Int    = 9
 
-    private static let longRunHardCap: Double = 16.0
+    // MARK: - Quality Phase
+
+    enum QualityPhase { case speed, strength }
+
+    // MARK: - Speed Session Library
+
+    struct SpeedSession {
+        let reps      : Int
+        let repDist   : String
+        let recovDist : String
+        let baseMiles : Double   // at full methodology volume
+    }
+
+    private static let speedSessions: [SpeedSession] = [
+        SpeedSession(reps: 6,  repDist: "800m",  recovDist: "400m jog", baseMiles: 7.0),
+        SpeedSession(reps: 10, repDist: "400m",  recovDist: "200m jog", baseMiles: 6.0),
+        SpeedSession(reps: 5,  repDist: "1000m", recovDist: "400m jog", baseMiles: 7.5),
+        SpeedSession(reps: 8,  repDist: "600m",  recovDist: "300m jog", baseMiles: 7.0),
+        SpeedSession(reps: 6,  repDist: "1000m", recovDist: "400m jog", baseMiles: 8.0),
+        SpeedSession(reps: 5,  repDist: "1200m", recovDist: "400m jog", baseMiles: 8.5),
+        SpeedSession(reps: 8,  repDist: "800m",  recovDist: "400m jog", baseMiles: 9.0),
+        SpeedSession(reps: 6,  repDist: "1000m", recovDist: "400m jog", baseMiles: 8.5),
+    ]
+
+    // MARK: - Strength Session Library
+
+    struct StrengthSession {
+        let reps        : Int
+        let milesPerRep : Double
+        let label       : String
+        let baseMiles   : Double   // at full methodology volume
+    }
+
+    private static let strengthSessions: [StrengthSession] = [
+        StrengthSession(reps: 6, milesPerRep: 1.0, label: "6×1mi",   baseMiles:  9.0),
+        StrengthSession(reps: 2, milesPerRep: 3.0, label: "2×3mi",   baseMiles: 10.0),
+        StrengthSession(reps: 4, milesPerRep: 1.5, label: "4×1.5mi", baseMiles:  9.5),
+        StrengthSession(reps: 3, milesPerRep: 2.0, label: "3×2mi",   baseMiles: 10.0),
+        StrengthSession(reps: 1, milesPerRep: 6.0, label: "1×6mi",   baseMiles: 10.0),
+        StrengthSession(reps: 4, milesPerRep: 2.0, label: "4×2mi",   baseMiles: 12.0),
+        StrengthSession(reps: 2, milesPerRep: 4.0, label: "2×4mi",   baseMiles: 12.0),
+        StrengthSession(reps: 3, milesPerRep: 2.0, label: "3×2mi",   baseMiles: 10.0),
+        StrengthSession(reps: 2, milesPerRep: 3.0, label: "2×3mi",   baseMiles: 10.0),
+        StrengthSession(reps: 4, milesPerRep: 1.0, label: "4×1mi",   baseMiles:  7.0),
+    ]
+
+    // MARK: - Adaptive Quality Scale Factor
+    //
+    // Sessions scale with actual weekly mileage, not week number alone.
+    // A runner at 28mpw gets a session appropriate for 28mpw.
+    // A runner at 50mpw gets the full methodology session.
+    // Floor of 0.60 ensures sessions remain meaningful even at low mileage.
+
+    private static func qualityScale(weekMiles: Double) -> Double {
+        return min(1.0, max(0.60, weekMiles / (peakWeekly * 0.85)))
+    }
 
     // MARK: - Entry Point
 
     static func generate(settings: UserSettings) -> [TrainingWeek] {
-        let n     = settings.planLength.rawValue
-        let paces = PaceEngine(goalMinutes: settings.goalTimeMinutes,
-                               distance:    RaceType.marathon.distance)
-        let tier  = determineMileageTier(settings.baseMileage)
-        let peaks = calculatePeakTargets(
-            method:        .hansons,
-            planLength:    n,
-            taperDuration: settings.taperDuration
-        )
-
-        // ── Day map: computed ONCE. Never recomputed per week. ────────────
-        let dayMap  = buildDayMap(from: settings.schedule)
-        let mileage = buildMileageSchedule(
-            baseMileage: settings.baseMileage,
-            peakMileage: peaks.peakWeeklyMiles,
-            weeks:       n,
-            peakWeek:    peaks.peakWeekNumber
-        )
+        let n        = settings.planLength.rawValue
+        let taperWks = settings.taperDuration.rawValue
+        let schedule = settings.schedule.validated(for: .hansons)
+        let paces    = PaceEngine(goalMinutes: settings.goalTimeMinutes)
+        let mileage  = weeklyMileageSchedule(n: n, base: settings.baseMileage,
+                                              taperWeeks: taperWks)
+        let longRuns = longRunSchedule(n: n, taperWeeks: taperWks)
 
         var weeks: [TrainingWeek] = []
-
         for i in 0..<n {
-            let weekNum   = i + 1
-            let phase     = computePhase(weekNum:     weekNum,
-                                         totalWeeks:  n,
-                                         peakWeekNum: peaks.peakWeekNumber)
-            let longMiles = cappedLongRun(weekNum:     weekNum,
-                                          totalWeeks:  n,
-                                          peakWeekNum: peaks.peakWeekNumber)
-            let days      = buildWeekDays(
-                weekNum:     weekNum,
-                totalWeeks:  n,
-                phase:       phase,
-                weekMiles:   mileage[i],
-                longMiles:   longMiles,
-                dayMap:      dayMap,
-                paces:       paces,
-                tier:        tier,
-                peakWeekNum: peaks.peakWeekNumber
-            )
+            let wk        = i + 1
+            let canonical = wk + (18 - n)
+            let isTap     = wk > n - taperWks
+            let qPhase: QualityPhase = canonical >= strengthStart ? .strength : .speed
+            let (tPhase, phaseLabel) = phaseInfo(week: wk, total: n, taperWeeks: taperWks)
 
-            weeks.append(TrainingWeek(
-                weekNumber: weekNum,
-                phase:      phaseLabel(phase),
-                days:       days
+            weeks.append(buildWeek(
+                weekNumber:   wk,
+                canonical:    canonical,
+                phase:        tPhase,
+                phaseLabel:   phaseLabel,
+                totalMiles:   mileage[i],
+                longMiles:    longRuns[i],
+                qualityPhase: qPhase,
+                schedule:     schedule,
+                isTaper:      isTap,
+                totalWeeks:   n,
+                paces:        paces
             ))
         }
 
-        return PlanGenerator.injectRaceDay(
-            into:     weeks,
-            schedule: settings.schedule.validated(for: .hansons),
-            raceType: .marathon
-        )
+        return PlanGenerator.injectRaceDay(into: weeks, schedule: schedule,
+                                            raceType: .marathon)
     }
 
-    // MARK: - Day Map Builder
+    // MARK: - Weekly Mileage Schedule
     //
-    // All slot assignments happen here, in dependency order:
-    //   longRun → primaryQuality → secondaryQuality → postLongRun → threshold
+    // ADAPTIVE ONBOARDING (the key fix):
+    //   adaptiveStart = the runner's actual base + a small first-week bump.
+    //   A 25 mpw runner starts at ~27 mpw, not at a 35 mpw methodology floor.
+    //   A 45 mpw runner starts at ~47 mpw, close to peak territory.
     //
-    // Each slot's "blocked" set grows as slots are assigned.
-    // A slot is only placed on a day that is not already taken.
-    // The user's preference is honored when it does not conflict.
-
-    private static func buildDayMap(from schedule: UserSchedule) -> HansonsDayMap {
-        let rest = Set(schedule.restDays)
-
-        // Long run: user's choice, must not be a rest day.
-        let longRun = pickDay(preferred:  schedule.longRunDay,
-                              blocked:    rest)
-
-        // Primary quality: workoutDay1, must avoid rest and long run.
-        let primaryQ = pickDay(preferred: schedule.workoutDay1,
-                               blocked:   rest.union([longRun]))
-
-        // Secondary quality: workoutDay2, must avoid rest, long run, primary.
-        let secondaryQ = pickDay(preferred: schedule.workoutDay2,
-                                 blocked:   rest.union([longRun, primaryQ]))
-
-        // Post-long-run recovery: day after long run, only if not a rest day.
-        let nextDay    = longRun.next
-        let postLongRun: Weekday? = rest.contains(nextDay) ? nil : nextDay
-
-        // Threshold: a free day, preferring one between primary and secondary.
-        let threshBlocked = rest
-            .union([longRun, primaryQ, secondaryQ])
-            .union(postLongRun.map { [$0] } ?? [])
-        let threshold = pickThresholdDay(primary:   primaryQ,
-                                         secondary: secondaryQ,
-                                         blocked:   threshBlocked)
-
-        return HansonsDayMap(
-            rest:             rest,
-            longRun:          longRun,
-            primaryQuality:   primaryQ,
-            secondaryQuality: secondaryQ,
-            threshold:        threshold,
-            postLongRun:      postLongRun
-        )
-    }
-
-    /// Returns `preferred` if it is not blocked.
-    /// Falls back to the first unblocked weekday.
-    private static func pickDay(preferred: Weekday, blocked: Set<Weekday>) -> Weekday {
-        if !blocked.contains(preferred) { return preferred }
-        return Weekday.allCases.first { !blocked.contains($0) } ?? preferred
-    }
-
-    /// Prefers a day sandwiched between `primary` and `secondary`.
-    /// Falls back to any unblocked weekday.
-    private static func pickThresholdDay(
-        primary:   Weekday,
-        secondary: Weekday,
-        blocked:   Set<Weekday>
-    ) -> Weekday? {
-        let all = Weekday.allCases
-        guard let pIdx = all.firstIndex(of: primary),
-              let sIdx = all.firstIndex(of: secondary) else {
-            return all.first { !blocked.contains($0) }
-        }
-
-        let lo = min(pIdx, sIdx)
-        let hi = max(pIdx, sIdx)
-
-        // Prefer a day between the two quality sessions.
-        for i in (lo + 1)..<hi {
-            if !blocked.contains(all[i]) { return all[i] }
-        }
-
-        // Any remaining free day.
-        return all.first { !blocked.contains($0) }
-    }
-
-    // MARK: - Phase System
+    //   Cap: never start above 70% of peak (40 mpw on a 55-peak plan).
+    //   Floor: base + 2 miles (always a meaningful step forward).
     //
-    // Four quality phases, proportional to plan length.
-    // Phase boundaries scale with peakWeekNum so a 12-week plan
-    // and an 18-week plan both feel correctly paced.
-    //
-    // For an 18-week plan (peakWeek = 16, qualityWeeks = 14):
-    //   Base:             weeks 1–2
-    //   Speed Dev:        weeks 3–6   (~28% of quality block)
-    //   Strength Build:   weeks 7–10  (~29% of quality block)
-    //   Marathon Focus:   weeks 11–16 (~43% of quality block)
-    //   Taper:            weeks 17–18
+    // TAPER: Rhythm-preserving. Frequency stays high, volume reduces.
+    //   2-week: 78% → 45%
+    //   3-week: 85% → 72% → 45%
 
-    private static func computePhase(
-        weekNum:     Int,
-        totalWeeks:  Int,
-        peakWeekNum: Int
-    ) -> HansonsPhase {
-        guard peakWeekNum > 2 else { return weekNum > peakWeekNum ? .taper : .base }
+    static func weeklyMileageSchedule(n: Int, base: Double,
+                                       taperWeeks: Int) -> [Double] {
+        let peak = peakWeekly
 
-        if weekNum > peakWeekNum { return .taper }
-        if weekNum <= 2          { return .base }
+        // Adaptive start — from where the runner is, not methodology minimum
+        let adaptiveStart = min(
+            max(base + 2.0, base * 1.08),   // small bump above current base
+            peak * 0.70                      // never above 70% of peak in week 1
+        ).rounded(toPlaces: 0)
 
-        let qualityWeeks = peakWeekNum - 2
-        let qualityWeek  = weekNum - 2   // 1-indexed within the quality block
+        let taperPcts: [Double] = taperWeeks == 3
+            ? [0.85, 0.72, 0.45]
+            : [0.78, 0.45]
 
-        let speedEnd    = max(4, Int((Double(qualityWeeks) * 0.28).rounded()))
-        let strengthEnd = max(speedEnd + 3, Int((Double(qualityWeeks) * 0.57).rounded()))
+        var result : [Double] = []
+        var current             = adaptiveStart
 
-        if qualityWeek <= speedEnd    { return .speedDevelopment }
-        if qualityWeek <= strengthEnd { return .strengthBuild }
-        return .marathonFocus
-    }
+        for i in 0..<n {
+            let wk        = i + 1
+            let taperPos  = wk - (n - taperWeeks)
+            let canonical = wk + (18 - n)
 
-    private static func phaseLabel(_ phase: HansonsPhase) -> String {
-        switch phase {
-        case .base:             return "Base Building"
-        case .speedDevelopment: return "Speed Development"
-        case .strengthBuild:    return "Strength Build"
-        case .marathonFocus:    return "Marathon Focus"
-        case .taper:            return "Taper"
-        }
-    }
-
-    // MARK: - Mileage Progression
-    //
-    // Hansons: flat ramp, consistent weekly volume.
-    // No cutback weeks. Cumulative load is maintained deliberately.
-    // Taper is 2 weeks: ~80% then ~50% of peak.
-
-    private static func buildMileageSchedule(
-        baseMileage: Double,
-        peakMileage: Double,
-        weeks:       Int,
-        peakWeek:    Int
-    ) -> [Double] {
-        guard weeks > 0, peakWeek > 0, peakWeek <= weeks else {
-            return Array(repeating: baseMileage, count: max(weeks, 1))
-        }
-
-        let startMiles = (peakMileage * 0.62).rounded(toPlaces: 0)
-        var schedule: [Double] = []
-
-        for week in 1...weeks {
-            let miles: Double
-
-            if week > peakWeek {
-                // 2-week moderate taper.
-                let factor: Double = (week == peakWeek + 1) ? 0.80 : 0.50
-                miles = (peakMileage * factor).rounded(toPlaces: 0)
-
-            } else if week == peakWeek {
-                miles = peakMileage.rounded(toPlaces: 0)
-
-            } else {
-                let fraction = Double(week - 1) / Double(max(peakWeek - 1, 1))
-                miles = (startMiles + fraction * (peakMileage - startMiles))
-                    .rounded(toPlaces: 0)
+            if taperPos > 0 {
+                let pct = taperPcts[min(taperPos - 1, taperPcts.count - 1)]
+                result.append((peak * pct).rounded(toPlaces: 0))
+                continue
             }
 
-            schedule.append(max(miles, 20.0))
+            if [7, 10].contains(canonical) {
+                // Cutback: 82% of current
+                let cutback = max((current * 0.82).rounded(toPlaces: 0),
+                                  adaptiveStart)
+                result.append(cutback)
+            } else {
+                let buildWks = max(1, n - taperWeeks - 1)
+                let progress = Double(i) / Double(buildWks)
+                let target   = adaptiveStart + (peak - adaptiveStart) * progress
+                let capped   = min(target, current * 1.08)   // 8% max ramp (conservative)
+                let val      = min(max(capped.rounded(toPlaces: 0), adaptiveStart), peak)
+                current = val
+                result.append(val)
+            }
         }
-
-        return schedule
+        return result
     }
 
-    // MARK: - Long Run (Hard Capped at 16 miles)
+    // MARK: - Long Run Schedule
+    //
+    // Three weeks at 16-mile peak — the Hansons cumulative fatigue signature.
+    // Early long runs also scale gently from the runner's entry point.
 
-    private static func cappedLongRun(
-        weekNum:     Int,
-        totalWeeks:  Int,
-        peakWeekNum: Int
-    ) -> Double {
-        let phase = computePhase(weekNum:     weekNum,
-                                 totalWeeks:  totalWeeks,
-                                 peakWeekNum: peakWeekNum)
-        let raw: Double
-
-        switch phase {
-        case .base:
-            // 8 miles week 1, 9 miles week 2.
-            raw = 7.0 + Double(weekNum)
-
-        case .speedDevelopment:
-            // Builds from 10 to roughly 13 across the speed block.
-            let qualityWeek = weekNum - 2
-            raw = 10.0 + Double(qualityWeek - 1) * 0.60
-
-        case .strengthBuild, .marathonFocus:
-            // Ramps toward the cap and holds it.
-            let qualityWeek  = weekNum - 2
-            let qualityWeeks = peakWeekNum - 2
-            let fraction     = Double(qualityWeek) / Double(max(qualityWeeks, 1))
-            raw = 12.0 + fraction * 4.5
-
-        case .taper:
-            raw = totalWeeks - weekNum == 0 ? 8.0 : 12.0
+    static func longRunSchedule(n: Int, taperWeeks: Int) -> [Double] {
+        let canonical18: [Double] = [
+            10, 11, 12, 10,
+            12, 13, 11,
+            14, 15, 12,
+            16, 16, 16,
+            16, 14, 12,
+            10, 0
+        ]
+        let offset = 18 - n
+        if offset > 0 {
+            let trimmed = Array(canonical18.dropFirst(min(offset, canonical18.count)))
+            return trimmed.prefix(n).map { min($0, longRunCap) }
         }
+        return canonical18.prefix(n).map { min($0, longRunCap) }
+    }
 
-        // Hard cap enforced unconditionally.
-        return min(raw, longRunHardCap).rounded(toPlaces: 0)
+    // MARK: - Phase Info
+
+    static func phaseInfo(week: Int, total: Int,
+                           taperWeeks: Int) -> (TrainingPhase, String) {
+        let isTap     = week > total - taperWeeks
+        let canonical = week + (18 - total)
+
+        if isTap                     { return (.taper, "Taper")          }
+        if canonical < 4             { return (.base,  "Base Phase")     }
+        if canonical < strengthStart { return (.build, "Speed Phase")    }
+        return                         (.build, "Strength Phase")
     }
 
     // MARK: - Week Builder
 
-    private static func buildWeekDays(
-        weekNum:     Int,
-        totalWeeks:  Int,
-        phase:       HansonsPhase,
-        weekMiles:   Double,
-        longMiles:   Double,
-        dayMap:      HansonsDayMap,
-        paces:       PaceEngine,
-        tier:        MileageTier,
-        peakWeekNum: Int
-    ) -> [TrainingDay] {
+    static func buildWeek(
+        weekNumber   : Int,
+        canonical    : Int,
+        phase        : TrainingPhase,
+        phaseLabel   : String,
+        totalMiles   : Double,
+        longMiles    : Double,
+        qualityPhase : QualityPhase,
+        schedule     : UserSchedule,
+        isTaper      : Bool,
+        totalWeeks   : Int,
+        paces        : PaceEngine
+    ) -> TrainingWeek {
+        let restSet     = Set(schedule.restDays)
+        let lrDay       = schedule.longRunDay
+        let q1Day       = schedule.workoutDay1
+        let q2Day       = schedule.workoutDay2
+        let scale       = qualityScale(weekMiles: totalMiles)
+        let taperFactor : Double = isTaper ? 0.75 : 1.0
 
-        // Compute quality workout content for this week and phase.
-        // Returns nil for days that should be easy during this phase.
-        let primaryContent   = primaryQualityContent(phase: phase, weekNum: weekNum,
-                                                      peakWeekNum: peakWeekNum, tier: tier)
-        let thresholdContent = thresholdContent(phase: phase, weekNum: weekNum,
-                                                 peakWeekNum: peakWeekNum)
-        let strengthContent  = strengthContent(phase: phase, weekNum: weekNum,
-                                               peakWeekNum: peakWeekNum, tier: tier)
+        let longM   = min(max(longMiles, 6), longRunCap)
+        let q1Total = q1Miles(canonical: canonical, phase: qualityPhase,
+                               scale: scale * taperFactor)
+        let q2Total = tempoMiles(canonical: canonical, weekMiles: totalMiles,
+                                  isTaper: isTaper)
+        let structured  = longM + q1Total + q2Total
+        let easyTotal   = max(0, totalMiles - structured)
+        let easyPerDay  = max(4.0, (easyTotal / 3.0).rounded(toPlaces: 1))
 
-        // Build all 7 days.
-        // REST CHECK IS ALWAYS FIRST — it cannot be bypassed by any other condition.
-        var days: [TrainingDay] = Weekday.allCases.map { day in
+        var days: [TrainingDay] = []
 
-            // 1. REST: first, always wins. ─────────────────────────────────
-            if dayMap.rest.contains(day) {
-                return makeRest(day)
+        for day in Weekday.allCases {
+            let td: TrainingDay
+
+            if restSet.contains(day) {
+                td = makeRest(day, isTaper: isTaper)
+            } else if day == lrDay {
+                td = makeLongRun(day, miles: longM, canonical: canonical,
+                                 weekNumber: weekNumber, totalWeeks: totalWeeks,
+                                 isTaper: isTaper, paces: paces)
+            } else if day == q1Day {
+                switch qualityPhase {
+                case .speed:
+                    td = makeSpeedWorkout(day, canonical: canonical,
+                                          miles: q1Total, isTaper: isTaper,
+                                          scale: scale, paces: paces)
+                case .strength:
+                    td = makeStrengthWorkout(day, canonical: canonical,
+                                              miles: q1Total, isTaper: isTaper,
+                                              scale: scale, paces: paces)
+                }
+            } else if day == q2Day {
+                td = makeTempoRun(day, canonical: canonical, miles: q2Total,
+                                   isTaper: isTaper, paces: paces)
+            } else {
+                td = makeEasyRun(day, miles: easyPerDay, weekNumber: weekNumber,
+                                  isTaper: isTaper, paces: paces)
             }
 
-            // 2. LONG RUN ──────────────────────────────────────────────────
-            if day == dayMap.longRun {
-                return makeLongRun(day, miles: longMiles, phase: phase, paces: paces)
-            }
-
-            // 3. PRIMARY QUALITY (Speed → Marathon-Specific) ───────────────
-            if day == dayMap.primaryQuality, let c = primaryContent {
-                return makePrimaryQualityDay(day, content: c, paces: paces)
-            }
-
-            // 4. THRESHOLD RUN ─────────────────────────────────────────────
-            if let td = dayMap.threshold, day == td, let c = thresholdContent {
-                return makeThresholdDay(day, content: c)
-            }
-
-            // 5. SECONDARY QUALITY (Strength → Pace Intervals) ────────────
-            if day == dayMap.secondaryQuality, let c = strengthContent {
-                return makeStrengthDay(day, content: c, paces: paces)
-            }
-
-            // 6. POST LONG-RUN RECOVERY ───────────────────────────────────
-            if let rec = dayMap.postLongRun, day == rec {
-                return makeRecovery(day, paces: paces)
-            }
-
-            // 7. EASY AEROBIC ─────────────────────────────────────────────
-            return makeEasy(day, paces: paces)
+            days.append(td)
         }
 
-        // Safety net: replace any workout that somehow landed on a rest day.
-        days = enforceRestDays(days, blocked: dayMap.rest)
-
-        // Distribute remaining weekly mileage across easy/recovery days.
-        days = distributeMiles(days, weeklyTarget: weekMiles, tier: tier)
-
-        return days
+        return TrainingWeek(weekNumber: weekNumber, phase: phase,
+                            phaseLabel: phaseLabel, days: days)
     }
 
-    // MARK: - Quality Workout Content
-    //
-    // Content structs carry the workout parameters. Day assignment is separate.
-    // This decoupling is what makes day mapping deterministic.
+    // MARK: - Session Mile Calculations (scale-aware)
 
-    // ── Primary Quality: Speed → Marathon-Specific ─────────────────────────
-    //
-    //  Speed Development:  Short track intervals (400m–800m). Economy, turnover.
-    //  Strength Build:     Longer track intervals (800m–1200m). Aerobic power grows.
-    //  Marathon Focus:     Moderate intervals (800m). Sharpness without overload.
-    //  Taper:              Light tune-up (4 × 600m). Legs stay awake.
-
-    private struct PrimaryContent {
-        let reps: Int; let repDist: String; let totalMiles: Double; let description: String
-    }
-
-    private static func primaryQualityContent(
-        phase:       HansonsPhase,
-        weekNum:     Int,
-        peakWeekNum: Int,
-        tier:        MileageTier
-    ) -> PrimaryContent? {
-
+    private static func q1Miles(canonical: Int, phase: QualityPhase,
+                                  scale: Double) -> Double {
+        let base: Double
         switch phase {
-
-        case .base:
-            return nil
-
-        case .speedDevelopment:
-            let qualityWeek = weekNum - 2
-            let (reps, dist): (Int, String)
-            switch qualityWeek {
-            case 1...2: reps = tier == .low ? 6 : 8;  dist = "400m"
-            case 3...4: reps = tier == .low ? 8 : 10; dist = "600m"
-            default:    reps = tier == .low ? 6 : 8;  dist = "800m"
-            }
-            let miles: Double = tier == .low ? 6.0 : tier == .moderate ? 7.0 : 8.0
-            return PrimaryContent(
-                reps: reps, repDist: dist, totalMiles: miles,
-                description: "Speed Session. " +
-                    "1.5 mi easy warm-up. " +
-                    "\(reps) × \(dist) at 5K–10K race effort with " +
-                    "equal-distance jog recovery between each rep. " +
-                    "1.5 mi easy cool-down. " +
-                    "The focus is leg turnover and running economy. " +
-                    "Short and sharp — controlled aggression, not all-out effort."
-            )
-
-        case .strengthBuild:
-            let qualityWeeks = peakWeekNum - 2
-            let speedEnd     = max(4, Int((Double(qualityWeeks) * 0.28).rounded()))
-            let transWeek    = weekNum - 2 - speedEnd
-            let (reps, dist): (Int, String)
-            switch transWeek {
-            case 1...2: reps = tier == .low ? 5 : 6; dist = "800m"
-            case 3...4: reps = tier == .low ? 4 : 5; dist = "1000m"
-            default:    reps = tier == .low ? 4 : 5; dist = "1200m"
-            }
-            let miles: Double = tier == .low ? 7.0 : tier == .moderate ? 8.5 : 9.0
-            return PrimaryContent(
-                reps: reps, repDist: dist, totalMiles: miles,
-                description: "Speed Session. " +
-                    "1.5 mi easy warm-up. " +
-                    "\(reps) × \(dist) at 5K–10K race effort with " +
-                    "equal-distance jog recovery. " +
-                    "1.5 mi easy cool-down. " +
-                    "Intervals are longer now — still sharp, but the aerobic demand is growing. " +
-                    "Stay controlled on the first two reps and let the effort build naturally."
-            )
-
-        case .marathonFocus:
-            let reps  = tier == .low ? 4 : 6
-            let miles: Double = tier == .low ? 6.5 : tier == .moderate ? 7.5 : 8.5
-            return PrimaryContent(
-                reps: reps, repDist: "800m", totalMiles: miles,
-                description: "Speed Session. " +
-                    "1.5 mi easy warm-up. " +
-                    "\(reps) × 800m at 5K–10K race effort with 400m jog recovery. " +
-                    "1.5 mi easy cool-down. " +
-                    "Speed work at this stage maintains running economy without adding " +
-                    "excessive fatigue alongside the heavier marathon-pace sessions. " +
-                    "Quality over volume."
-            )
-
-        case .taper:
-            return PrimaryContent(
-                reps: 4, repDist: "600m", totalMiles: 5.5,
-                description: "Speed Tune-Up. " +
-                    "1.5 mi easy warm-up. " +
-                    "4 × 600m at 5K effort with 400m jog recovery. " +
-                    "1.5 mi easy cool-down. " +
-                    "Light speed session to keep the legs sharp during taper. " +
-                    "The fitness is fully built — this is maintenance, not development."
-            )
+        case .speed:
+            let idx = max(0, canonical - 1) % speedSessions.count
+            base = speedSessions[idx].baseMiles
+        case .strength:
+            let idx = max(0, canonical - strengthStart) % strengthSessions.count
+            base = strengthSessions[idx].baseMiles
         }
+        return (base * scale).rounded(toPlaces: 1)
     }
 
-    // ── Threshold Run: grows steadily through the plan ────────────────────
-    //
-    //  Speed Development:  4–5 mi. Introduces sustained threshold effort.
-    //  Strength Build:     5–7 mi. Metabolic development grows.
-    //  Marathon Focus:     7–8 mi. Peak lactate threshold demand.
-    //  Taper:              4 mi. Sharpness preserved, volume reduced.
-
-    private struct ThresholdRunContent {
-        let threshMiles: Double; let totalMiles: Double; let description: String
-    }
-
-    private static func thresholdContent(
-        phase:       HansonsPhase,
-        weekNum:     Int,
-        peakWeekNum: Int
-    ) -> ThresholdRunContent? {
-
-        switch phase {
-
-        case .base:
-            return nil
-
-        case .speedDevelopment:
-            let qualityWeek = weekNum - 2
-            let tMiles = (3.5 + Double(qualityWeek) * 0.30).clamped(to: 3.5...5.0)
-            return ThresholdRunContent(
-                threshMiles: tMiles, totalMiles: tMiles + 3.0,
-                description: "Threshold Run. " +
-                    "1.5 mi easy warm-up. " +
-                    "\(tMiles.cleanString) mi at a sustained, comfortably hard effort — " +
-                    "the pace you could maintain for roughly 60 minutes in a race. " +
-                    "1.5 mi easy cool-down. " +
-                    "This introduces sustained threshold work alongside the speed sessions. " +
-                    "The effort should feel controlled — hard but not desperate."
-            )
-
-        case .strengthBuild:
-            let qualityWeeks = peakWeekNum - 2
-            let speedEnd     = max(4, Int((Double(qualityWeeks) * 0.28).rounded()))
-            let transWeek    = weekNum - 2 - speedEnd
-            let tMiles = (5.0 + Double(transWeek) * 0.40).clamped(to: 5.0...7.0)
-            return ThresholdRunContent(
-                threshMiles: tMiles, totalMiles: tMiles + 3.0,
-                description: "Threshold Run. " +
-                    "1.5 mi easy warm-up. " +
-                    "\(tMiles.cleanString) mi at sustained threshold effort. " +
-                    "1.5 mi easy cool-down. " +
-                    "Threshold sessions are getting longer. The goal is to hold " +
-                    "a comfortably hard, controlled pace without the effort becoming " +
-                    "a race effort. This builds metabolic efficiency and fatigue resistance."
-            )
-
-        case .marathonFocus:
-            let qualityWeeks = peakWeekNum - 2
-            let strengthEnd  = max(6, Int((Double(qualityWeeks) * 0.57).rounded()))
-            let focusWeek    = weekNum - 2 - strengthEnd
-            let tMiles = (6.5 + Double(focusWeek) * 0.25).clamped(to: 6.5...8.5)
-            return ThresholdRunContent(
-                threshMiles: tMiles, totalMiles: tMiles + 3.0,
-                description: "Threshold Run. " +
-                    "1.5 mi easy warm-up. " +
-                    "\(tMiles.cleanString) mi at threshold effort. " +
-                    "1.5 mi easy cool-down. " +
-                    "Peak threshold demand of the training block. " +
-                    "You are running on substantial accumulated fatigue — " +
-                    "that is by design. Comfortably hard, not racing. Maintain form throughout."
-            )
-
-        case .taper:
-            return ThresholdRunContent(
-                threshMiles: 4.0, totalMiles: 7.0,
-                description: "Threshold Run. " +
-                    "1.5 mi easy warm-up. " +
-                    "4 mi at threshold effort. " +
-                    "1.5 mi easy cool-down. " +
-                    "Reduced threshold session during taper. " +
-                    "Preserves aerobic sharpness without adding meaningful fatigue."
-            )
+    private static func tempoMiles(canonical: Int, weekMiles: Double,
+                                    isTaper: Bool) -> Double {
+        if isTaper { return max(5.0, weekMiles * 0.14) }
+        // Tempo scales with both canonical progression AND actual weekly volume
+        let byCanonical: Double
+        switch canonical {
+        case ..<6:    byCanonical = 7.0
+        case 6...8:   byCanonical = 8.0
+        case 9...12:  byCanonical = 9.0
+        case 13...15: byCanonical = 10.0
+        default:      byCanonical = 8.0
         }
-    }
-
-    // ── Strength / Pace Intervals: the marathon-specific cornerstone ───────
-    //
-    //  Speed Development:  2 × 2 mi. Introduces marathon-pace concept early.
-    //  Strength Build:     2–3 × 2–4 mi. Intervals lengthen progressively.
-    //  Marathon Focus:     2 × 4–5 mi. Peak specificity. Maximum fatigue demand.
-    //  Taper:              2 × 2 mi. Pace feel confirmed, volume pulled back.
-
-    private struct StrengthRunContent {
-        let reps: Int; let repMiles: Double; let totalMiles: Double; let description: String
-    }
-
-    private static func strengthContent(
-        phase:       HansonsPhase,
-        weekNum:     Int,
-        peakWeekNum: Int,
-        tier:        MileageTier
-    ) -> StrengthRunContent? {
-
-        switch phase {
-
-        case .base:
-            return nil
-
-        case .speedDevelopment:
-            return StrengthRunContent(
-                reps: 2, repMiles: 2.0, totalMiles: 8.0,
-                description: "Pace Interval Session. " +
-                    "2 mi easy warm-up. " +
-                    "2 × 2 mi at marathon goal pace minus 10 seconds per mile, " +
-                    "with 1 mi easy jog recovery between reps. " +
-                    "2 mi easy cool-down. " +
-                    "An early introduction to running at marathon-specific pace. " +
-                    "These reps should feel controlled — you will be running longer " +
-                    "versions of this session in the weeks ahead."
-            )
-
-        case .strengthBuild:
-            let qualityWeeks = peakWeekNum - 2
-            let speedEnd     = max(4, Int((Double(qualityWeeks) * 0.28).rounded()))
-            let transWeek    = weekNum - 2 - speedEnd
-            let (reps, repMiles): (Int, Double)
-            switch transWeek {
-            case 1...2: reps = 2; repMiles = 3.0
-            case 3...4: reps = 3; repMiles = 2.0
-            default:    reps = 2; repMiles = 4.0
-            }
-            return StrengthRunContent(
-                reps: reps, repMiles: repMiles,
-                totalMiles: Double(reps) * repMiles + 4.0,
-                description: "Pace Interval Session. " +
-                    "2 mi easy warm-up. " +
-                    "\(reps) × \(repMiles.cleanString) mi at marathon goal pace " +
-                    "minus 10 seconds per mile, with 1 mi jog recovery between reps. " +
-                    "2 mi easy cool-down. " +
-                    "Running near race pace on accumulated weekly fatigue — by design. " +
-                    "This builds the physical and mental resilience to hold pace " +
-                    "through the final miles of a marathon."
-            )
-
-        case .marathonFocus:
-            let qualityWeeks = peakWeekNum - 2
-            let strengthEnd  = max(6, Int((Double(qualityWeeks) * 0.57).rounded()))
-            let focusWeek    = weekNum - 2 - strengthEnd
-            let repMiles: Double = focusWeek <= 2 ? 4.0 : 5.0
-            return StrengthRunContent(
-                reps: 2, repMiles: repMiles,
-                totalMiles: 2.0 * repMiles + 4.0,
-                description: "Pace Interval Session. " +
-                    "2 mi easy warm-up. " +
-                    "2 × \(repMiles.cleanString) mi at marathon goal pace minus 10 seconds per mile, " +
-                    "with 1 mi jog recovery. " +
-                    "2 mi easy cool-down. " +
-                    "The longest pace intervals of the training block. " +
-                    "Your legs carry the full week's training load into this session — " +
-                    "that is the stimulus. Hold the pace and trust the structure."
-            )
-
-        case .taper:
-            return StrengthRunContent(
-                reps: 2, repMiles: 2.0, totalMiles: 8.0,
-                description: "Pace Interval Session. " +
-                    "2 mi easy warm-up. " +
-                    "2 × 2 mi at marathon goal pace minus 10 seconds per mile, " +
-                    "with 1 mi jog recovery. " +
-                    "2 mi easy cool-down. " +
-                    "Reduced pace work during taper. " +
-                    "The heavy sessions are complete. This confirms the pace feels natural."
-            )
-        }
+        // Scale by weekly mileage — a runner at 28 mpw gets a smaller tempo
+        // than one at 50 mpw, even in the same canonical week
+        let byVolume = weekMiles * 0.17
+        return min(byCanonical, max(byVolume, 5.0)).rounded(toPlaces: 1)
     }
 
     // MARK: - Day Makers
-    //
-    // Every maker takes `_ day: Weekday` as its first argument.
-    // That parameter is always used for TrainingDay.weekday.
-    // No hardcoded weekday values exist anywhere in this file.
 
-    private static func makePrimaryQualityDay(
-        _ day: Weekday, content: PrimaryContent, paces: PaceEngine
-    ) -> TrainingDay {
-        TrainingDay(
-            weekday:     day,
-            workoutType: .speedWork,
-            miles:       content.totalMiles,
-            description: content.description,
-            paceNote:    "5K–10K race effort: \(paces.singleString(paces.hansonsSpeed))"
-        )
+    static func makeRest(_ day: Weekday, isTaper: Bool) -> TrainingDay {
+        let desc = isTaper
+            ? "Rest day. Your one day off this week. Protect it — your legs need this before the final build to the start line."
+            : "Rest day. One day off in a six-day week is Hansons' design. The cumulative fatigue that builds across the other six days is the training mechanism. This rest allows adaptation without undercutting the load."
+        return TrainingDay(weekday: day, workoutType: .rest, miles: 0,
+                           description: desc, paceNote: "—")
     }
 
-    private static func makeThresholdDay(
-        _ day: Weekday, content: ThresholdRunContent
-    ) -> TrainingDay {
-        TrainingDay(
-            weekday:     day,
-            workoutType: .tempoRun,
-            miles:       content.totalMiles,
-            description: content.description,
-            paceNote:    "Threshold effort — comfortably hard, 10K to half marathon race range"
-        )
-    }
+    static func makeSpeedWorkout(_ day      : Weekday,
+                                  canonical  : Int,
+                                  miles      : Double,
+                                  isTaper    : Bool,
+                                  scale      : Double,
+                                  paces      : PaceEngine) -> TrainingDay {
+        let idx       = max(0, canonical - 1) % speedSessions.count
+        let session   = speedSessions[idx]
+        let speedPace = PaceEngine.format(paces.hansonsSpeed)
 
-    private static func makeStrengthDay(
-        _ day: Weekday, content: StrengthRunContent, paces: PaceEngine
-    ) -> TrainingDay {
-        TrainingDay(
-            weekday:     day,
-            workoutType: .strengthMP,
-            miles:       content.totalMiles,
-            description: content.description,
-            paceNote:    "~10 sec/mi faster than goal MP: \(paces.rangeString(paces.hansonsStrength))"
-        )
-    }
+        // Scale the rep count for lower-volume runners
+        let scaledReps = max(3, Int((Double(session.reps) * scale).rounded()))
 
-    private static func makeLongRun(
-        _ day: Weekday, miles: Double, phase: HansonsPhase, paces: PaceEngine
-    ) -> TrainingDay {
-        let safeMiles = min(miles, longRunHardCap)
-
-        let description: String
-        switch phase {
-        case .base:
-            description = "Long Aerobic Run — \(safeMiles.cleanString) mi. " +
-                          "Easy and conversational start to finish. " +
-                          "Building comfortable aerobic volume."
-        case .speedDevelopment:
-            description = "Long Aerobic Run — \(safeMiles.cleanString) mi. " +
-                          "Easy, conversational pace throughout. " +
-                          "This run lands after a week that includes track intervals and threshold work. " +
-                          "That accumulated load is part of the training effect — " +
-                          "keep the effort genuinely aerobic. Not a progression run."
-        case .strengthBuild, .marathonFocus:
-            description = "Long Aerobic Run — \(safeMiles.cleanString) mi. " +
-                          "Easy, conversational pace throughout. " +
-                          "Running long on a week of heavy training load builds the fatigue resistance " +
-                          "needed to hold form through miles 18 to 26. " +
-                          "Fully aerobic. Finish feeling like you have more."
-        case .taper:
-            description = "Taper Long Run — \(safeMiles.cleanString) mi. " +
-                          "Easy and relaxed. The hard training is complete. " +
-                          "This run maintains aerobic rhythm without adding fatigue."
+        let onboardNote: String
+        if scale < 0.80 {
+            onboardNote = "\n\nNote: Session volume is adjusted for your current training base. As weekly mileage builds over the next few weeks, the sessions will progressively lengthen."
+        } else {
+            onboardNote = ""
         }
 
-        return TrainingDay(
-            weekday:     day,
-            workoutType: .longRun,
-            miles:       safeMiles,
-            description: description,
-            paceNote:    "Easy aerobic — 60–90 sec/mi slower than goal marathon pace: " +
-                         paces.rangeString(paces.longRun)
-        )
+        let tapNote = isTaper ? " Taper week — shorten if legs feel heavy." : ""
+
+        let desc = """
+Speed workout: \(scaledReps)×\(session.repDist) at 10K effort, \(session.recovDist) recovery.
+
+Warmup 1.5–2 miles easy. Run each rep at controlled speed — not a sprint, but genuinely fast. \
+Splits should be even or slightly negative. If you are positive-splitting, you started too fast. \
+Full recovery between reps. Cooldown 1.5 miles easy.\(tapNote)
+
+You are developing running economy — the ability to run efficiently at paces faster than marathon \
+pace. This transfers directly to a lower energy cost at race pace in the strength phase.\(onboardNote)
+"""
+        return TrainingDay(weekday: day, workoutType: .speedWork,
+                           miles: miles,
+                           description: desc,
+                           paceNote: "~\(speedPace)/mi — 10K effort, consistent reps")
     }
 
-    private static func makeRecovery(_ day: Weekday, paces: PaceEngine) -> TrainingDay {
-        TrainingDay(
-            weekday:     day,
-            workoutType: .recovery,
-            miles:       0,
-            description: "Recovery Run. Very easy movement after yesterday's long effort. " +
-                         "The goal is blood flow, not aerobic stimulus. " +
-                         "If the pace feels embarrassingly slow, it is probably about right.",
-            paceNote:    "Very easy: \(paces.singleString(paces.recovery))"
-        )
-    }
+    static func makeStrengthWorkout(_ day      : Weekday,
+                                     canonical  : Int,
+                                     miles      : Double,
+                                     isTaper    : Bool,
+                                     scale      : Double,
+                                     paces      : PaceEngine) -> TrainingDay {
+        let idx       = max(0, canonical - strengthStart) % strengthSessions.count
+        let session   = strengthSessions[idx]
+        let mpRange   = paces.rangeString(paces.hansonsStrength)
 
-    private static func makeEasy(_ day: Weekday, paces: PaceEngine) -> TrainingDay {
-        TrainingDay(
-            weekday:     day,
-            workoutType: .easy,
-            miles:       0,
-            description: "Easy Aerobic Run. Comfortable, conversational effort. " +
-                         "These runs support the week's quality sessions without adding intensity stress. " +
-                         "If you cannot speak in full sentences, slow down.",
-            paceNote:    "Easy aerobic: \(paces.rangeString(paces.easy))"
-        )
-    }
+        // Scale rep count for lower-volume weeks
+        let scaledReps = max(2, Int((Double(session.reps) * scale).rounded()))
+        let scaledLabel = "\(scaledReps)×\(String(format: "%.1g", session.milesPerRep))mi"
 
-    private static func makeRest(_ day: Weekday) -> TrainingDay {
-        TrainingDay(
-            weekday:     day,
-            workoutType: .rest,
-            miles:       0,
-            description: "Rest Day. Full rest is built into the plan structure. " +
-                         "Adaptation happens during recovery, not during the run itself.",
-            paceNote:    "—"
-        )
-    }
-
-    // MARK: - Safety Net
-
-    private static func enforceRestDays(
-        _ days: [TrainingDay], blocked: Set<Weekday>
-    ) -> [TrainingDay] {
-        days.map { day in
-            guard blocked.contains(day.weekday), day.workoutType != .rest else { return day }
-            return makeRest(day.weekday)
+        let onboardNote: String
+        if scale < 0.80 {
+            onboardNote = "\n\nNote: Session length is calibrated to your current training volume. The structure and intent are authentic Hansons — the volume grows with your weekly mileage."
+        } else {
+            onboardNote = ""
         }
+
+        let tapNote = isTaper
+            ? " Taper week — reduce to \(max(2, scaledReps - 1))×\(String(format: "%.1g", session.milesPerRep)) mile if legs feel heavy."
+            : ""
+
+        let desc = """
+Strength workout: \(scaledLabel) at marathon pace, with recovery jog between reps.
+
+Warmup 1 mile easy. Run each rep at exactly your goal marathon pace — not faster. \
+Recovery jog 1–2 minutes between reps. Cooldown 1 mile easy.\(tapNote)
+
+This is the defining Hansons workout. You are running race pace when you are not fully fresh — \
+carrying this week's accumulated fatigue. That is intentional. Race day will be run on similar \
+legs. Making marathon pace feel familiar under fatigue is the entire point. Resist the urge to \
+go faster. Pace discipline here matters more than the training effect.\(onboardNote)
+"""
+        return TrainingDay(weekday: day, workoutType: .strengthMP,
+                           miles: miles,
+                           description: desc,
+                           paceNote: "\(mpRange) — exact marathon goal pace")
     }
 
-    // MARK: - Mileage Distribution
+    static func makeTempoRun(_ day      : Weekday,
+                               canonical  : Int,
+                               miles      : Double,
+                               isTaper    : Bool,
+                               paces      : PaceEngine) -> TrainingDay {
+        let tempoPace = PaceEngine.format(paces.pfitzLT)
+        let tapNote   = isTaper ? "Taper tempo — run comfortably hard and keep the rest easy." : ""
 
-    private static func distributeMiles(
-        _ days: [TrainingDay], weeklyTarget: Double, tier: MileageTier
-    ) -> [TrainingDay] {
-        let fixed: Set<WorkoutType> = [
-            .rest, .longRun, .speedWork, .strengthMP, .tempoRun, .raceDay, .shakeout
+        let desc = """
+Tempo run: 1.5 mile warmup → \(String(format: "%.0f", max(0, miles - 3.0))) miles at threshold \
+pace → 1.5 mile cooldown. Total approximately \(String(format: "%.0f", miles)) miles.
+
+\(tapNote.isEmpty ? "" : tapNote + "\n\n")Threshold pace is faster than it sounds. This is not \
+'comfortably hard' — it is sustained hard effort at a pace you could hold for roughly an hour. \
+Breathing is deliberate. You can speak, but choose not to.
+
+Run the warmup easy, lock in at threshold when the tempo section begins, and hold it through. \
+Do not positive split. This workout builds the aerobic ceiling that marathon pace will sit beneath \
+on race day.
+"""
+        return TrainingDay(weekday: day, workoutType: .tempoRun,
+                           miles: miles,
+                           description: desc,
+                           paceNote: "~\(tempoPace)/mi — threshold effort, sustained")
+    }
+
+    static func makeEasyRun(_ day       : Weekday,
+                              miles      : Double,
+                              weekNumber : Int,
+                              isTaper    : Bool,
+                              paces      : PaceEngine) -> TrainingDay {
+        let easyRange = paces.rangeString(paces.easy)
+        let descs: [String] = [
+            "Easy run. In Hansons training, these runs connect the quality sessions. They are not filler — they are what makes six days per week sustainable without breakdown.",
+            "Easy run. Genuinely easy. If this pace feels embarrassingly slow, you are probably doing it correctly. The quality sessions are where you push. Here, you recover and accumulate aerobic volume.",
+            "Easy run. The Hansons system derives its power from frequency, not heroic single sessions. This run is part of the daily accumulation that builds fatigue resistance over weeks.",
+            "Easy run. Run this at a pace where you could hold a full conversation without effort. If you are breathing hard, you are running too fast. Save it for Tuesday and Thursday.",
+            "Easy run. Six days per week is the strategy. This is one of three easy connective days — simple, consistent, and necessary.",
+            "Easy run. In cumulative fatigue training, easy days matter as much as hard days. Running too fast here compromises the quality sessions."
         ]
+        let desc = descs[weekNumber % descs.count]
+        let note = isTaper ? "Easy — taper week, truly relaxed" : easyRange
 
-        let fixedTotal  = days.filter { fixed.contains($0.workoutType) }
-                             .reduce(0.0) { $0 + $1.miles }
-        let remaining   = max(0.0, weeklyTarget - fixedTotal)
-        let flexIndices = days.indices.filter {
-            !fixed.contains(days[$0].workoutType) && days[$0].workoutType != .rest
+        return TrainingDay(weekday: day, workoutType: .easy,
+                           miles: miles, description: desc, paceNote: note)
+    }
+
+    static func makeLongRun(_ day        : Weekday,
+                              miles       : Double,
+                              canonical   : Int,
+                              weekNumber  : Int,
+                              totalWeeks  : Int,
+                              isTaper     : Bool,
+                              paces       : PaceEngine) -> TrainingDay {
+        let easyRange   = paces.rangeString(paces.longRun)
+        let weeksToRace = totalWeeks - weekNumber
+
+        let desc: String
+        switch (isTaper, weeksToRace) {
+        case (true, 1):
+            desc = "Final long run before the race. Run easy and enjoy it. Your fitness is built — this run maintains rhythm, not fitness."
+        case (true, _):
+            desc = "Taper long run. Shorter than your recent runs — that is by design. Your fitness is built and the taper is working even when it does not feel like it."
+        case (false, _) where miles >= 16:
+            desc = """
+Long run: \(Int(miles)) miles at easy effort.
+
+Run at a controlled, conversational pace throughout. The long run in Hansons is deliberately \
+restrained — not because long runs are unimportant, but because you are running six days per \
+week. Arriving at this run on accumulated fatigue is the point. Sixteen miles on tired legs \
+prepares your body for the final miles of a marathon.
+
+Do not race this run. The quality sessions earlier this week did the hard work. This run \
+completes the weekly picture.
+"""
+        case (false, _) where miles >= 13:
+            desc = """
+Long run: \(Int(miles)) miles easy.
+
+One of the longer runs in your Hansons cycle. Start conservatively — your legs carry the week's \
+fatigue. That is intentional. Run in control from start to finish. This develops the fatigue \
+resistance your marathon will demand.
+"""
+        default:
+            desc = """
+Long run: \(Int(miles)) miles easy.
+
+Run at genuinely comfortable effort — well below your quality session intensity. In Hansons \
+training, the long run is one of six runs, not the centerpiece. The training effect comes from \
+the combination of all six sessions, not any single one.
+"""
         }
 
-        guard !flexIndices.isEmpty else { return days }
-
-        let minMiles: Double = tier == .low     ? 3.0 : 4.0
-        let maxMiles: Double = tier == .advanced ? 9.0 : 8.0
-        let per = min(maxMiles, max(minMiles, remaining / Double(flexIndices.count)))
-            .rounded(toPlaces: 1)
-
-        var result = days
-        for i in flexIndices {
-            let d = result[i]
-            result[i] = TrainingDay(
-                weekday:     d.weekday,
-                workoutType: d.workoutType,
-                miles:       per,
-                description: d.description,
-                paceNote:    d.paceNote
-            )
-        }
-        return result
-    }
-}
-
-// MARK: - Private Extensions
-
-private extension Double {
-    func clamped(to range: ClosedRange<Double>) -> Double {
-        Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
-    }
-    var cleanString: String {
-        truncatingRemainder(dividingBy: 1) == 0
-            ? String(Int(self)) : String(format: "%.1f", self)
+        return TrainingDay(weekday: day, workoutType: .longRun,
+                           miles: miles, description: desc,
+                           paceNote: "\(easyRange) — easy, controlled, consistent")
     }
 }

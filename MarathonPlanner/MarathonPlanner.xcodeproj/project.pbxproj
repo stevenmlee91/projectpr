@@ -57,6 +57,8 @@
 		B08F5A442FB0492D00BFFC53 /* TrainingPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A432FB0492D00BFFC53 /* TrainingPhase.swift */; };
 		B08F5A462FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A452FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift */; };
 		B08F5A482FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A472FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift */; };
+		B08F5A4A2FB19B1A00BFFC53 /* HansonsMarathonGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A492FB19B1A00BFFC53 /* HansonsMarathonGenerator.swift */; };
+		B08F5A4C2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A4B2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -142,6 +144,8 @@
 		B08F5A432FB0492D00BFFC53 /* TrainingPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPhase.swift; sourceTree = "<group>"; };
 		B08F5A452FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCoachEngine.swift; sourceTree = "<group>"; };
 		B08F5A472FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCoachingCard.swift; sourceTree = "<group>"; };
+		B08F5A492FB19B1A00BFFC53 /* HansonsMarathonGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HansonsMarathonGenerator.swift; sourceTree = "<group>"; };
+		B08F5A4B2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PfitzMarathonGenerator.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -238,6 +242,8 @@
 				B0A62D7E2F9861A70093719D /* ContentView.swift */,
 				B0A62DA62F9862170093719D /* TrainingPlan.swift */,
 				B08F5A352FADB36C00BFFC53 /* FirstHalfPlanGenerator.swift */,
+				B08F5A492FB19B1A00BFFC53 /* HansonsMarathonGenerator.swift */,
+				B08F5A4B2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift */,
 				B0A62DA82F9862340093719D /* PlanGenerator.swift */,
 				B08F5A3B2FAFF71600BFFC53 /* HidgonNoviceGenerator.swift */,
 				B08F5A3D2FAFF72700BFFC53 /* HigdonIntermediateGenerator.swift */,
@@ -438,6 +444,7 @@
 				B07526172F9EB5CB008F9552 /* WeeklyMileageChart.swift in Sources */,
 				B08F5A262FAB069400BFFC53 /* WeeklySummaryView.swift in Sources */,
 				B0A62DAE2F9862780093719D /* PacesView.swift in Sources */,
+				B08F5A4A2FB19B1A00BFFC53 /* HansonsMarathonGenerator.swift in Sources */,
 				B08F59D92FA5BBB100BFFC53 /* RouteSnapshotGenerator.swift in Sources */,
 				B08F59C62FA46ADB00BFFC53 /* RouteBuilderViewModel.swift in Sources */,
 				B08F59BC2FA1B9BB00BFFC53 /* NotificationsManager.swift in Sources */,
@@ -464,6 +471,7 @@
 				B08F59D32FA5B74300BFFC53 /* MapLayerConfig.swift in Sources */,
 				B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */,
 				B07526032F9B0C89008F9552 /* PlanListView.swift in Sources */,
+				B08F5A4C2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift in Sources */,
 				B07526152F9E6FF5008F9552 /* TodayView.swift in Sources */,
 				B0A62DAC2F98624D0093719D /* SetupView.swift in Sources */,
 				B07526112F9DD78F008F9552 /* WeekDetailViewModel.swift in Sources */,

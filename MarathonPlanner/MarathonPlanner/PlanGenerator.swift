@@ -34,8 +34,8 @@ func determineMileageTier(_ base: Double) -> MileageTier {
 
 struct WeekBlueprint {
     var weekNumber         : Int
-    var phase              : TrainingPhase   // canonical phase enum
-    var phaseLabel         : String          // methodology-specific display
+    var phase              : TrainingPhase
+    var phaseLabel         : String
     var totalMiles         : Double
     var longMiles          : Double
     var primaryWorkout     : WorkoutType
@@ -53,22 +53,31 @@ struct PlanGenerator {
 
     static func generate(settings: UserSettings) -> [TrainingWeek] {
 
-        if settings.planType == .firstHalf {
+        // ── Dedicated generators — bypass blueprint system entirely ──────
+        // These produce fully methodology-authentic plans.
+        // They do their own phase assignment internally.
+        switch settings.planType {
+        case .hansons:
+            return HansonsMarathonGenerator.generate(settings: settings)
+        case .pfitz:
+            return PfitzMarathonGenerator.generate(settings: settings)
+        case .firstHalf:
             var weeks = FirstHalfPlanGenerator.generate(settings: settings)
             TrainingPhaseEngine.assignPhases(to: &weeks, settings: settings)
             return weeks
-        }
-        if settings.planType == .higdon {
+        case .higdon:
             var weeks = HigdonNoviceGenerator.generate(settings: settings)
             TrainingPhaseEngine.assignPhases(to: &weeks, settings: settings)
             return weeks
-        }
-        if settings.planType == .higdonIntermediate {
+        case .higdonIntermediate:
             var weeks = HigdonIntermediateGenerator.generate(settings: settings)
             TrainingPhaseEngine.assignPhases(to: &weeks, settings: settings)
             return weeks
+        default:
+            break
         }
 
+        // ── Blueprint system — remaining methodologies ───────────────────
         let tier        = determineMileageTier(settings.baseMileage)
         let constraints = getMethodConstraints(for: settings.planType)
         let peaks       = calculatePeakTargets(
@@ -107,7 +116,6 @@ struct PlanGenerator {
                               schedule: schedule,
                               raceType: settings.raceType)
 
-        // Canonical phase assignment — runs after mileage is finalised
         TrainingPhaseEngine.assignPhases(to: &weeks, settings: settings)
 
         return weeks
@@ -315,7 +323,7 @@ struct PlanGenerator {
         totalWeeks : Int,
         constraints: MethodConstraints
     ) -> (primary: WorkoutType, secondary: WorkoutType) {
-        let taperCutoff = method == .pfitz ? totalWeeks - 2 : totalWeeks - 1
+        let taperCutoff = totalWeeks - 1
         let isTaper  = week >= taperCutoff
         let tooEarly = week < max(tier.qualityIntroWeek,
                                    constraints.earliestQualityWeek)
@@ -324,6 +332,8 @@ struct PlanGenerator {
 
         switch method {
         case .hansons:
+            // Note: .hansons now uses dedicated generator — this branch
+            // is retained for safety but should not be reached.
             let speedCutoff = max(4, Int((Double(totalWeeks) * 0.28).rounded()))
             return week <= speedCutoff
                 ? (.speedWork, .marathonPace)
@@ -333,6 +343,7 @@ struct PlanGenerator {
                 ? (.speedWork, .marathonPace)
                 : (.strengthMP, .marathonPace)
         case .pfitz:
+            // Note: .pfitz now uses dedicated generator — retained for safety.
             return (.lactateThreshold, .easy)
         case .higdon:
             return (.easy, .easy)
@@ -358,7 +369,6 @@ struct PlanGenerator {
         b.totalMiles = min(max(b.totalMiles, constraints.absoluteMinWeekly),
                            constraints.absoluteMaxWeekly)
 
-        // Use enum comparison — no more string checks
         if b.phase == .taper {
             b.totalMiles = max(b.totalMiles,
                                constraints.absoluteMinWeekly * 0.4)
@@ -396,6 +406,10 @@ struct PlanGenerator {
     }
 
     // MARK: - Blueprint Router
+    //
+    // Note: .hansons, .pfitz, .firstHalf, .higdon, .higdonIntermediate
+    // are all intercepted in generate() before reaching this function.
+    // They are retained here only as defensive fallbacks.
 
     static func buildBlueprints(
         settings    : UserSettings,
@@ -804,7 +818,6 @@ struct PlanGenerator {
                           "→ \(paceLabel): \(paces.singleString(paces.MP))")
         }
 
-        // Use enum comparison — no more string check
         let desc = bp.phase == .taper
             ? "Taper long run. Easy and relaxed — trust your training."
             : "Long run at fully conversational effort. " +
