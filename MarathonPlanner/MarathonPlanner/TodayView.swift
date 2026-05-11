@@ -194,13 +194,27 @@ struct TodayView: View {
             offSeasonGoal    = nil
             return
         }
+
         let context = OffSeasonContext.build(from: store.plans,
                                              primaryID: store.primaryPlanID)
+
+        let log = OffSeasonStore.shared.logs
+            .filter { $0.completed }
+            .map {
+                OffSeasonLogEntry(
+                    date:      $0.date,
+                    miles:     $0.miles,
+                    isLongRun: $0.miles >= 8   // approximate — no long run flag in store
+                )
+            }
+        let state = OffSeasonTrainingState.build(from: log)
+
         offSeasonWorkout = OffSeasonEngine.todaySuggestion(
             date:    Date(),
-            context: context
+            context: context,
+            state:   state
         )
-        offSeasonGoal = OffSeasonWeeklyGoal.make(from: context)
+        offSeasonGoal = OffSeasonWeeklyGoal.make(from: context, state: state)
     }
 
     // MARK: - Header
