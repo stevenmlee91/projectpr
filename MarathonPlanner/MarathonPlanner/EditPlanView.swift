@@ -101,10 +101,9 @@ struct EditPlanView: View {
                 ScrollView {
                     VStack(spacing: 0) {
                         editHeader
-                        raceDateSection         // NEW
+                        raceDateSection
                         planTypeSection
                         goalTimeSection
-                        baseMileageSection
                         planLengthSection
                         taperSection
                         longRunDaySection
@@ -145,6 +144,20 @@ struct EditPlanView: View {
             Text(plan.name)
                 .font(.system(size: 24, weight: .light, design: .serif))
                 .foregroundColor(.primary)
+
+            // Lightweight metadata — base mileage shown as context, not as an editable field
+            HStack(spacing: 12) {
+                Label("\(Int(editedSettings.baseMileage)) mpw base",
+                      systemImage: "figure.run")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                Text("·")
+                    .foregroundColor(Color(.tertiaryLabel))
+                Text(editedSettings.planType.rawValue)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.top, 2)
 
             if let issue = dateValidationIssue {
                 HStack(spacing: 6) {
@@ -317,56 +330,9 @@ struct EditPlanView: View {
         }
     }
 
-    // MARK: - Base Mileage
-
-    private var baseMileageSection: some View {
-        VStack(spacing: 0) {
-            EditLabel("BASE MILEAGE")
-            ZStack {
-                Color(.secondarySystemBackground)
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("\(Int(editedSettings.baseMileage))")
-                            .font(.system(size: 36, weight: .thin,
-                                          design: .monospaced))
-                            .foregroundColor(.primary)
-                        Text("miles / week")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                    VStack(spacing: 10) {
-                        Button {
-                            if editedSettings.baseMileage < 80 {
-                                editedSettings.baseMileage += 5
-                            }
-                        } label: {
-                            Image(systemName: "plus")
-                                .foregroundColor(.primary)
-                                .frame(width: 36, height: 36)
-                                .background(Color(.tertiarySystemBackground))
-                                .cornerRadius(8)
-                        }
-                        Button {
-                            if editedSettings.baseMileage > 10 {
-                                editedSettings.baseMileage -= 5
-                            }
-                        } label: {
-                            Image(systemName: "minus")
-                                .foregroundColor(.primary)
-                                .frame(width: 36, height: 36)
-                                .background(Color(.tertiarySystemBackground))
-                                .cornerRadius(8)
-                        }
-                    }
-                }
-                .padding(16)
-            }
-            .cornerRadius(12)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
-        }
-    }
+    // Base mileage is preserved internally for regeneration logic
+    // but no longer shown as a standalone editable card post-creation.
+    // The value is surfaced as lightweight metadata in the header only.
 
     // MARK: - Plan Length
 
