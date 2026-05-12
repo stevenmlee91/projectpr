@@ -1,10 +1,6 @@
 import Foundation
 
 // MARK: - Runner Readiness Tier
-//
-// Categorizes the runner's incoming base mileage.
-// Drives structural decisions in both Hansons and Pfitz generators:
-// quality introduction timing, long-run starting point, early pacing.
 
 enum RunnerReadinessTier {
     case rebuilding  // < 25 mpw
@@ -21,18 +17,15 @@ enum RunnerReadinessTier {
         }
     }
 
-    // Canonical week at which full quality sessions begin.
-    // Before this: onboarding sessions (strides, fartlek, reduced quality).
     var qualityIntroCanonical: Int {
         switch self {
-        case .rebuilding: return 4  // 3 weeks establishing rhythm first
-        case .developing: return 3  // 2 weeks
-        case .prepared:   return 2  // 1 week
-        case .advanced:   return 1  // immediate
+        case .rebuilding: return 4
+        case .developing: return 3
+        case .prepared:   return 2
+        case .advanced:   return 1
         }
     }
 
-    // Canonical week at which Pfitz LT sessions begin.
     var ltIntroCanonical: Int {
         switch self {
         case .rebuilding: return 4
@@ -42,7 +35,6 @@ enum RunnerReadinessTier {
         }
     }
 
-    // Pfitz adaptive long run start as fraction of base mileage.
     var longRunStartFraction: Double {
         switch self {
         case .rebuilding: return 0.30
@@ -62,15 +54,11 @@ struct HansonsMarathonGenerator {
     private static let peakWeekly    : Double = 55
     private static let longRunCap    : Double = 16
     private static let strengthStart : Int    = 9
-    private static let cutbackWeeks  : Set<Int> = [7, 10]   // canonical Hansons cutbacks
-    private static let cutbackCount  : Int    = 2           // used in achievablePeak math
+    // NOTE: Hansons has NO planned cutback weeks.
+    // Recovery is structural — built into each week via easy days and the
+    // single Friday rest day. Periodic volume drops are Higdon/Pfitz thinking.
 
     // MARK: - Base Mileage Recommendation
-    //
-    // Returns nil when the runner's base is sufficient for the plan.
-    // Returns a coaching recommendation string when the runner is below the
-    // recommended minimum — surfaces in UI before plan confirmation.
-    // Not a gate: the plan still generates and adapts to any base.
 
     static func baseRecommendation(for base: Double) -> String? {
         switch base {
@@ -79,7 +67,7 @@ struct HansonsMarathonGenerator {
         case 20..<28:
             return "Your base is developing. The opening 3 weeks focus on establishing the six-day rhythm and durability — full Hansons quality structure begins around week 4. This is a legitimate way to enter the methodology."
         default:
-            return nil  // sufficient base — no recommendation needed
+            return nil
         }
     }
 
@@ -87,47 +75,118 @@ struct HansonsMarathonGenerator {
 
     enum QualityPhase { case speed, strength }
 
-    // MARK: - Session Libraries
+    // MARK: - Speed Session
+    //
+    // ARCHITECTURE NOTE: baseMiles is intentionally absent.
+    // Total session mileage is always computed from actual workout
+    // components: warmup + (reps × repDist) + (reps-1 × recovDist) + cooldown.
+    // This ensures description and TrainingDay.miles are always identical.
 
     struct SpeedSession {
         let reps      : Int
         let repDist   : String
         let recovDist : String
-        let baseMiles : Double
+
+        // Distance in miles for each rep interval
+        var repDistMiles: Double {
+            switch repDist {
+            case "400m":   return 0.25
+            case "600m":   return 0.375
+            case "800m":   return 0.5
+            case "1000m":  return 0.625
+            case "1200m":  return 0.75
+            case "1 mile": return 1.0
+            default:       return 0.5
+            }
+        }
+
+        // Distance in miles for each recovery jog
+        var recovDistMiles: Double {
+            switch recovDist {
+            case "200m jog": return 0.125
+            case "300m jog": return 0.1875
+            case "400m jog": return 0.25
+            default:          return 0.25
+            }
+        }
+
+        // Warmup and cooldown are fixed for speed sessions
+        static let warmup   : Double = 1.5
+        static let cooldown : Double = 1.5
+
+        /// Compute scaled rep count and precise session total from the same scale.
+        /// This is the single source of truth — called by BOTH q1Miles() and makeSpeedWorkout().
+        func scaled(by scale: Double) -> (reps: Int, totalMiles: Double) {
+            let r         = max(1, Int((Double(reps) * scale).rounded()))
+            let repMiles  = Double(r) * repDistMiles
+            // Recovery between reps: (reps - 1) intervals, none after the final rep
+            let recovMiles = Double(max(0, r - 1)) * recovDistMiles
+            let total = Self.warmup + repMiles + recovMiles + Self.cooldown
+            return (reps: r, totalMiles: total.rounded(toPlaces: 1))
+        }
     }
 
-    private static let speedSessions: [SpeedSession] = [
-        SpeedSession(reps: 6,  repDist: "800m",  recovDist: "400m jog", baseMiles: 7.0),
-        SpeedSession(reps: 10, repDist: "400m",  recovDist: "200m jog", baseMiles: 6.0),
-        SpeedSession(reps: 5,  repDist: "1000m", recovDist: "400m jog", baseMiles: 7.5),
-        SpeedSession(reps: 8,  repDist: "600m",  recovDist: "300m jog", baseMiles: 7.0),
-        SpeedSession(reps: 6,  repDist: "1000m", recovDist: "400m jog", baseMiles: 8.0),
-        SpeedSession(reps: 5,  repDist: "1200m", recovDist: "400m jog", baseMiles: 8.5),
-        SpeedSession(reps: 8,  repDist: "800m",  recovDist: "400m jog", baseMiles: 9.0),
-        SpeedSession(reps: 6,  repDist: "1000m", recovDist: "400m jog", baseMiles: 8.5),
-    ]
+    // MARK: - Strength Session
+    //
+    // ARCHITECTURE NOTE: baseMiles is intentionally absent.
+    // Total = warmup(1mi) + (reps × milesPerRep) + (reps-1 × 0.5mi recovery jog) + cooldown(1mi)
+    // The 0.5-mile recovery jog between MP reps reflects authentic Hansons pacing.
+    // Single-rep sessions (1×4mi, 1×6mi) have ZERO recovery jogs — correctly yields 6 and 8 miles.
 
     struct StrengthSession {
         let reps        : Int
         let milesPerRep : Double
-        let baseMiles   : Double
+
+        // Hansons strength recovery jog: ~0.5 miles (≈2-3 min easy between MP reps)
+        private static let recovJog : Double = 0.5
+        static let warmup   : Double = 1.0
+        static let cooldown : Double = 1.0
+
+        /// Compute scaled rep count, rep distance, label, and precise session total.
+        /// Called by BOTH q1Miles() and makeStrengthWorkout() — same source of truth.
+        func scaled(by scale: Double) -> (reps: Int, dist: Double, label: String, totalMiles: Double) {
+            let r = max(1, Int((Double(reps) * scale).rounded()))
+            let d = max(1.0, (milesPerRep * scale).rounded(toPlaces: 1))
+            let repMiles   = Double(r) * d
+            let recovMiles = Double(max(0, r - 1)) * Self.recovJog
+            let total = Self.warmup + repMiles + recovMiles + Self.cooldown
+            let label = "\(r)×\(String(format: "%.1g", d))mi"
+            return (reps: r, dist: d, label: label, totalMiles: total.rounded(toPlaces: 1))
+        }
     }
 
-    private static let strengthSessions: [StrengthSession] = [
-        StrengthSession(reps: 6, milesPerRep: 1.0, baseMiles:  9.0),
-        StrengthSession(reps: 2, milesPerRep: 3.0, baseMiles: 10.0),
-        StrengthSession(reps: 4, milesPerRep: 1.5, baseMiles:  9.5),
-        StrengthSession(reps: 3, milesPerRep: 2.0, baseMiles: 10.0),
-        StrengthSession(reps: 1, milesPerRep: 6.0, baseMiles: 10.0),
-        StrengthSession(reps: 4, milesPerRep: 2.0, baseMiles: 12.0),
-        StrengthSession(reps: 2, milesPerRep: 4.0, baseMiles: 12.0),
-        StrengthSession(reps: 3, milesPerRep: 2.0, baseMiles: 10.0),
-        StrengthSession(reps: 2, milesPerRep: 3.0, baseMiles: 10.0),
-        StrengthSession(reps: 4, milesPerRep: 1.0, baseMiles:  7.0),
+    // MARK: - Session Libraries
+    //
+    // SPEED PHASE: directional progression 400m → 600m → 800m → 1000m → 1200m → mile → sharpen
+    // STRENGTH PHASE: directional progression short MP → long MP → taper approach
+    // Indexed directly by (canonical - phaseStart) — no modulo cycling for standard plans.
+
+    private static let speedSessions: [SpeedSession] = [
+        SpeedSession(reps: 12, repDist: "400m",   recovDist: "200m jog"),  // canonical 1
+        SpeedSession(reps: 10, repDist: "600m",   recovDist: "200m jog"),  // canonical 2
+        SpeedSession(reps: 8,  repDist: "800m",   recovDist: "400m jog"),  // canonical 3
+        SpeedSession(reps: 6,  repDist: "1000m",  recovDist: "400m jog"),  // canonical 4
+        SpeedSession(reps: 5,  repDist: "1200m",  recovDist: "400m jog"),  // canonical 5
+        SpeedSession(reps: 4,  repDist: "1 mile", recovDist: "400m jog"),  // canonical 6
+        SpeedSession(reps: 8,  repDist: "600m",   recovDist: "200m jog"),  // canonical 7 (sharpen)
+        SpeedSession(reps: 10, repDist: "400m",   recovDist: "200m jog"),  // canonical 8 (sharpen)
     ]
 
-    // Scale sessions proportionally to actual weekly mileage.
-    // Scale BOTH rep count AND rep distance to avoid inversion on single-rep sessions.
+    private static let strengthSessions: [StrengthSession] = [
+        StrengthSession(reps: 6, milesPerRep: 1.0),  // canonical  9: 6×1mi   = 10.5mi total
+        StrengthSession(reps: 4, milesPerRep: 1.5),  // canonical 10: 4×1.5mi =  9.5mi total
+        StrengthSession(reps: 3, milesPerRep: 2.0),  // canonical 11: 3×2mi   =  9.0mi total
+        StrengthSession(reps: 2, milesPerRep: 3.0),  // canonical 12: 2×3mi   =  8.5mi total
+        StrengthSession(reps: 1, milesPerRep: 4.0),  // canonical 13: 1×4mi   =  6.0mi total ← was 10.5, now correct
+        StrengthSession(reps: 2, milesPerRep: 3.5),  // canonical 14: 2×3.5mi =  9.5mi total
+        StrengthSession(reps: 2, milesPerRep: 4.0),  // canonical 15: 2×4mi   = 10.5mi total
+        StrengthSession(reps: 1, milesPerRep: 6.0),  // canonical 16: 1×6mi   =  8.0mi total ← was 12.0, now correct
+        StrengthSession(reps: 3, milesPerRep: 2.0),  // taper ramp-down:       =  9.0mi
+        StrengthSession(reps: 4, milesPerRep: 1.0),  // taper short:           = 10.5mi (taper scale reduces this)
+    ]
+
+    // MARK: - Quality Scale
+
     private static func qualityScale(weekMiles: Double) -> Double {
         return min(1.0, max(0.60, weekMiles / (peakWeekly * 0.85)))
     }
@@ -171,100 +230,54 @@ struct HansonsMarathonGenerator {
                                             raceType: .marathon)
     }
 
-    // MARK: - Weekly Mileage Schedule (FIXED)
-    //
-    // THE CORE BUG THAT WAS FIXED:
-    //   Previous: taper % applied to peakWeekly (55).
-    //   A 10 mpw runner building to 30 mpw got a 43 mpw "taper week."
-    //   This is physiologically indefensible and breaks trust immediately.
-    //
-    // THE FIX:
-    //   1. Compute achievablePeak — what this runner can realistically reach
-    //      from their base in the available build weeks, using 10% ramp math.
-    //   2. Target the smooth progression toward achievablePeak, not peakWeekly.
-    //   3. Apply taper percentages to achievedPeak (actual max in build schedule),
-    //      not to the methodology's nominal ceiling.
-    //
-    // OUTCOME:
-    //   10 mpw runner on 16-week plan: builds from 12 to ~34 mpw,
-    //   tapers at 27 → 15. No spike. Steady progression throughout.
-    //   25 mpw runner: builds to 55 mpw, tapers normally.
-    //   48 mpw runner: starts close to peak, reaches 55 quickly.
+    // MARK: - Weekly Mileage Schedule
 
     static func weeklyMileageSchedule(n: Int, base: Double,
                                        taperWeeks: Int) -> [Double] {
         let peak       = peakWeekly
         let buildWeeks = n - taperWeeks
-
-        // Adaptive start: first week should be a believable step above current base.
-        // No artificial 70% ceiling that steps high-base runners backward.
-        let adaptiveStart = min(base * 1.08 + 1.0, peak * 0.95)
-            .rounded(toPlaces: 0)
-
-        // Achievable peak: ceiling this runner can realistically reach.
-        // Uses effective build weeks (total minus cutback weeks where progress resets).
-        // This prevents the smooth curve from targeting an impossible 55 mpw
-        // and causing late-cycle spikes when the runner inevitably falls short.
-        let effectiveBuildWeeks = Double(buildWeeks - cutbackCount)
-        let rawAchievable = adaptiveStart * pow(1.10, effectiveBuildWeeks)
+        let adaptiveStart = min(base * 1.08 + 1.0, peak * 0.95).rounded(toPlaces: 0)
+        // No cutback week deduction — Hansons builds steadily, all weeks are effective
+        let rawAchievable = adaptiveStart * pow(1.10, Double(buildWeeks))
         let achievablePeak = min(peak, rawAchievable).rounded(toPlaces: 0)
 
         var result  : [Double] = []
         var current             = adaptiveStart
 
         for i in 0..<buildWeeks {
-            let wk        = i + 1
-            let canonical = wk + (18 - n)
-
-            // Smooth linear progression from adaptiveStart to achievablePeak.
-            // Because achievablePeak is computed from 10% ramp math, this curve
-            // is inherently safe — no week will require an unsafe single-week jump.
+            // Steady linear progression — no cutback branches
             let progress     = buildWeeks > 1
-                ? Double(i) / Double(buildWeeks - 1)
-                : 1.0
+                ? Double(i) / Double(buildWeeks - 1) : 1.0
             let smoothTarget = adaptiveStart + (achievablePeak - adaptiveStart) * progress
-
-            if cutbackWeeks.contains(canonical) {
-                // Cutback: step back from pre-cutback level (not from smooth target).
-                // This gives a true recovery week, not just a slower build.
-                let val = max(adaptiveStart, (current * 0.82).rounded(toPlaces: 0))
-                result.append(val)
-                // current does NOT update on cutback weeks.
-                // The following week targets the smooth curve from pre-cutback level.
-            } else {
-                // Build toward smooth target, respect 10% weekly ceiling.
-                let capped = min(smoothTarget, current * 1.10)
-                let val    = min(max(capped.rounded(toPlaces: 0), adaptiveStart),
-                                 achievablePeak)
-                result.append(val)
-                current = val
-            }
+            let capped = min(smoothTarget, current * 1.10)
+            let val    = min(max(capped.rounded(toPlaces: 0), adaptiveStart), achievablePeak)
+            result.append(val)
+            current = val
         }
 
-        // TAPER FROM ACHIEVED PEAK — not from methodology peak.
-        // achievedPeak is what the runner actually ran at peak,
-        // not the methodology's 55 mpw ceiling.
         let achievedPeak = result.max() ?? achievablePeak
         let taperPcts: [Double] = taperWeeks == 3
-            ? [0.85, 0.72, 0.45]
-            : [0.78, 0.45]
+            ? [0.85, 0.72, 0.45] : [0.78, 0.45]
         for pct in taperPcts {
             result.append(max(adaptiveStart, (achievedPeak * pct).rounded(toPlaces: 0)))
         }
-
         return result
     }
 
     // MARK: - Long Run Schedule
 
     static func longRunSchedule(n: Int, taperWeeks: Int) -> [Double] {
+        // Authentic Hansons long run progression:
+        // Steady build → sustained 16-mile peak (3 consecutive weeks) → taper.
+        // NO cutback weeks within the build phase — those drops (12→10, 13→11, 15→12)
+        // were non-Hansons template artifacts and have been removed.
         let canonical18: [Double] = [
-            10, 11, 12, 10,
-            12, 13, 11,
-            14, 15, 12,
-            16, 16, 16,
-            16, 14, 12,
-            10, 0
+            10, 11, 12, 13,    // canonical 1–4:  speed phase build
+            13, 14, 14,        // canonical 5–7:  speed phase build continues
+            15, 15, 16,        // canonical 8–10: into strength phase
+            16, 16, 16,        // canonical 11–13: sustained peak (Hansons signature)
+            16, 14, 12,        // canonical 14–16: taper begins
+            10, 0              // canonical 17–18: taper + race
         ]
         let offset = 18 - n
         if offset > 0 {
@@ -287,114 +300,22 @@ struct HansonsMarathonGenerator {
         return                         (.build, "Strength Phase")
     }
 
-    // MARK: - Week Builder
-
-    static func buildWeek(
-        weekNumber   : Int,
-        canonical    : Int,
-        phase        : TrainingPhase,
-        phaseLabel   : String,
-        totalMiles   : Double,
-        longMiles    : Double,
-        qualityPhase : QualityPhase,
-        schedule     : UserSchedule,
-        isTaper      : Bool,
-        totalWeeks   : Int,
-        baseMileage  : Double,
-        paces        : PaceEngine
-    ) -> TrainingWeek {
-        let tier         = RunnerReadinessTier.from(base: baseMileage)
-        let inOnboarding = canonical < tier.qualityIntroCanonical && !isTaper
-        let scale        = qualityScale(weekMiles: totalMiles)
-        let trainingDepth = Double(weekNumber) / Double(totalWeeks)
-
-        let restSet = Set(schedule.restDays)
-        let lrDay   = schedule.longRunDay
-        let q1Day   = schedule.workoutDay1
-        let q2Day   = schedule.workoutDay2
-
-        let longM          = min(max(longMiles, 6), longRunCap)
-        let budgetAfterLong = max(0, totalMiles - longM)
-        let rawQ1  = inOnboarding
-            ? onboardingRunMiles(weekMiles: totalMiles)
-            : q1Miles(canonical: canonical, phase: qualityPhase, scale: scale, isTaper: isTaper)
-        let rawQ2  = tempoMiles(canonical: canonical, weekMiles: totalMiles, isTaper: isTaper)
-        let safeQ1 = min(rawQ1, budgetAfterLong * 0.45)
-        let safeQ2 = min(rawQ2, max(0, budgetAfterLong - safeQ1) * 0.55)
-
-        let easyTotal  = max(0, totalMiles - longM - safeQ1 - safeQ2)
-        let easyPerDay = easyTotal > 0
-            ? max(3.0, (easyTotal / 3.0).rounded(toPlaces: 1))
-            : 3.0
-
-        let earlyEasyType: WorkoutType = (inOnboarding && tier == .rebuilding)
-            ? .recovery : .easy
-
-        var days: [TrainingDay] = []
-
-        for day in Weekday.allCases {
-            let td: TrainingDay
-
-            if restSet.contains(day) {
-                td = makeRest(day, isTaper: isTaper)
-            } else if day == lrDay {
-                td = makeLongRun(day, miles: longM, canonical: canonical,
-                                 weekNumber: weekNumber, totalWeeks: totalWeeks,
-                                 isTaper: isTaper, trainingDepth: trainingDepth,
-                                 paces: paces)
-            } else if day == q1Day {
-                if inOnboarding {
-                    td = makeOnboardingRun(day, miles: safeQ1, canonical: canonical,
-                                           tier: tier, weekNumber: weekNumber,
-                                           paces: paces)
-                } else {
-                    switch qualityPhase {
-                    case .speed:
-                        td = makeSpeedWorkout(day, canonical: canonical, miles: safeQ1,
-                                              isTaper: isTaper, scale: scale,
-                                              trainingDepth: trainingDepth, paces: paces)
-                    case .strength:
-                        td = makeStrengthWorkout(day, canonical: canonical, miles: safeQ1,
-                                                  isTaper: isTaper, scale: scale,
-                                                  trainingDepth: trainingDepth, paces: paces)
-                    }
-                }
-            } else if day == q2Day {
-                td = makeTempoRun(day, canonical: canonical, miles: safeQ2,
-                                   isTaper: isTaper, trainingDepth: trainingDepth,
-                                   paces: paces)
-            } else {
-                td = makeEasyRun(day, miles: easyPerDay, weekNumber: weekNumber,
-                                  isTaper: isTaper, workoutType: earlyEasyType,
-                                  inOnboarding: inOnboarding, paces: paces)
-            }
-
-            days.append(td)
-        }
-
-        return TrainingWeek(weekNumber: weekNumber, phase: phase,
-                            phaseLabel: phaseLabel, days: days)
-    }
-
-    // MARK: - Session Mile Calculations
-
-    private static func onboardingRunMiles(weekMiles: Double) -> Double {
-        return max(5.0, weekMiles * 0.18).rounded(toPlaces: 1)
-    }
+    // MARK: - Session Mileage (single source of truth)
+    //
+    // q1Miles() uses the SAME scaled() method as the day makers.
+    // Budget allocation and displayed mileage are always synchronized.
 
     private static func q1Miles(canonical: Int, phase: QualityPhase,
                                   scale: Double, isTaper: Bool) -> Double {
-        let base: Double
+        let effectiveScale = isTaper ? scale * 0.75 : scale
         switch phase {
         case .speed:
-            let idx = max(0, canonical - 1) % speedSessions.count
-            base = speedSessions[idx].baseMiles
+            let idx = max(0, min(canonical - 1, speedSessions.count - 1))
+            return speedSessions[idx].scaled(by: effectiveScale).totalMiles
         case .strength:
-            let idx = max(0, canonical - strengthStart) % strengthSessions.count
-            base = strengthSessions[idx].baseMiles
+            let idx = max(0, min(canonical - strengthStart, strengthSessions.count - 1))
+            return strengthSessions[idx].scaled(by: effectiveScale).totalMiles
         }
-        let factor: Double = isTaper ? scale * 0.75 : scale
-        return (base * factor).rounded(toPlaces: 1)
     }
 
     private static func tempoMiles(canonical: Int, weekMiles: Double,
@@ -411,6 +332,96 @@ struct HansonsMarathonGenerator {
         return min(byCanonical, max(weekMiles * 0.17, 5.0)).rounded(toPlaces: 1)
     }
 
+    private static func onboardingRunMiles(weekMiles: Double) -> Double {
+        return max(5.0, weekMiles * 0.18).rounded(toPlaces: 1)
+    }
+
+    // MARK: - Week Builder
+
+    static func buildWeek(
+        weekNumber   : Int,
+        canonical    : Int,
+        phase        : TrainingPhase,
+        phaseLabel   : String,
+        totalMiles   : Double,
+        longMiles    : Double,
+        qualityPhase : QualityPhase,
+        schedule     : UserSchedule,
+        isTaper      : Bool,
+        totalWeeks   : Int,
+        baseMileage  : Double,
+        paces        : PaceEngine
+    ) -> TrainingWeek {
+        let tier          = RunnerReadinessTier.from(base: baseMileage)
+        let inOnboarding  = canonical < tier.qualityIntroCanonical && !isTaper
+        let scale         = qualityScale(weekMiles: totalMiles)
+        let trainingDepth = Double(weekNumber) / Double(totalWeeks)
+
+        let restSet = Set(schedule.restDays)
+        let lrDay   = schedule.longRunDay
+        let q1Day   = schedule.workoutDay1
+        let q2Day   = schedule.workoutDay2
+
+        let longM           = min(max(longMiles, 6), longRunCap)
+        let budgetAfterLong = max(0, totalMiles - longM)
+
+        let rawQ1 = inOnboarding
+            ? onboardingRunMiles(weekMiles: totalMiles)
+            : q1Miles(canonical: canonical, phase: qualityPhase, scale: scale, isTaper: isTaper)
+        let rawQ2  = tempoMiles(canonical: canonical, weekMiles: totalMiles, isTaper: isTaper)
+        let safeQ1 = min(rawQ1, budgetAfterLong * 0.45)
+        let safeQ2 = min(rawQ2, max(0, budgetAfterLong - safeQ1) * 0.55)
+
+        let easyTotal  = max(0, totalMiles - longM - safeQ1 - safeQ2)
+        let easyPerDay = easyTotal > 0
+            ? max(3.0, (easyTotal / 3.0).rounded(toPlaces: 1)) : 3.0
+
+        let earlyEasyType: WorkoutType = (inOnboarding && tier == .rebuilding)
+            ? .recovery : .easy
+
+        var days: [TrainingDay] = []
+
+        for day in Weekday.allCases {
+            let td: TrainingDay
+
+            if restSet.contains(day) {
+                td = makeRest(day, isTaper: isTaper)
+            } else if day == lrDay {
+                td = makeLongRun(day, miles: longM, canonical: canonical,
+                                 weekNumber: weekNumber, totalWeeks: totalWeeks,
+                                 isTaper: isTaper, trainingDepth: trainingDepth, paces: paces)
+            } else if day == q1Day {
+                if inOnboarding {
+                    td = makeOnboardingRun(day, miles: safeQ1, canonical: canonical,
+                                           tier: tier, weekNumber: weekNumber, paces: paces)
+                } else {
+                    switch qualityPhase {
+                    case .speed:
+                        td = makeSpeedWorkout(day, canonical: canonical, scale: scale,
+                                              isTaper: isTaper, trainingDepth: trainingDepth,
+                                              paces: paces)
+                    case .strength:
+                        td = makeStrengthWorkout(day, canonical: canonical, scale: scale,
+                                                  isTaper: isTaper, trainingDepth: trainingDepth,
+                                                  paces: paces)
+                    }
+                }
+            } else if day == q2Day {
+                td = makeTempoRun(day, canonical: canonical, miles: safeQ2,
+                                   isTaper: isTaper, trainingDepth: trainingDepth, paces: paces)
+            } else {
+                td = makeEasyRun(day, miles: easyPerDay, weekNumber: weekNumber,
+                                  isTaper: isTaper, workoutType: earlyEasyType,
+                                  inOnboarding: inOnboarding, paces: paces)
+            }
+
+            days.append(td)
+        }
+
+        return TrainingWeek(weekNumber: weekNumber, phase: phase,
+                            phaseLabel: phaseLabel, days: days)
+    }
+
     // MARK: - Day Makers
 
     static func makeRest(_ day: Weekday, isTaper: Bool) -> TrainingDay {
@@ -421,14 +432,163 @@ struct HansonsMarathonGenerator {
                            description: desc, paceNote: "—")
     }
 
+    // MARK: - Speed Workout
+    //
+    // miles = computed from session.scaled(by:) — NOT from the budget safeQ1.
+    // Description and TrainingDay.miles are derived from the same components.
+
+    static func makeSpeedWorkout(_ day          : Weekday,
+                                  canonical     : Int,
+                                  scale         : Double,
+                                  isTaper       : Bool,
+                                  trainingDepth : Double,
+                                  paces         : PaceEngine) -> TrainingDay {
+        let effectiveScale = isTaper ? scale * 0.75 : scale
+        let idx            = max(0, min(canonical - 1, speedSessions.count - 1))
+        let session        = speedSessions[idx]
+        let (scaledReps, totalMiles) = session.scaled(by: effectiveScale)
+        let speedPace = PaceEngine.format(paces.hansonsSpeed)
+        let tapNote   = isTaper ? "\n\nTaper week — session is already shortened. Preserve pace." : ""
+
+        let depthNote: String
+        switch trainingDepth {
+        case ..<0.30:
+            depthNote = "Speed phase. These sessions develop running economy — the efficiency at faster paces that directly lowers the energy cost of marathon pace in the strength phase ahead."
+        case 0.30..<0.65:
+            depthNote = "Mid-speed phase. Economy is developing. The interval distances are increasing — that is intentional. You are bridging from raw speed toward aerobic power."
+        default:
+            depthNote = "Final speed weeks. Returning to shorter intervals to sharpen leg turnover before the methodology transitions to marathon-pace strength work."
+        }
+
+        let warmup   = Int(SpeedSession.warmup)
+        let cooldown = Int(SpeedSession.cooldown)
+
+        let desc = """
+Speed workout: \(scaledReps)×\(session.repDist) at 10K effort, \(session.recovDist) recovery.
+
+\(warmup) mile warmup (easy) · \(scaledReps)×\(session.repDist) at 10K pace · \
+\(session.recovDist) between reps · \(cooldown) mile cooldown (easy) · \
+Total: \(String(format: "%.1f", totalMiles)) miles\(tapNote)
+
+Consistent splits — not all-out. If you are positive-splitting, you started too fast. \
+The goal is repeatable, controlled effort across all reps.
+
+\(depthNote)
+"""
+        return TrainingDay(weekday: day, workoutType: .speedWork,
+                           miles: totalMiles,  // computed from components — matches description
+                           description: desc,
+                           paceNote: "~\(speedPace)/mi — 10K effort, every rep consistent")
+    }
+
+    // MARK: - Strength Workout
+    //
+    // miles = computed from session.scaled(by:) — NOT from the budget safeQ1.
+    // The 0.5-mile recovery jog between reps is explicit in both calculation and description.
+    // Single-rep sessions (1×4mi, 1×6mi) correctly show 0 recovery jogs.
+
+    static func makeStrengthWorkout(_ day          : Weekday,
+                                     canonical     : Int,
+                                     scale         : Double,
+                                     isTaper       : Bool,
+                                     trainingDepth : Double,
+                                     paces         : PaceEngine) -> TrainingDay {
+        let effectiveScale = isTaper ? scale * 0.75 : scale
+        let idx            = max(0, min(canonical - strengthStart, strengthSessions.count - 1))
+        let session        = strengthSessions[idx]
+        let (scaledReps, scaledDist, scaledLabel, totalMiles) = session.scaled(by: effectiveScale)
+        let mpRange = paces.rangeString(paces.hansonsStrength)
+
+        // Build the workout breakdown string for transparency
+        let warmup   = Int(StrengthSession.warmup)
+        let cooldown = Int(StrengthSession.cooldown)
+        let repTotal = Double(scaledReps) * scaledDist
+        let recovTotal = Double(max(0, scaledReps - 1)) * 0.5
+        let breakdownParts: [String] = [
+            "\(warmup) mi warmup",
+            scaledReps == 1
+                ? "\(String(format: "%.1g", scaledDist)) mi at MP"
+                : "\(scaledLabel) at MP with 0.5 mi recovery jog between reps",
+            "\(cooldown) mi cooldown",
+        ]
+        let breakdown = breakdownParts.joined(separator: " · ")
+
+        let tapNote = isTaper
+            ? "\n\nTaper week — session reduced in volume. Run every rep at the same goal pace. Only the total distance decreases."
+            : ""
+
+        let depthNote: String
+        switch trainingDepth {
+        case ..<0.45:
+            depthNote = "You have just transitioned from speed to strength work. The goal shifts from economy to marathon-pace specificity. Running MP on accumulated weekly fatigue is the mechanism."
+        case 0.45..<0.70:
+            depthNote = "You are carrying weeks of accumulated fatigue into this session. That is the point. Marathon pace on tired legs is becoming familiar. Race day will feel controlled because of this."
+        default:
+            depthNote = "Late in the block, this session is the most race-specific work you will do. Your body knows this pace. The accumulated fatigue you carry into it is exactly what the second half of a marathon requires."
+        }
+
+        let desc = """
+Strength workout: \(scaledLabel) at marathon pace.
+
+\(breakdown) · Total: \(String(format: "%.1f", totalMiles)) miles\(tapNote)
+
+Run each rep at exactly your goal marathon pace — not faster. Recovery jog easy. \
+Resist the urge to go faster. Pace discipline matters more than training effect here. \
+You are making marathon pace familiar under accumulated weekly fatigue.
+
+\(depthNote)
+"""
+        return TrainingDay(weekday: day, workoutType: .strengthMP,
+                           miles: totalMiles,  // computed from components — matches description
+                           description: desc,
+                           paceNote: "\(mpRange) — exact marathon goal pace, every rep")
+    }
+
+    // MARK: - Tempo Run
+
+    static func makeTempoRun(_ day          : Weekday,
+                               canonical     : Int,
+                               miles         : Double,
+                               isTaper       : Bool,
+                               trainingDepth : Double,
+                               paces         : PaceEngine) -> TrainingDay {
+        let tempoPace    = PaceEngine.format(paces.pfitzLT)
+        let tempoSegment = String(format: "%.0f", max(0, miles - 3.0))
+        let tapNote      = isTaper
+            ? "Taper week — run the tempo segment at effort, slightly shorter. Pace matters; duration reduces."
+            : ""
+
+        let depthNote: String
+        switch trainingDepth {
+        case ..<0.33:
+            depthNote = "These tempo sessions build the aerobic ceiling that marathon pace sits beneath."
+        case 0.33..<0.67:
+            depthNote = "Threshold pace on a week's accumulated fatigue. You are developing the ability to sustain quality effort while tired."
+        default:
+            depthNote = "Late-block tempo sessions maintain aerobic sharpness — preventing you from becoming purely a slow, long-distance specialist heading into race day."
+        }
+
+        let desc = """
+Tempo run: \(String(format: "%.0f", miles)) miles — warmup, \(tempoSegment) miles at threshold, cooldown.
+
+\(tapNote.isEmpty ? "" : tapNote + "\n\n")Threshold pace is breathing rapidly and deliberately — hard, not all-out. \
+Run the warmup easy, lock in at threshold, hold it.
+
+\(depthNote)
+"""
+        return TrainingDay(weekday: day, workoutType: .tempoRun, miles: miles,
+                           description: desc,
+                           paceNote: "~\(tempoPace)/mi — threshold effort, sustained")
+    }
+
+    // MARK: - Onboarding Run
+
     static func makeOnboardingRun(_ day      : Weekday,
                                    miles     : Double,
                                    canonical : Int,
                                    tier      : RunnerReadinessTier,
                                    weekNumber: Int,
                                    paces     : PaceEngine) -> TrainingDay {
-        let easyRange = paces.rangeString(paces.easy)
-
         switch tier {
         case .rebuilding:
             if canonical <= 2 {
@@ -451,8 +611,7 @@ Fartlek run: \(String(format: "%.0f", miles)) miles with unstructured pickups.
 Run easy throughout. Every 5–7 minutes, pick up the pace for 30–60 seconds — noticeably \
 quicker, not hard. Return to easy. No structure, no targets.
 
-This introduces effort variation before structured speed sessions begin. You are learning \
-what it means to push a little on tired legs — the Hansons mechanism in its earliest form.
+This introduces effort variation before structured speed sessions begin.
 """
                 return TrainingDay(weekday: day, workoutType: .easy, miles: miles,
                                    description: desc,
@@ -463,11 +622,10 @@ what it means to push a little on tired legs — the Hansons mechanism in its ea
             let desc = """
 Fartlek run: \(String(format: "%.0f", miles)) miles with 4–6 unstructured surges.
 
-Run easy for the main distance. Insert 4–6 surges of 45–90 seconds at comfortably quick effort \
-— faster than easy, well below all-out. Full easy running recovery between each.
+Run easy for the main distance. Insert 4–6 surges of 45–90 seconds at comfortably quick effort. \
+Full easy running recovery between each.
 
-Next week, these surges become structured speed intervals. This fartlek bridges your current \
-base to the Hansons quality work ahead.
+Next week, these surges become structured speed intervals.
 """
             return TrainingDay(weekday: day, workoutType: .easy, miles: miles,
                                description: desc,
@@ -477,8 +635,7 @@ base to the Hansons quality work ahead.
             let desc = """
 Introductory speed session: \(String(format: "%.0f", miles)) miles — warmup, abbreviated intervals, cooldown.
 
-Shortened version of the speed work beginning next week. Warmup 1.5 miles easy, then \
-4 × 600m at 10K effort with 300m jog recovery, cooldown 1.5 miles easy.
+Warmup 1.5 miles easy, then 4 × 600m at 10K effort with 300m jog recovery, cooldown 1.5 miles easy.
 
 Your base is solid. This session establishes the rhythm before full volume begins.
 """
@@ -493,121 +650,7 @@ Your base is solid. This session establishes the rhythm before full volume begin
         }
     }
 
-    static func makeSpeedWorkout(_ day          : Weekday,
-                                  canonical     : Int,
-                                  miles         : Double,
-                                  isTaper       : Bool,
-                                  scale         : Double,
-                                  trainingDepth : Double,
-                                  paces         : PaceEngine) -> TrainingDay {
-        let idx       = max(0, canonical - 1) % speedSessions.count
-        let session   = speedSessions[idx]
-        let speedPace = PaceEngine.format(paces.hansonsSpeed)
-        let scaledReps = max(1, Int((Double(session.reps) * scale).rounded()))
-        let tapNote   = isTaper ? " Taper week — shorten if legs feel heavy." : ""
-
-        let depthNote: String
-        switch trainingDepth {
-        case ..<0.30:
-            depthNote = "Speed phase. These sessions develop running economy — efficiency at paces faster than marathon pace. This directly lowers the energy cost of MP in the strength phase ahead."
-        case 0.30..<0.65:
-            depthNote = "Mid-speed phase. The intervals should feel familiar now. Economy is developing. In a few weeks this transitions to marathon-pace strength sessions."
-        default:
-            depthNote = "Final speed weeks. These sessions have built your economy. The methodology moves to MP specificity soon."
-        }
-
-        let desc = """
-Speed workout: \(scaledReps)×\(session.repDist) at 10K effort, \(session.recovDist) recovery.\(tapNote)
-
-Warmup 1.5–2 miles easy. Consistent splits — not all-out. If positive-splitting, you started too fast. \
-Full recovery between reps. Cooldown 1.5 miles easy.
-
-\(depthNote)
-"""
-        return TrainingDay(weekday: day, workoutType: .speedWork, miles: miles,
-                           description: desc,
-                           paceNote: "~\(speedPace)/mi — 10K effort, consistent reps")
-    }
-
-    static func makeStrengthWorkout(_ day          : Weekday,
-                                     canonical     : Int,
-                                     miles         : Double,
-                                     isTaper       : Bool,
-                                     scale         : Double,
-                                     trainingDepth : Double,
-                                     paces         : PaceEngine) -> TrainingDay {
-        let idx        = max(0, canonical - strengthStart) % strengthSessions.count
-        let session    = strengthSessions[idx]
-        let mpRange    = paces.rangeString(paces.hansonsStrength)
-        // Scale BOTH count and distance — max(1,...) prevents single-rep sessions doubling
-        let scaledReps = max(1, Int((Double(session.reps) * scale).rounded()))
-        let scaledDist = max(1.0, (session.milesPerRep * scale).rounded(toPlaces: 1))
-        let scaledLabel = "\(scaledReps)×\(String(format: "%.1g", scaledDist))mi"
-
-        let tapNote: String
-        if isTaper {
-            let taperReps = max(1, scaledReps - 1)
-            tapNote = " Taper week — reduce to \(taperReps)×\(String(format: "%.1g", scaledDist))mi. Preserve the pace. Only volume reduces."
-        } else { tapNote = "" }
-
-        let depthNote: String
-        switch trainingDepth {
-        case ..<0.45:
-            depthNote = "You have just transitioned from speed to strength work. The goal shifts from economy to marathon-pace specificity. These MP repeats are race simulation on tired legs."
-        case 0.45..<0.70:
-            depthNote = "You are carrying weeks of accumulated fatigue into this session. That is the point. Marathon pace on tired legs is becoming familiar. Race day will feel controlled because of this."
-        default:
-            depthNote = "Late in the block, this session is the most race-specific work you will do. Your body knows this pace. The accumulated fatigue you are running through is exactly what the second half of a marathon requires."
-        }
-
-        let desc = """
-Strength workout: \(scaledLabel) at marathon pace, recovery jog between reps.\(tapNote)
-
-Warmup 1 mile easy. Run each rep at exactly your goal marathon pace — not faster. \
-Recovery jog 1–2 minutes between reps. Cooldown 1 mile easy.
-
-Resist the urge to go faster. Pace discipline here matters more than training effect. \
-You are making marathon pace familiar under accumulated fatigue.
-
-\(depthNote)
-"""
-        return TrainingDay(weekday: day, workoutType: .strengthMP, miles: miles,
-                           description: desc,
-                           paceNote: "\(mpRange) — exact marathon goal pace, every rep")
-    }
-
-    static func makeTempoRun(_ day          : Weekday,
-                               canonical     : Int,
-                               miles         : Double,
-                               isTaper       : Bool,
-                               trainingDepth : Double,
-                               paces         : PaceEngine) -> TrainingDay {
-        let tempoPace    = PaceEngine.format(paces.pfitzLT)
-        let tempoSegment = String(format: "%.0f", max(0, miles - 3.0))
-        let tapNote      = isTaper ? "Taper week — run the tempo segment at effort, slightly shorter. Pace matters; duration reduces." : ""
-
-        let depthNote: String
-        switch trainingDepth {
-        case ..<0.33:
-            depthNote = "These tempo sessions build the aerobic ceiling that marathon pace sits beneath. Among the most important sessions in the plan."
-        case 0.33..<0.67:
-            depthNote = "Threshold pace on a week's accumulated fatigue. You are developing the ability to sustain quality effort while tired."
-        default:
-            depthNote = "Late-block tempo sessions maintain aerobic sharpness. They prevent you from becoming purely a slow, long-distance specialist heading into race day."
-        }
-
-        let desc = """
-Tempo run: \(String(format: "%.0f", miles)) miles — warmup, \(tempoSegment) miles at threshold, cooldown.
-
-\(tapNote.isEmpty ? "" : tapNote + "\n\n")Threshold pace is breathing rapidly and deliberately — hard, not all-out. \
-Run the warmup easy, lock in at threshold, hold it.
-
-\(depthNote)
-"""
-        return TrainingDay(weekday: day, workoutType: .tempoRun, miles: miles,
-                           description: desc,
-                           paceNote: "~\(tempoPace)/mi — threshold effort, sustained")
-    }
+    // MARK: - Easy Run
 
     static func makeEasyRun(_ day         : Weekday,
                               miles        : Double,
@@ -650,6 +693,8 @@ Run the warmup easy, lock in at threshold, hold it.
         return TrainingDay(weekday: day, workoutType: workoutType, miles: miles,
                            description: desc, paceNote: note)
     }
+
+    // MARK: - Long Run
 
     static func makeLongRun(_ day          : Weekday,
                               miles         : Double,

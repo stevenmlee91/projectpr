@@ -86,14 +86,17 @@ enum TrainingPhase: String, Codable, CaseIterable, Equatable, Hashable {
     /// Used when decoding existing SavedPlan data from UserDefaults.
     static func from(legacyString s: String) -> TrainingPhase {
         let l = s.lowercased()
-        if l.contains("race")                            { return .race  }
-        if l.contains("taper")                           { return .taper }
-        if l.contains("peak")                            { return .peak  }
-        if l.contains("speed")     || l.contains("strength")   ||
-           l.contains("threshold") || l.contains("specific")   ||
-           l.contains("build")     || l.contains("lactate")    ||
-           l.contains("aerobic")   || l.contains("phase ii")   ||
-           l.contains("phase iii")                       { return .build }
+        // FIXED: was l.contains("race") — matched "Race-Specific Phase" → .race (bug)
+        // Now only matches "race" exactly or "race week" phrases.
+        if l == "race" || l.contains("race week")            { return .race  }
+        if l.contains("taper")                               { return .taper }
+        if l.contains("peak")                                { return .peak  }
+        if l.contains("speed")      || l.contains("strength")   ||
+           l.contains("threshold")  || l.contains("specific")   ||
+           l.contains("build")      || l.contains("lactate")    ||
+           l.contains("aerobic")    || l.contains("endurance")  ||
+           l.contains("marathon")   || l.contains("phase ii")   ||
+           l.contains("phase iii")                           { return .build }
         return .base
     }
 }

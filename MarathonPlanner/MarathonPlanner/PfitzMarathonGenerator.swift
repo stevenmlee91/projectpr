@@ -216,7 +216,7 @@ struct PfitzMarathonGenerator {
         if isTap                         { return (.taper, "Taper")                   }
         if canonical < ltPhaseStart      { return (.base,  "Endurance Phase")         }
         if canonical < raceSpecificStart { return (.build, "Lactate Threshold Phase") }
-        return                             (.build, "Race-Specific Phase")
+        return                             (.build, "Marathon Specific")
     }
 
     // MARK: - Stress-Aware MLR Day
