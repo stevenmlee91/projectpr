@@ -61,6 +61,9 @@
 		B08F5A4C2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A4B2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift */; };
 		B08F5A4E2FB21ECE00BFFC53 /* MethodologyReadinessEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A4D2FB21ECD00BFFC53 /* MethodologyReadinessEngine.swift */; };
 		B08F5A502FB21EDB00BFFC53 /* MethodologyReadinessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A4F2FB21EDB00BFFC53 /* MethodologyReadinessCard.swift */; };
+		B08F5A522FB4228A00BFFC53 /* HigdonHalfNoviceGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A512FB4228A00BFFC53 /* HigdonHalfNoviceGenerator.swift */; };
+		B08F5A542FB4229A00BFFC53 /* HigdonHalfIntermediateGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A532FB4229A00BFFC53 /* HigdonHalfIntermediateGenerator.swift */; };
+		B08F5A562FB422A500BFFC53 /* HansonsHalfGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A552FB422A500BFFC53 /* HansonsHalfGenerator.swift */; };
 		B0A62D7D2F9861A70093719D /* MarathonPlannerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */; };
 		B0A62D7F2F9861A70093719D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62D7E2F9861A70093719D /* ContentView.swift */; };
 		B0A62D812F9861AB0093719D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0A62D802F9861AB0093719D /* Assets.xcassets */; };
@@ -150,6 +153,9 @@
 		B08F5A4B2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PfitzMarathonGenerator.swift; sourceTree = "<group>"; };
 		B08F5A4D2FB21ECD00BFFC53 /* MethodologyReadinessEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MethodologyReadinessEngine.swift; sourceTree = "<group>"; };
 		B08F5A4F2FB21EDB00BFFC53 /* MethodologyReadinessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MethodologyReadinessCard.swift; sourceTree = "<group>"; };
+		B08F5A512FB4228A00BFFC53 /* HigdonHalfNoviceGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HigdonHalfNoviceGenerator.swift; sourceTree = "<group>"; };
+		B08F5A532FB4229A00BFFC53 /* HigdonHalfIntermediateGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HigdonHalfIntermediateGenerator.swift; sourceTree = "<group>"; };
+		B08F5A552FB422A500BFFC53 /* HansonsHalfGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HansonsHalfGenerator.swift; sourceTree = "<group>"; };
 		B0A62D792F9861A70093719D /* MarathonPlanner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarathonPlanner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0A62D7C2F9861A70093719D /* MarathonPlannerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonPlannerApp.swift; sourceTree = "<group>"; };
 		B0A62D7E2F9861A70093719D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -246,13 +252,16 @@
 				B0A62D7E2F9861A70093719D /* ContentView.swift */,
 				B0A62DA62F9862170093719D /* TrainingPlan.swift */,
 				B08F5A352FADB36C00BFFC53 /* FirstHalfPlanGenerator.swift */,
+				B08F5A512FB4228A00BFFC53 /* HigdonHalfNoviceGenerator.swift */,
+				B08F5A532FB4229A00BFFC53 /* HigdonHalfIntermediateGenerator.swift */,
+				B08F5A552FB422A500BFFC53 /* HansonsHalfGenerator.swift */,
+				B08F5A3B2FAFF71600BFFC53 /* HidgonNoviceGenerator.swift */,
+				B08F5A3D2FAFF72700BFFC53 /* HigdonIntermediateGenerator.swift */,
 				B08F5A492FB19B1A00BFFC53 /* HansonsMarathonGenerator.swift */,
 				B08F5A4B2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift */,
 				B08F5A4D2FB21ECD00BFFC53 /* MethodologyReadinessEngine.swift */,
 				B08F5A4F2FB21EDB00BFFC53 /* MethodologyReadinessCard.swift */,
 				B0A62DA82F9862340093719D /* PlanGenerator.swift */,
-				B08F5A3B2FAFF71600BFFC53 /* HidgonNoviceGenerator.swift */,
-				B08F5A3D2FAFF72700BFFC53 /* HigdonIntermediateGenerator.swift */,
 				B08F59BD2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift */,
 				B075260C2F9B1317008F9552 /* ScheduleSetupView.swift */,
 				B07526002F9B0C72008F9552 /* SavedPlan.swift */,
@@ -467,7 +476,9 @@
 				B08F5A202FA7F50E00BFFC53 /* DailyInsightCard.swift in Sources */,
 				B08F59CF2FA565B400BFFC53 /* ElevationChartView.swift in Sources */,
 				B08F5A442FB0492D00BFFC53 /* TrainingPhase.swift in Sources */,
+				B08F5A522FB4228A00BFFC53 /* HigdonHalfNoviceGenerator.swift in Sources */,
 				B08F5A382FAEFC8500BFFC53 /* TrainingPhaseEngine.swift in Sources */,
+				B08F5A562FB422A500BFFC53 /* HansonsHalfGenerator.swift in Sources */,
 				B08F59CA2FA46B0000BFFC53 /* RouteBuilderView.swift in Sources */,
 				B08F5A1C2FA70E0700BFFC53 /* OnBoardingView.swift in Sources */,
 				B08F5A362FADB36C00BFFC53 /* FirstHalfPlanGenerator.swift in Sources */,
@@ -500,6 +511,7 @@
 				B075260B2F9B0CE6008F9552 /* ICSexporter.swift in Sources */,
 				B08F5A2C2FAC281D00BFFC53 /* OffSeasonEngine.swift in Sources */,
 				B07526072F9B0CB4008F9552 /* SavedPlanView.swift in Sources */,
+				B08F5A542FB4229A00BFFC53 /* HigdonHalfIntermediateGenerator.swift in Sources */,
 				B07526092F9B0CD2008F9552 /* PDFExporter.swift in Sources */,
 				B08F5A4E2FB21ECE00BFFC53 /* MethodologyReadinessEngine.swift in Sources */,
 				B075261B2F9EC478008F9552 /* SettingsView.swift in Sources */,

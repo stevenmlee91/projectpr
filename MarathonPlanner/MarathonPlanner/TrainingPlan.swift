@@ -97,13 +97,13 @@ enum PlanType: String, CaseIterable, Identifiable, Codable {
         case .pfitz:
             return "High mileage with medium-long mid-week runs. Two hard days. Builds a massive aerobic engine."
         case .hansons:
-            return "Cumulative fatigue model. You always train tired. Long run capped at 16 mi."
+            return "Cumulative fatigue model. You always train tired. Long run capped at 16 mi. Race day feels easy."
         case .higdon:
-            return "Best for first-timers. Gentle build-up. Long run is the main event."
+            return "Gentle build-up. Mostly easy running. Long run is the main event. Best for first-timers."
         case .higdonIntermediate:
             return "Adds cross-training and a midweek longer run. For runners with 1–2 marathons completed."
         case .higdonHalfNovice:
-            return "Perfect for your first half marathon. Three days of running per week. Long run builds to 10 miles. "
+            return "Three days of running per week. Long run builds to 10 miles. Perfect for your first half marathon."
         case .higdonHalfIntermediate:
             return "Four to five days running with a midweek tempo. Long run to 12 miles. For runners with race experience."
         case .hansonsHalf:
@@ -178,7 +178,7 @@ enum PlanLength: Int, CaseIterable, Identifiable, Codable {
 
     static func options(for raceType: RaceType) -> [PlanLength] {
         switch raceType {
-        case .halfMarathon: return [.eightWeek, .tenWeek,
+        case .halfMarathon: return [.tenWeek,
                                     .twelveWeek, .sixteenWeek]
         case .marathon:     return [.twelveWeek, .sixteenWeek,
                                     .eighteenWeek]

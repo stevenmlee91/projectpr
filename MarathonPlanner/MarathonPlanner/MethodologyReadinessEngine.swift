@@ -241,39 +241,73 @@ struct MethodologyReadinessEngine {
     // MARK: - Hansons Half
 
     private static func hansonsHalf(base: Double) -> MethodologyReadinessMatch {
+        // Hansons Half peaks at 45 mpw. Unlike Hansons Marathon (55 mpw),
+        // the half plan has a lower ceiling but still demands real volume.
+        // Tier thresholds are half-specific — not inherited from RunnerReadinessTier
+        // which was calibrated for marathon distances.
+        //
+        // Base mileage → peak mileage increase (16-week plan, 10% weekly cap):
+        //   30+ mpw → 45 mpw: ~50% increase. Well within physiological range.
+        //   25–29 mpw → 45 mpw: ~80% increase. Demanding but achievable.
+        //   20–24 mpw → 45 mpw: ~125% increase. Aggressive. Meaningful adaptation required.
+        //   < 20 mpw  → 45 mpw: exceeds safe ramp. Plan adapts significantly.
+
         if base >= 30 {
             return MethodologyReadinessMatch(
                 tier:     .ideal,
-                headline: "Solid base for Hansons Half.",
-                body:     "Your mileage supports the six-day Hansons structure from day one. The plan opens with full speed phase sessions.",
+                headline: "Your base is well matched to Hansons Half.",
+                body:     "Your current mileage supports the six-day structure and cumulative fatigue mechanism from day one. The plan opens with full speed phase sessions immediately — no extended onboarding needed.",
                 adaptationPoints: [],
-                alternativeMethodology: nil, alternativeRationale: nil,
-                openingWeekPreview: nil
+                alternativeMethodology: nil,
+                alternativeRationale:  nil,
+                openingWeekPreview:    "Week 1 opens with your first speed session, a tempo run, and four easy days — six days running total."
             )
-        } else if base >= 20 {
+
+        } else if base >= 25 {
             return MethodologyReadinessMatch(
                 tier:     .compatible,
-                headline: "Compatible with Hansons Half with brief onboarding.",
-                body:     "The opening weeks include lighter sessions to establish the six-day rhythm before full cumulative-fatigue training begins. Full methodology structure arrives by week 3.",
+                headline: "Good base for Hansons Half.",
+                body:     "Your mileage supports the Hansons approach with a brief transition. The opening 2 weeks use fartlek and lighter efforts to establish the six-day rhythm before full speed sessions begin. Cumulative fatigue is introduced progressively rather than immediately.",
                 adaptationPoints: [
-                    "Weeks 1–2: fartlek and strides instead of full speed sessions",
-                    "Week 3+: authentic Hansons speed phase"
+                    "Weeks 1–2: fartlek sessions instead of full speed intervals",
+                    "Week 3+: authentic Hansons speed phase at your working volume",
+                    "Strength sessions arrive at canonical week 9 regardless of start point"
                 ],
-                alternativeMethodology: nil, alternativeRationale: nil,
-                openingWeekPreview: nil
+                alternativeMethodology: nil,
+                alternativeRationale:  nil,
+                openingWeekPreview:    "Week 1 replaces the speed session with a fartlek run while establishing your six-day rhythm."
             )
+
+        } else if base >= 20 {
+            return MethodologyReadinessMatch(
+                tier:     .adaptive,
+                headline: "Hansons Half will ask a lot from \(Int(base)) mpw.",
+                body:     "Hansons Half peaks at 45 miles per week. From \(Int(base)) mpw, reaching that peak requires roughly doubling your current volume over the plan — while simultaneously managing six-day frequency and quality sessions. The plan opens with a 3-week onboarding phase to establish rhythm and durability before cumulative fatigue begins in earnest.",
+                adaptationPoints: [
+                    "Weeks 1–3: strides and fartlek build six-day habit at manageable volume",
+                    "Week 4+: speed phase begins at volume scaled to actual weekly mileage",
+                    "Quality session intensity is held to your current aerobic capacity until base grows",
+                    "Peak mileage may land below 45 mpw depending on your weekly progression"
+                ],
+                alternativeMethodology: .higdonHalfIntermediate,
+                alternativeRationale:  "Higdon Half Intermediate builds a 30–35 mpw base with structured tempo work — giving you the volume and quality foundation Hansons Half was designed for.",
+                openingWeekPreview:    "Week 1 focuses on six-day consistency with strides. No intervals yet — your body is adapting to daily running first."
+            )
+
         } else {
             return MethodologyReadinessMatch(
                 tier:     .adaptive,
                 headline: "Your plan adapts Hansons Half to your starting point.",
-                body:     "Hansons Half is built for runners with an established base. The plan opens with a rhythm-building phase before cumulative fatigue is introduced. You will be running authentic Hansons Half training by week 4.",
+                body:     "Hansons is built for runners with an established high-volume base. From \(Int(base)) mpw, the plan opens with a rhythm-building phase — easy runs, strides, and fartlek — before speed and strength sessions are introduced. You will be running authentic Hansons Half training by week 4–5, at volume appropriate to your actual fitness.",
                 adaptationPoints: [
-                    "Weeks 1–3: onboarding sessions build six-day habit",
-                    "Week 4+: speed and strength sessions begin at scaled volume"
+                    "Weeks 1–3: onboarding sessions build six-day consistency at safe volume",
+                    "Week 4–5: speed phase begins at reduced session volume",
+                    "Quality sessions scale with your weekly mileage, not canonical targets",
+                    "Cumulative fatigue is real but at your actual load — not a 45 mpw runner's load"
                 ],
                 alternativeMethodology: .higdonHalfNovice,
-                alternativeRationale:  "Higdon Half Novice builds the base Hansons Half requires — completing it first gives you a stronger foundation.",
-                openingWeekPreview: nil
+                alternativeRationale:  "Higdon Half Novice builds the aerobic base and running habit Hansons Half requires. Completing it first means you arrive at Hansons with the mileage it was built for.",
+                openingWeekPreview:    "Week 1 is easy runs and strides only. Six days running — no quality work until your body adapts to the frequency."
             )
         }
     }
@@ -285,20 +319,42 @@ struct MethodologyReadinessEngine {
             return MethodologyReadinessMatch(
                 tier:     .ideal,
                 headline: "Good match for Higdon Half Intermediate.",
-                body:     "Your current mileage supports the tempo work and five-day structure this plan introduces. The progression will feel challenging but manageable.",
+                body:     "Your current mileage supports the tempo work and four-to-five day structure this plan introduces. The progression will feel challenging and purposeful — not overwhelming.",
                 adaptationPoints: [],
-                alternativeMethodology: nil, alternativeRationale: nil,
-                openingWeekPreview: nil
+                alternativeMethodology: nil,
+                alternativeRationale:  nil,
+                openingWeekPreview:    "Week 1 includes your first tempo run alongside the weekly long run and easy days."
             )
-        } else {
+
+        } else if base >= 13 {
             return MethodologyReadinessMatch(
                 tier:     .compatible,
                 headline: "Achievable from your base.",
-                body:     "Tempo sessions begin at conservative volumes and build gradually. The plan is designed to grow you into the intermediate structure over the first few weeks.",
-                adaptationPoints: ["Early tempo sessions at lighter volume"],
-                alternativeMethodology: base < 12 ? .higdonHalfNovice : nil,
-                alternativeRationale:  base < 12 ? "Higdon Half Novice is a more appropriate starting point at your current mileage." : nil,
-                openingWeekPreview: nil
+                body:     "Higdon Intermediate introduces tempo running as the primary training stimulus. From \(Int(base)) mpw, the first 2–3 weeks use conservative tempo volumes while your body adapts to the additional structure. Full plan density arrives gradually.",
+                adaptationPoints: [
+                    "Early tempo sessions at lower volume — building to canonical distances by week 3",
+                    "Midweek longer run begins at a comfortable distance for your base",
+                    "Weekly mileage builds progressively toward plan peak"
+                ],
+                alternativeMethodology: nil,
+                alternativeRationale:  nil,
+                openingWeekPreview:    "Week 1 tempo session starts conservatively — expect it to build in weeks 2 and 3."
+            )
+
+        } else {
+            return MethodologyReadinessMatch(
+                tier:     .adaptive,
+                headline: "Higdon Intermediate works better from a stronger base.",
+                body:     "This plan asks you to run tempo sessions, a midweek longer run, and a weekend long run every week — typically 4–5 running days. From \(Int(base)) mpw, the opening weeks are meaningfully lighter to protect your adaptation, but you will be running considerably more than you are now within the first few weeks.",
+                adaptationPoints: [
+                    "Weeks 1–2: tempo sessions replaced with easy aerobic runs",
+                    "Week 3+: tempo work introduced at reduced volume",
+                    "Midweek longer run starts shorter and builds toward plan targets",
+                    "Weekly mileage starts well below plan targets and builds throughout"
+                ],
+                alternativeMethodology: .higdonHalfNovice,
+                alternativeRationale:  "Higdon Half Novice is a safer starting point at your current mileage. It builds the aerobic base this plan assumes — without the risk of introducing tempo work before your body is ready for it.",
+                openingWeekPreview:    "Week 1 replaces the tempo run with an easy aerobic run while your body adapts to the new structure."
             )
         }
     }

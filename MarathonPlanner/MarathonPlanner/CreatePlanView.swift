@@ -62,6 +62,23 @@ struct CreatePlanView: View {
         let f = DateFormatter(); f.dateStyle = .medium; return f
     }()
 
+    // MARK: - Duration Context
+    // Shown below duration chips for half marathon plans only.
+    // Guides the runner toward the right choice without overwhelming them.
+
+    private var durationContextNote: String {
+        switch settings.planLength {
+        case .tenWeek:
+            return "Focused build — works best with a solid running base already in place."
+        case .twelveWeek:
+            return "Standard — the most popular choice. Enough time to build confidently."
+        case .sixteenWeek:
+            return "Full build — maximum preparation. Recommended for first-timers."
+        default:
+            return ""
+        }
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -169,13 +186,11 @@ struct CreatePlanView: View {
     }
 
     // MARK: - Form Content
-    // Order: Race Type → Race Date → Duration → Training Method
-    //        → Taper → Goal Time → Base Mileage → Schedule
 
     private var formContent: some View {
         VStack(spacing: 0) {
 
-            // 1. Race Type — determines everything downstream
+            // 1. Race Type
             formSection("RACE TYPE") {
                 VStack(spacing: 0) {
                     ForEach(RaceType.allCases, id: \.self) { type in
@@ -187,7 +202,7 @@ struct CreatePlanView: View {
                 }
             }
 
-            // 2. Race Date — anchors the calendar
+            // 2. Race Date
             formSection("RACE DATE") {
                 VStack(spacing: 0) {
                     DatePicker("Race Date",
@@ -210,19 +225,35 @@ struct CreatePlanView: View {
                 }
             }
 
-            // 3. Duration — right after date so start date updates live
+            // 3. Duration
+            // Half marathon: 3 options (10 / 12 / 16 weeks) with context note.
+            // Marathon: 3 options (12 / 16 / 18 weeks), no note needed.
             formSection("DURATION") {
-                HStack(spacing: 8) {
-                    ForEach(availableLengths) { length in
-                        CreateDurationChip(
-                            label:      length.label,
-                            isSelected: settings.planLength == length,
-                            onTap: {
-                                UIImpactFeedbackGenerator(style: .light)
-                                    .impactOccurred()
-                                settings.planLength = length
-                            }
-                        )
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 8) {
+                        ForEach(availableLengths) { length in
+                            CreateDurationChip(
+                                label:      length.label,
+                                isSelected: settings.planLength == length,
+                                onTap: {
+                                    UIImpactFeedbackGenerator(style: .light)
+                                        .impactOccurred()
+                                    settings.planLength = length
+                                }
+                            )
+                        }
+                    }
+                    // Context note — only shown for half marathon
+                    if selectedRaceType == .halfMarathon
+                        && !durationContextNote.isEmpty {
+                        Divider()
+                            .padding(.vertical, 10)
+                        Text(durationContextNote)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .animation(.easeInOut(duration: 0.15),
+                                       value: settings.planLength)
                     }
                 }
             }
@@ -826,9 +857,17 @@ struct CreatePlanView: View {
             settings.planType = first
             settings.resetScheduleForNewPlanType()
         }
-        if let first = PlanLength.options(for: selectedRaceType).first {
+
+        // CHANGED: Half marathon defaults to 12 weeks (Standard), not the first
+        // option in the array (10 weeks). 12 weeks is the right default for most
+        // runners — enough time to build confidently without over-committing.
+        // Marathon keeps its first option (12 weeks).
+        if selectedRaceType == .halfMarathon {
+            settings.planLength = .twelveWeek
+        } else if let first = PlanLength.options(for: selectedRaceType).first {
             settings.planLength = first
         }
+
         goalHours   = selectedRaceType == .halfMarathon ? 1 : 3
         goalMinutes = 45
         updateGoalTime()

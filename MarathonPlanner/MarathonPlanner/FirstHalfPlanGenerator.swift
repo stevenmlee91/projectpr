@@ -44,7 +44,8 @@ struct FirstHalfPlanGenerator {
         let mileage    = weeklyMileageSchedule(n: n,
                                                base:       settings.baseMileage,
                                                taperWeeks: taperWeeks)
-        let longRuns   = longRunSchedule(n: n, taperWeeks: taperWeeks)
+        let longRuns   = longRunSchedule(n: n, taperWeeks: taperWeeks,
+                                          base: settings.baseMileage)
 
         var weeks: [TrainingWeek] = []
         for i in 0..<n {
@@ -93,51 +94,53 @@ struct FirstHalfPlanGenerator {
     static func weeklyMileageSchedule(n: Int,
                                        base: Double,
                                        taperWeeks: Int) -> [Double] {
-        let peak  = peakWeekly
-        // Beginner floor: 10 mpw (matches ~3×20-min jogs/week at 10 min/mi).
-        // Previous version floored at 12, which was too high.
-        let start = min(max(base, 10), 16).rounded(toPlaces: 0)
+        let peak       = peakWeekly
+        let buildWeeks = n - taperWeeks
 
+        // FIXED: Adaptive start. Old: min(max(base, 10), 16) capped experienced
+        // runners at 16 mpw even if they run 25+ mpw (unnecessary regression).
+        // New: start near actual base, floor at 10 mpw (plan minimum for 3-day structure).
+        let start = min(max(base + 2.0, 10.0), peak).rounded(toPlaces: 0)
+
+        // Phase 1: Build weeks only
         var result  : [Double] = []
         var current             = start
 
-        for i in 0..<n {
-            let wk            = i + 1
-            let taperPosition = wk - (n - taperWeeks)
-            // taperPosition ≤ 0 → build phase
-            // taperPosition  1 → first taper week
-            // taperPosition  2 → second taper week (3-week only)
-            // taperPosition  3 → race week (3-week) / 2 → race week (2-week)
-
-            let val: Double
-
-            if taperPosition > 0 {
-                // Taper — explicit percentages per position
-                switch (taperWeeks, taperPosition) {
-                case (3, 1): val = (peak * 0.78).rounded(toPlaces: 0)
-                case (3, 2): val = (peak * 0.58).rounded(toPlaces: 0)
-                case (3, 3): val = (peak * 0.28).rounded(toPlaces: 0)
-                case (2, 1): val = (peak * 0.62).rounded(toPlaces: 0)
-                case (2, 2): val = (peak * 0.28).rounded(toPlaces: 0)
-                default:     val = (peak * 0.28).rounded(toPlaces: 0)
-                }
-            } else if isCutback(week: wk, total: n, taperWeeks: taperWeeks) {
-                // Cutback: 80% of current (not from peak — prevents excessive drops)
-                val = max((current * 0.80).rounded(toPlaces: 0), start)
+        for i in 0..<buildWeeks {
+            let wk = i + 1
+            if isCutback(week: wk, total: n, taperWeeks: taperWeeks) {
+                let val = max((current * 0.80).rounded(toPlaces: 0), start)
+                result.append(val)
                 // current stays unchanged — next week resumes from pre-cutback level
             } else {
-                // Build: linear progression toward peak, capped at 10% per week
-                let buildWeeks = max(1, n - taperWeeks - 1)
-                let progress   = Double(i) / Double(buildWeeks)
-                let target     = start + (peak - start) * progress
-                let capped     = min(target, current * 1.10)
-                val = min(max(capped.rounded(toPlaces: 0), start), peak)
+                let progress = buildWeeks > 1
+                    ? Double(i) / Double(buildWeeks - 1) : 1.0
+                let target = start + (peak - start) * progress
+                let capped = min(target, current * 1.10)
+                let val    = min(max(capped.rounded(toPlaces: 0), start), peak)
+                result.append(val)
                 current = val
             }
-
-            result.append(min(val, peakWeekly))
         }
-        return result
+
+        // Phase 2: Taper — derived from achievedPeak, NOT from the constant peak.
+        // OLD BUG: taper used (peak * pct) where peak=22 regardless of what the runner
+        // actually reached. For n=10 with 3-week taper: first taper week = 22*0.78 = 17,
+        // exceeding achievedPeak=14. A taper week that surpasses the training peak is
+        // not a taper — it's the hardest week of the plan.
+        let achievedPeak = result.max() ?? peak
+
+        var taperMiles: [Double]
+        if taperWeeks == 3 {
+            taperMiles = [(achievedPeak * 0.78).rounded(toPlaces: 0),
+                          (achievedPeak * 0.58).rounded(toPlaces: 0),
+                          0]   // race week placeholder → isRaceWeek suppresses easy runs
+        } else {
+            taperMiles = [(achievedPeak * 0.62).rounded(toPlaces: 0),
+                          0]   // race week placeholder
+        }
+
+        return result + taperMiles
     }
 
     // MARK: - Long Run Schedule
@@ -164,41 +167,60 @@ struct FirstHalfPlanGenerator {
     //   2-week: [7, 0]     (pre-race 7mi, race day overwritten by injectRaceDay)
     //   3-week: [7, 5, 0]
 
-    static func longRunSchedule(n: Int, taperWeeks: Int) -> [Double] {
-        let buildCanonical: [Double] = [
-            3, 4, 5, 4,    // canonical weeks  1–4   (4=cutback)
-            5, 6, 7, 5,    // canonical weeks  5–8   (8=cutback)
-            7, 8, 6,       // canonical weeks  9–11  (11=cutback)
-            8, 9, 10       // canonical weeks 12–14  (peak)
-        ]
-
-        let taperLongRuns: [Double]
-        switch taperWeeks {
-        case 3: taperLongRuns = [7, 5, 0]
-        default: taperLongRuns = [7, 0]
-        }
-
-        let offset     = 16 - n
+    static func longRunSchedule(n: Int, taperWeeks: Int, base: Double) -> [Double] {
+        // FIXED: Base-adaptive starting point replaces the canonical slice approach.
+        //
+        // OLD BUG: For n=10, canonical slice started at index 6 of buildCanonical,
+        //   giving [7, 5, 7, 8, 6, 8, 9, 10]. Week 1 long run = 7 miles for ALL
+        //   runners regardless of base. A beginner who can jog 20-30 min running
+        //   7 miles in week 1 of their first half plan.
+        //
+        // FIX: Same pattern as Higdon generators.
+        //   Cutbacks at canonical [4, 8, 11], same as isCutback().
+        //   +1/week progression, final week up to +2 if needed to reach longPeak.
+        //   All progressive week-to-progressive week transitions ≤ +2.
         let buildWeeks = n - taperWeeks
-        let startIdx   = offset
-        let endIdx     = offset + buildWeeks
+        let longStart  = min(max(base * 0.40, 4.0), peakLong * 0.65)
+            .rounded(toPlaces: 0)
+        let longPeak   = peakLong  // 10 miles
 
-        let buildSlice: [Double]
-        if startIdx >= buildCanonical.count || buildWeeks <= 0 {
-            buildSlice = []
-        } else {
-            let safeEnd = min(endIdx, buildCanonical.count)
-            buildSlice  = Array(buildCanonical[startIdx..<safeEnd])
-                .map { min($0, peakLong) }
+        let progressiveWeeks = (0..<buildWeeks).filter { i in
+            !isCutback(week: i + 1, total: n, taperWeeks: taperWeeks)
+        }.count
+
+        var buildLRs   : [Double] = []
+        var current     = longStart
+        var progressIdx = 0
+
+        for i in 0..<buildWeeks {
+            let wk    = i + 1
+            let isCut = isCutback(week: wk, total: n, taperWeeks: taperWeeks)
+
+            if isCut {
+                let cutback = max(3.0, current - 2.0)
+                buildLRs.append(cutback)
+            } else {
+                let val: Double
+                if progressIdx == 0 {
+                    val = longStart
+                } else if progressIdx == progressiveWeeks - 1 {
+                    val = min(longPeak, current + 2.0)
+                } else {
+                    val = min(current + 1.0, longPeak)
+                }
+                buildLRs.append(val)
+                current     = val
+                progressIdx += 1
+            }
         }
 
-        // Pad with entry-level miles if plan is longer than the canonical sequence
-        let shortfall = buildWeeks - buildSlice.count
-        let prefix    = shortfall > 0
-            ? Array(repeating: 3.0, count: shortfall)
-            : []
+        let achievedPeak = buildLRs.filter { $0 > 0 }.max() ?? longPeak
+        let taperLR      = max(longStart, (achievedPeak * 0.70).rounded(toPlaces: 0))
+        let taperLRs: [Double] = taperWeeks == 3
+            ? [taperLR, (achievedPeak * 0.50).rounded(toPlaces: 0), 0]
+            : [taperLR, 0]
 
-        return prefix + buildSlice + taperLongRuns
+        return buildLRs + taperLRs
     }
 
     // MARK: - Cutback Detection
@@ -256,6 +278,17 @@ struct FirstHalfPlanGenerator {
         let rests   = schedule.restDays
 
         let runningDays: Set<Weekday> = [lrDay, runDay1, runDay2]
+
+        // RACE WEEK: when longMiles=0 and in taper, suppress all running.
+        // injectRaceDay then adds only shakeout (2 mi) + race (13.1 mi).
+        // Without this, race week has additional easy runs making it the
+        // highest-mileage week for low-base runners — the opposite of a taper.
+        let isRaceWeek = isTaper && longMiles <= 0
+        if isRaceWeek {
+            let days = Weekday.allCases.map { day in makeRest(day, isTaper: true) }
+            return TrainingWeek(weekNumber: weekNumber, phase: phase,
+                                phaseLabel: phaseLabel, days: days)
+        }
 
         let longM       = min(max(longMiles, 3), peakLong)
         let cappedTotal = min(total, peakWeekly)
