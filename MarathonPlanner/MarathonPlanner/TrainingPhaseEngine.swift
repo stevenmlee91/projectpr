@@ -23,7 +23,7 @@ struct TrainingPhaseEngine {
         guard !weeks.isEmpty else { return }
 
         let total      = weeks.count
-        let taperCount = max(1, settings.taperDuration.rawValue - 1)
+        let taperCount = max(1, settings.planType.canonicalTaperWeeks - 1)
         let taperStart = total - taperCount   // first taper week (1-based)
 
         // Pass 1: Race and taper — structurally certain
@@ -83,7 +83,8 @@ struct TrainingPhaseEngine {
     // MARK: - SavedPlan Helpers
 
     static func taperWeeks(for plan: SavedPlan) -> Int {
-        max(1, plan.settings.taperDuration.rawValue - 1)
+        guard let planType = PlanType(rawValue: plan.planType) else { return 2 }
+        return max(1, planType.canonicalTaperWeeks - 1)
     }
 
     /// Returns the canonical peak week number for chart annotation.

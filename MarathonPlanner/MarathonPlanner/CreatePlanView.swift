@@ -369,58 +369,7 @@ struct CreatePlanView: View {
                 }
             }
 
-            // 7. Taper Length
-            formSection("TAPER LENGTH") {
-                VStack(spacing: 0) {
-                    ForEach(TaperDuration.allCases) { option in
-                        Button {
-                            UIImpactFeedbackGenerator(style: .light)
-                                .impactOccurred()
-                            settings.taperDuration = option
-                        } label: {
-                            HStack(spacing: 14) {
-                                ZStack {
-                                    Circle()
-                                        .stroke(
-                                            settings.taperDuration == option
-                                                ? Color.accentColor
-                                                : Color(.systemFill),
-                                            lineWidth: 1.5
-                                        )
-                                        .frame(width: 18, height: 18)
-                                    if settings.taperDuration == option {
-                                        Circle()
-                                            .fill(Color.accentColor)
-                                            .frame(width: 10, height: 10)
-                                    }
-                                }
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(option.label)
-                                        .font(.system(
-                                            size: 14,
-                                            weight: settings.taperDuration
-                                                == option
-                                                ? .semibold : .regular
-                                        ))
-                                        .foregroundColor(.primary)
-                                    Text(option.description)
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                            }
-                            .padding(.vertical, 12)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        if option != TaperDuration.allCases.last {
-                            Divider().padding(.leading, 32)
-                        }
-                    }
-                }
-            }
-
-            // 8. Schedule
+            // 7. Schedule
             scheduleSection
         }
         .onTapGesture {

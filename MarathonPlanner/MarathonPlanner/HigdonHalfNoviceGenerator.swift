@@ -34,7 +34,7 @@ struct HigdonHalfNoviceGenerator {
 
     static func generate(settings: UserSettings) -> [TrainingWeek] {
         let n          = settings.planLength.rawValue
-        let taperWeeks = settings.taperDuration.rawValue
+        let taperWeeks = settings.planType.canonicalTaperWeeks
         let schedule   = settings.schedule.validated(for: .higdonHalfNovice)
         let paces      = PaceEngine(goalMinutes: settings.goalTimeMinutes,
                                      distance: 13.1)
@@ -258,8 +258,19 @@ struct HigdonHalfNoviceGenerator {
         let isRaceWeek = isTaper && longMiles <= 0
 
         if isRaceWeek {
-            let days = Weekday.allCases.map { day in
-                makeRest(day, isTaper: true)   // injectRaceDay overwrites Sat/Sun
+            // Long run day rests (injectRaceDay writes shakeout + race here).
+            // Easy run days get short 2-mile runs early in the week.
+            // Cross-training days stay as cross-training (light).
+            let days = Weekday.allCases.map { day -> TrainingDay in
+                if rests.contains(day) || day == lrDay {
+                    return makeRest(day, isTaper: true)
+                } else if crossDays.contains(day) {
+                    return makeCrossTrain(day, isTaper: true)
+                } else {
+                    return makeEasyRun(day, miles: 2.0, weekNumber: weekNumber,
+                                       isTaper: true, isCutback: false,
+                                       slot: .first, paces: paces)
+                }
             }
             return TrainingWeek(weekNumber: weekNumber, phase: phase,
                                 phaseLabel: phaseLabel, days: days)

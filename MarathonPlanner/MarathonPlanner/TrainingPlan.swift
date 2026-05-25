@@ -152,6 +152,21 @@ enum PlanType: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// Methodology-canonical taper length. Not user-configurable.
+    /// Each methodology has a physiologically correct taper built into its design.
+    var canonicalTaperWeeks: Int {
+        switch self {
+        case .hansons:               return 2  // cumulative fatigue preserved longer
+        case .pfitz:                 return 3  // high peak mileage needs more clearance
+        case .higdon:                return 3  // book standard, connective tissue recovery
+        case .higdonIntermediate:    return 3  // book standard
+        case .higdonHalfNovice:      return 2  // half marathon needs less recovery time
+        case .higdonHalfIntermediate:return 2
+        case .hansonsHalf:           return 2
+        case .firstHalf:             return 2
+        }
+    }
+
     static func options(for raceType: RaceType) -> [PlanType] {
         switch raceType {
         case .halfMarathon:
@@ -456,7 +471,8 @@ struct UserSettings: Codable {
     var planType        : PlanType      = .higdon
     var planLength      : PlanLength    = .sixteenWeek
     var schedule        : UserSchedule  = UserSchedule.defaultFor(.higdon)
-    var taperDuration   : TaperDuration = .twoWeeks
+    // taperDuration removed — taper length is now canonical per methodology.
+    // See PlanType.canonicalTaperWeeks.
 
     var raceType: RaceType { planType.raceType }
 
@@ -467,28 +483,25 @@ struct UserSettings: Codable {
     }
 
     mutating func resetScheduleForNewPlanType() {
-        schedule      = UserSchedule.defaultFor(planType)
-        taperDuration = TaperDuration.defaultFor(planType)
+        schedule = UserSchedule.defaultFor(planType)
     }
 
     func onlyScheduleDiffers(from other: UserSettings) -> Bool {
         goalTimeMinutes == other.goalTimeMinutes
-            && baseMileage   == other.baseMileage
-            && planType      == other.planType
-            && planLength    == other.planLength
-            && taperDuration == other.taperDuration
-            && schedule      != other.schedule
+            && baseMileage == other.baseMileage
+            && planType    == other.planType
+            && planLength  == other.planLength
+            && schedule    != other.schedule
     }
 }
 
 extension UserSettings: Equatable {
     static func == (lhs: UserSettings, rhs: UserSettings) -> Bool {
         lhs.goalTimeMinutes == rhs.goalTimeMinutes
-            && lhs.baseMileage   == rhs.baseMileage
-            && lhs.planType      == rhs.planType
-            && lhs.planLength    == rhs.planLength
-            && lhs.taperDuration == rhs.taperDuration
-            && lhs.schedule      == rhs.schedule
+            && lhs.baseMileage == rhs.baseMileage
+            && lhs.planType    == rhs.planType
+            && lhs.planLength  == rhs.planLength
+            && lhs.schedule    == rhs.schedule
     }
 }
 
@@ -513,8 +526,11 @@ struct PaceEngine {
     var generalAero     : (low: Int, high: Int) { (MP + 45,  MP + 75)  }
     var recovery        : Int                   { MP + 150 }
     var pfitzLT         : Int                   { MP - 20  }
-    var hansonsStrength : (low: Int, high: Int) { (MP - 5,  MP + 5)    }
-    var hansonsSpeed    : Int                   { MP - 55  }
+    // Hansons-specific paces
+    var hansonsStrengthPace : Int               { MP - 10  }  // 10 sec/mi faster than goal MP
+    var hansonsStrength : (low: Int, high: Int) { (MP - 12, MP - 8)    }  // ±2 sec tolerance around MP-10
+    var hansonsTempo    : Int                   { MP       }  // marathon pace
+    var hansonsSpeed    : Int                   { MP - 80  }  // goal 5K pace (~80 sec/mi faster than MP)
     var dThreshold      : Int                   { MP - 28  }
     var dInterval       : Int                   { MP - 55  }
     var dRepetition     : Int                   { MP - 80  }
@@ -570,43 +586,35 @@ struct PeakTargets {
 }
 
 func calculatePeakTargets(method: PlanType,
-                           planLength: Int,
-                           taperDuration: TaperDuration) -> PeakTargets {
-    let pw = planLength - taperDuration.rawValue
+                           planLength: Int) -> PeakTargets {
+    let pw = planLength - method.canonicalTaperWeeks
+    let tw = method.canonicalTaperWeeks
 
     switch method {
     case .hansons:
         return PeakTargets(peakLongRun: 16, peakWeeklyMiles: 55,
-                           peakWeekNumber: pw,
-                           taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw, taperWeeks: tw)
     case .pfitz:
         return PeakTargets(peakLongRun: 22, peakWeeklyMiles: 70,
-                           peakWeekNumber: pw,
-                           taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw, taperWeeks: tw)
     case .higdon:
         return PeakTargets(peakLongRun: 20, peakWeeklyMiles: 40,
-                           peakWeekNumber: pw,
-                           taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw, taperWeeks: tw)
     case .higdonIntermediate:
         return PeakTargets(peakLongRun: 22, peakWeeklyMiles: 48,
-                           peakWeekNumber: pw,
-                           taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw, taperWeeks: tw)
     case .higdonHalfNovice:
         return PeakTargets(peakLongRun: 10, peakWeeklyMiles: 28,
-                           peakWeekNumber: pw,
-                           taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw, taperWeeks: tw)
     case .higdonHalfIntermediate:
         return PeakTargets(peakLongRun: 12, peakWeeklyMiles: 35,
-                           peakWeekNumber: pw,
-                           taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw, taperWeeks: tw)
     case .hansonsHalf:
         return PeakTargets(peakLongRun: 10, peakWeeklyMiles: 45,
-                           peakWeekNumber: pw,
-                           taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw, taperWeeks: tw)
     case .firstHalf:
         return PeakTargets(peakLongRun: 11, peakWeeklyMiles: 28,
-                           peakWeekNumber: pw,
-                           taperWeeks: taperDuration.rawValue)
+                           peakWeekNumber: pw, taperWeeks: tw)
     }
 }
 

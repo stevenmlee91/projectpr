@@ -48,7 +48,7 @@ struct PfitzMarathonGenerator {
 
     static func generate(settings: UserSettings) -> [TrainingWeek] {
         let n        = settings.planLength.rawValue
-        let taperWks = settings.taperDuration.rawValue
+        let taperWks = settings.planType.canonicalTaperWeeks
         let schedule = settings.schedule.validated(for: .pfitz)
         let paces    = PaceEngine(goalMinutes: settings.goalTimeMinutes)
         let mileage  = weeklyMileageSchedule(n: n, base: settings.baseMileage,
@@ -347,6 +347,29 @@ struct PfitzMarathonGenerator {
         let lrDay   = schedule.longRunDay
         let ltDay   = schedule.workoutDay1
         let mlrDay  = effectiveMlrDay(schedule: schedule)
+
+        // RACE WEEK: longRuns schedule ends with 0 (advanced) or 0 (non-advanced).
+        // Old bug: alloc computed LT + MLR + recovery from the full taper week budget,
+        // producing ~25mi of training on top of injectRaceDay's 26.2+2mi shakeout.
+        // Race week total was ~53mi — essentially identical to the peak training week.
+        // Suppressed here: all days rest, injectRaceDay adds only shakeout + marathon.
+        let isRaceWeek = isTaper && longMiles <= 0
+        if isRaceWeek {
+            // Pfitz race week: short recovery runs early in the week.
+            // Long run, LT, and MLR days stay rest. injectRaceDay handles shakeout + race.
+            let specialDays: Set<Weekday> = restSet.union([lrDay, ltDay, mlrDay])
+            let days = Weekday.allCases.map { day -> TrainingDay in
+                if specialDays.contains(day) {
+                    return makeRest(day, isTaper: true)
+                } else {
+                    return makeRecoveryRun(day, miles: 2.0, weekNumber: weekNumber,
+                                           isTaper: true, paces: paces)
+                }
+            }
+            return TrainingWeek(weekNumber: weekNumber, phase: phase,
+                                phaseLabel: phaseLabel, days: days)
+        }
+
         let mpSection = isTaper ? nil : mpFinishMiles(canonical: canonical,
                                                        weekMiles: totalMiles)
 

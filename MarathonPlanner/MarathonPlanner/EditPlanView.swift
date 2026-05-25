@@ -35,7 +35,6 @@ struct EditPlanView: View {
             || editedSettings.baseMileage      != plan.settings.baseMileage
             || editedSettings.planType         != plan.settings.planType
             || editedSettings.planLength       != plan.settings.planLength
-            || editedSettings.taperDuration    != plan.settings.taperDuration
     }
 
     private var hasAnyChange: Bool {
@@ -44,7 +43,6 @@ struct EditPlanView: View {
             || editedSettings.baseMileage      != plan.settings.baseMileage
             || editedSettings.planType         != plan.settings.planType
             || editedSettings.planLength       != plan.settings.planLength
-            || editedSettings.taperDuration    != plan.settings.taperDuration
             || editedSettings.schedule         != plan.settings.schedule
     }
 
@@ -105,7 +103,6 @@ struct EditPlanView: View {
                         planTypeSection
                         goalTimeSection
                         planLengthSection
-                        taperSection
                         longRunDaySection
                         primaryWorkoutSection
                         secondaryWorkoutSection
@@ -354,62 +351,6 @@ struct EditPlanView: View {
     }
 
     // MARK: - Taper
-
-    private var taperSection: some View {
-        VStack(spacing: 0) {
-            EditLabel("TAPER LENGTH")
-            ZStack {
-                Color(.secondarySystemBackground)
-                VStack(spacing: 0) {
-                    ForEach(TaperDuration.allCases) { option in
-                        Button {
-                            editedSettings.taperDuration = option
-                        } label: {
-                            HStack(spacing: 14) {
-                                ZStack {
-                                    Circle()
-                                        .stroke(
-                                            editedSettings.taperDuration == option
-                                                ? Color.accentColor
-                                                : Color(.systemFill),
-                                            lineWidth: 1.5
-                                        )
-                                        .frame(width: 16, height: 16)
-                                    if editedSettings.taperDuration == option {
-                                        Circle()
-                                            .fill(Color.accentColor)
-                                            .frame(width: 8, height: 8)
-                                    }
-                                }
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(option.label)
-                                        .font(.system(
-                                            size: 14,
-                                            weight: editedSettings.taperDuration == option
-                                                ? .semibold : .regular))
-                                        .foregroundColor(.primary)
-                                    Text(option.description)
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        if option != TaperDuration.allCases.last {
-                            Divider().padding(.leading, 46)
-                        }
-                    }
-                }
-            }
-            .cornerRadius(12)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
-        }
-    }
 
     // MARK: - Long Run Day
 
@@ -720,9 +661,6 @@ struct EditPlanView: View {
         }
         if old.planLength != new.planLength {
             notes.append("Plan length: \(old.planLength.rawValue) → \(new.planLength.rawValue) weeks")
-        }
-        if old.taperDuration != new.taperDuration {
-            notes.append("Taper: \(old.taperDuration.label) → \(new.taperDuration.label) (full regeneration)")
         }
         if old.schedule.longRunDay != new.schedule.longRunDay {
             notes.append("Long run: \(old.schedule.longRunDay.fullName) → \(new.schedule.longRunDay.fullName)")

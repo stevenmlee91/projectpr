@@ -41,7 +41,7 @@ struct HigdonHalfIntermediateGenerator {
 
     static func generate(settings: UserSettings) -> [TrainingWeek] {
         let n          = settings.planLength.rawValue
-        let taperWeeks = settings.taperDuration.rawValue
+        let taperWeeks = settings.planType.canonicalTaperWeeks
         let schedule   = settings.schedule.validated(for: .higdonHalfIntermediate)
         let paces      = PaceEngine(goalMinutes: settings.goalTimeMinutes,
                                      distance: 13.1)
@@ -231,7 +231,18 @@ struct HigdonHalfIntermediateGenerator {
         // contributes only shakeout (2 mi) + race (13.1 mi).
         let isRaceWeek = isTaper && longMiles <= 0
         if isRaceWeek {
-            let days = Weekday.allCases.map { day in makeRest(day, isTaper: true) }
+            // Long run, tempo, and midweek rest. Easy day and any remaining days
+            // get short 2-mile runs. Cross-training stays light.
+            let days = Weekday.allCases.map { day -> TrainingDay in
+                if rests.contains(day) || day == lrDay || day == tempoDay || day == mwDay {
+                    return makeRest(day, isTaper: true)
+                } else if let ct = ctDay, day == ct {
+                    return makeCrossTrain(day, isTaper: true)
+                } else {
+                    return makeEasyRun(day, miles: 2.0, weekNumber: weekNumber,
+                                       isTaper: true, isCutback: false, paces: paces)
+                }
+            }
             return TrainingWeek(weekNumber: weekNumber, phase: phase,
                                 phaseLabel: phaseLabel, days: days)
         }

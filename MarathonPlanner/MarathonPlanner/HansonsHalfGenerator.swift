@@ -123,7 +123,7 @@ struct HansonsHalfGenerator {
 
     static func generate(settings: UserSettings) -> [TrainingWeek] {
         let n        = settings.planLength.rawValue
-        let taperWks = settings.taperDuration.rawValue
+        let taperWks = settings.planType.canonicalTaperWeeks
         let schedule = settings.schedule.validated(for: .hansonsHalf)
         let paces    = PaceEngine(goalMinutes: settings.goalTimeMinutes, distance: 13.1)
         let mileage  = weeklyMileageSchedule(n: n, base: settings.baseMileage, taperWeeks: taperWks)

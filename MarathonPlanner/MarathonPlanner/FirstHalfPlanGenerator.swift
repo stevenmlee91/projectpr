@@ -12,7 +12,7 @@ import Foundation
 //   - Long run peaks at 10 miles
 //   - No threshold or interval work
 //   - Cutbacks at canonical weeks 4, 8, 11
-//   - 2-week or 3-week taper from settings.taperDuration
+//   - Taper length: settings.planType.canonicalTaperWeeks (2 weeks for half marathon plans)
 //   - Strides introduced at canonical week 11 (late build only)
 //   - All intensity effort-based — no pace targets
 //
@@ -39,7 +39,7 @@ struct FirstHalfPlanGenerator {
 
     static func generate(settings: UserSettings) -> [TrainingWeek] {
         let n          = settings.planLength.rawValue
-        let taperWeeks = settings.taperDuration.rawValue      // 2 or 3
+        let taperWeeks = settings.planType.canonicalTaperWeeks      // 2 or 3
         let schedule   = settings.schedule.validated(for: .firstHalf)
         let mileage    = weeklyMileageSchedule(n: n,
                                                base:       settings.baseMileage,
@@ -285,7 +285,16 @@ struct FirstHalfPlanGenerator {
         // highest-mileage week for low-base runners — the opposite of a taper.
         let isRaceWeek = isTaper && longMiles <= 0
         if isRaceWeek {
-            let days = Weekday.allCases.map { day in makeRest(day, isTaper: true) }
+            // Long run day rests (injectRaceDay adds shakeout + race).
+            // Other running days get short 2-mile easy runs early in the week.
+            let days = Weekday.allCases.map { day -> TrainingDay in
+                if rests.contains(day) || day == lrDay {
+                    return makeRest(day, isTaper: isTaper)
+                } else {
+                    return makeEasyRun(day, miles: 2.0, weekNumber: weekNumber,
+                                       isCutback: false, isTaper: true, slot: .first)
+                }
+            }
             return TrainingWeek(weekNumber: weekNumber, phase: phase,
                                 phaseLabel: phaseLabel, days: days)
         }
