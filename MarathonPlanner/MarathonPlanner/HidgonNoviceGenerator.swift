@@ -4,8 +4,9 @@ import Foundation
 //
 // Authentic Hal Higdon Novice philosophy:
 // - 4–5 runs per week, mostly easy
-// - Long run is the only event that matters
-// - Cutback every 3 weeks
+// - Long run is the weekend anchor, not the entire week's purpose
+// - Mid-week run (Wednesday) is a clearly longer easy effort — not equal to Tue/Thu
+// - Cutback every 3 weeks (canonical weeks 4, 8, 12)
 // - 3-week taper
 // - Walk breaks are explicitly permitted
 // - Peak ~40 mpw, long run peaks at 20 miles
@@ -23,9 +24,13 @@ struct HigdonNoviceGenerator {
     static func generate(settings: UserSettings) -> [TrainingWeek] {
         let n        = settings.planLength.rawValue
         let schedule = settings.schedule.validated(for: .higdon)
-        let mileage  = weeklyMileageSchedule(n: n,
-                                              base: settings.baseMileage)
-        let longRuns = longRunSchedule(n: n)
+        let mileage  = weeklyMileageSchedule(n: n, base: settings.baseMileage)
+        // FIX 1: Use adaptive long run schedule (caps LR at 50% of weekly total).
+        // The canonical schedule is correct for 18-week plans but starts too high
+        // for 12-week and 16-week plans relative to where low-base runners begin.
+        // Without this cap, a base=10 runner in a 12-week plan week 1 has LR=13
+        // out of a 15-mile week — 87% of total. This cap prevents that.
+        let longRuns = longRunScheduleAdapted(n: n, weeklyMiles: mileage)
 
         var weeks: [TrainingWeek] = []
         for i in 0..<n {
@@ -58,8 +63,7 @@ struct HigdonNoviceGenerator {
 
     // MARK: - Weekly Mileage
 
-    static func weeklyMileageSchedule(n: Int,
-                                       base: Double) -> [Double] {
+    static func weeklyMileageSchedule(n: Int, base: Double) -> [Double] {
         let peak       = peakWeekly
         let taperStart = n - 2
         let start      = min(max(base, 15), 25).rounded(toPlaces: 0)
@@ -96,7 +100,7 @@ struct HigdonNoviceGenerator {
         return result
     }
 
-    // MARK: - Long Run Progression
+    // MARK: - Long Run Progression (canonical)
 
     static func longRunSchedule(n: Int) -> [Double] {
         let canonical18: [Double] = [
@@ -106,7 +110,7 @@ struct HigdonNoviceGenerator {
             18, 14, 20,
             12,
             8,
-            0
+            0   // race week — always 0; injectRaceDay handles the marathon
         ]
 
         let clamped = canonical18.map { min($0, peakLong) }
@@ -115,6 +119,34 @@ struct HigdonNoviceGenerator {
         if n < 18  { return Array(clamped.dropFirst(18 - n)) }
         let extra = Array(repeating: 6.0, count: n - 18)
         return extra + clamped
+    }
+
+    // MARK: - Long Run Progression (adapted)
+    //
+    // FIX 1: Caps the canonical long run at 50% of the corresponding weekly total.
+    //
+    // The canonical schedule is designed for 18-week plans where the LR naturally
+    // starts at 6 miles (week 1) against a 15-mile week (40%). For shorter plans,
+    // `dropFirst` means the schedule begins at higher canonical LR values (week 1 of
+    // a 12-week plan starts at canonical week 7 = 13 miles). Without this cap, a
+    // base=10 runner in a 12-week plan has LR=13 out of 15 total miles in week 1.
+    //
+    // The 50% cap matches the authentic Higdon ratio (real plan: 40–53% throughout).
+    // Race week (LR=0) is preserved: guard `lr > 0` prevents the cap from applying.
+    //
+    // Example corrections:
+    //   12-week, base=10, week 1: canonical 13 → capped to max(6, 15×0.50)=8 ✓
+    //   16-week, base=10, week 1: canonical 10 → capped to max(6, 15×0.50)=8 ✓
+    //   18-week, base=15, week 15: canonical 20, total=40, cap=20 → unchanged ✓
+    //   18-week, base=15, week 1: canonical 6, total=15, cap=8 → unchanged (6<8) ✓
+
+    static func longRunScheduleAdapted(n: Int, weeklyMiles: [Double]) -> [Double] {
+        let canonical = longRunSchedule(n: n)
+        return zip(canonical, weeklyMiles).map { (lr, total) in
+            guard lr > 0, total > 0 else { return 0.0 }  // preserve race week = 0
+            let cap = max(6.0, (total * 0.50).rounded(toPlaces: 0))
+            return min(lr, cap)
+        }
     }
 
     // MARK: - Cutback Detection
@@ -126,8 +158,6 @@ struct HigdonNoviceGenerator {
     }
 
     // MARK: - Phase Info
-    // Returns both the canonical TrainingPhase enum and the
-    // Higdon-specific display label.
 
     static func phaseInfo(week: Int, total: Int) -> (TrainingPhase, String) {
         let isTap  = week > total - 3
@@ -145,8 +175,8 @@ struct HigdonNoviceGenerator {
 
     static func buildWeek(
         weekNumber : Int,
-        phase      : TrainingPhase,   // canonical enum
-        phaseLabel : String,          // Higdon-specific display
+        phase      : TrainingPhase,
+        phaseLabel : String,
         total      : Double,
         longMiles  : Double,
         schedule   : UserSchedule,
@@ -160,13 +190,62 @@ struct HigdonNoviceGenerator {
         let rests = schedule.restDays
         let mwDay = schedule.midweekLongDay
 
+        // FIX 2: Race week detection.
+        // longMiles=0 is the race week sentinel (last canonical value).
+        // Without this check, max(longMiles, 6) = max(0, 6) = 6 floors race week
+        // to a 6-mile long run, then injectRaceDay adds 26.2 miles on top.
+        // When isRaceWeek is true, produce all-rest days — injectRaceDay handles everything.
+        let isRaceWeek = isTaper && longMiles <= 0
+        if isRaceWeek {
+            let days = Weekday.allCases.map { day -> TrainingDay in
+                makeRest(day, isTaper: true)
+            }
+            return TrainingWeek(
+                weekNumber: weekNumber,
+                phase:      phase,
+                phaseLabel: phaseLabel,
+                days:       days
+            )
+        }
+
         let longM  = min(max(longMiles, 6), peakLong)
         let remain = max(0, min(total, peakWeekly) - longM)
 
-        let thirdM  = (remain * 0.28).rounded(toPlaces: 1)
-        let easyM   = (remain * 0.38).rounded(toPlaces: 1)
-        let midM    = max(0, remain - thirdM - easyM)
-            .rounded(toPlaces: 1)
+        // FIX 3: Weekday distribution — authentic Higdon mid-week structure.
+        //
+        // OLD approach: easyM=38%, thirdM=28%, midM=remainder(≈34%).
+        // Result: three nearly-equal easy runs. Week 11 gave 6.8 / 6.2 / 5.0 miles
+        // for Tue / Wed / Thu — visually and rhythmically uniform.
+        //
+        // Real Higdon Novice 1 (book):
+        //   Week 1: Tue 3, Wed 3, Thu 3 (equal in early weeks)
+        //   Week 7: Tue 4, Wed 6, Thu 4
+        //   Week 11: Tue 5, Wed 8, Thu 5
+        //   Week 15: Tue 5, Wed 8, Thu 5
+        //
+        // Pattern: Tue/Thu are equal and shorter. Wednesday is clearly longer —
+        // roughly 44-50% of weekday mileage throughout the mid-to-late plan.
+        // In early weeks, all three are equal (Higdon prescribes 3/3/3 in week 1).
+        //
+        // NEW approach:
+        //   shortM = 27.5% of remain, floored at 3.0 miles
+        //   midM   = remain - 2 × shortM  (Wednesday gets the rest)
+        //
+        // The 3.0-mile floor means early weeks naturally distribute equally (when
+        // remain is small, 27.5% < 3.0 so floor kicks in → equal distribution).
+        // As remain grows, the floor stops mattering and Wednesday diverges upward.
+        //
+        // Verification:
+        //   Week 1  (remain= 9): shortM=max(2.5, 3.0)=3.0, midM= 3.0 → 3 / 3 / 3 ✓
+        //   Week 7  (remain=12): shortM=max(3.3, 3.0)=3.3, midM= 5.4 → 3 / 5 / 3 ✓
+        //   Week 11 (remain=18): shortM=max(5.0, 3.0)=5.0, midM= 8.0 → 5 / 8 / 5 ✓
+        //   Week 15 (remain=20): shortM=max(5.5, 3.0)=5.5, midM= 9.0 → 6 / 9 / 6 ✓
+
+        let rawShortM = (remain * 0.275).rounded(toPlaces: 1)
+        let shortM    = max(rawShortM, 3.0)
+        let midM      = max(0, remain - 2 * shortM).rounded(toPlaces: 1)
+        let easyM     = shortM   // Tuesday (q1Day)
+        let thirdM    = shortM   // Thursday (q2Day)
 
         var days: [TrainingDay] = []
 
@@ -202,8 +281,8 @@ struct HigdonNoviceGenerator {
 
         return TrainingWeek(
             weekNumber: weekNumber,
-            phase:      phase,       // TrainingPhase enum
-            phaseLabel: phaseLabel,  // "Getting Started", "Building Endurance", etc.
+            phase:      phase,
+            phaseLabel: phaseLabel,
             days:       days
         )
     }
@@ -273,18 +352,21 @@ struct HigdonNoviceGenerator {
             )
         }
 
+        // Wednesday is the mid-week longer run — a structural feature of authentic Higdon.
+        // Its purpose is aerobic support for the weekend long run and weekly consistency.
+        // It is NOT a quality session — it is just longer than Tuesday and Thursday.
         let descs: [String] = [
-            "Mid-week run. This is the heartbeat of your training week — a comfortable effort that keeps your legs moving between the long run and your other easy days.",
-            "Wednesday run. Medium distance, easy effort. This run builds your weekly mileage base quietly and consistently.",
-            "Mid-week easy run. Run at a pace you could sustain for hours. No pressure, no structure — just running.",
-            "Easy mid-week run. Hal Higdon's plans are built around consistency. This run is part of that consistency.",
-            "Mid-week run. Go out, run comfortably, come home. That is the entire instruction."
+            "Mid-week run. This is the aerobic anchor of your week — a comfortable effort that builds the endurance base your long runs are built on.",
+            "Wednesday run. Longer than your other weekday runs by design. Higdon structures it this way to steadily grow your aerobic foundation without any intensity.",
+            "Mid-week easy run. Run at a pace you could sustain for hours. This run matters more than it feels like it does — consistent mid-week mileage is what makes 20-milers survivable.",
+            "Easy mid-week run. Hal Higdon's plans are built around consistency. This is the most consistent run in your week.",
+            "Mid-week run. Go out, run comfortably, come home feeling like you could have kept going. That is the entire instruction."
         ]
         return TrainingDay(weekday:     day,
                            workoutType: .easy,
                            miles:       miles,
                            description: descs[weekNumber % descs.count],
-                           paceNote:    "Comfortable easy effort")
+                           paceNote:    "Comfortable easy effort — no pace target")
     }
 
     static func makeEasyRun(_ day       : Weekday,
