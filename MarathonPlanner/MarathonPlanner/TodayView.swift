@@ -220,21 +220,19 @@ struct TodayView: View {
     // MARK: - Header
 
     private func todayHeader(ctx: TodayContext) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(formattedDate())
-                .font(.system(size: 11, design: .monospaced))
-                .foregroundColor(.secondary)
+                .eyebrow()
                 .kerning(1.5)
             Text(ctx.plan.name)
-                .font(.system(size: 24, weight: .light,
-                              design: .serif))
+                .font(.displayTitle(24))
                 .foregroundColor(.primary)
             Text("Week \(ctx.weekNumber) of \(ctx.totalWeeks)")
-                .font(.system(size: 12, design: .monospaced))
+                .font(.metricCaption())
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 8)
+        .padding(.top, Spacing.sm)
     }
 
     private func formattedDate() -> String {
@@ -262,21 +260,19 @@ struct TodayView: View {
         VStack(alignment: .leading, spacing: 20) {
 
             // Header
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(formattedDate())
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .eyebrow()
                     .kerning(1.5)
                 Text("Off-Season")
-                    .font(.system(size: 24, weight: .light,
-                                  design: .serif))
+                    .font(.displayTitle(24))
                     .foregroundColor(.primary)
                 Text(offSeasonPhaseLabel)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(.metricCaption())
                     .foregroundColor(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 8)
+            .padding(.top, Spacing.sm)
 
             // Off-season card with weekly goal
             if let workout = offSeasonWorkout,
@@ -434,43 +430,39 @@ struct TodayWorkoutCard: View {
         HStack(alignment: .bottom, spacing: 0) {
             Group {
                 if liveDay.miles > 0 {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text(String(format: "%.1f", liveDay.miles))
-                            .font(.system(size: 38, weight: .thin,
-                                          design: .monospaced))
+                            .font(.metric(38))
                             .foregroundColor(.primary)
                         Text("miles")
-                            .font(.system(size: 12,
-                                          design: .monospaced))
+                            .font(.metricCaption())
                             .foregroundColor(.secondary)
                     }
                 } else if liveDay.workoutType == "Rest" {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
                         Image(systemName: "moon.stars")
                             .font(.system(size: 36, weight: .ultraLight))
                             .foregroundColor(.secondary)
                         Text("Full rest day")
-                            .font(.system(size: 14))
+                            .font(.headline())
                             .foregroundColor(.secondary)
                     }
                 } else if liveDay.workoutType == "Cross-Training" {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
                         Image(systemName: "figure.cross.training")
                             .font(.system(size: 36, weight: .ultraLight))
                             .foregroundColor(Color(hex: "BF5AF2"))
                         Text("45–60 minutes")
-                            .font(.system(size: 14))
+                            .font(.headline())
                             .foregroundColor(.secondary)
                     }
                 } else if liveDay.workoutType == "Race Day 🏁" {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text("26.2")
-                            .font(.system(size: 38, weight: .thin,
-                                          design: .monospaced))
+                            .font(.metric(38))
                             .foregroundColor(.yellow)
                         Text("miles — RACE DAY")
-                            .font(.system(size: 12,
-                                          design: .monospaced))
+                            .font(.metricCaption())
                             .foregroundColor(.yellow)
                     }
                 }
@@ -497,10 +489,10 @@ struct TodayWorkoutCard: View {
 
     private var descriptionText: some View {
         Text(liveDay.description)
-            .font(.system(size: 13))
+            .font(.appBody())
             .foregroundColor(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-            .lineSpacing(3)
+            .lineSpacing(4)
     }
 
     private var paceNote: some View {
@@ -931,12 +923,10 @@ struct WeekProgressCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("WEEK \(ctx.weekNumber)")
-                        .font(.system(size: 10, weight: .semibold,
-                                      design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .eyebrow()
                         .kerning(1.5)
                     Text(liveWeek.phaseLabel)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.headline())
                         .foregroundColor(.primary)
                 }
                 Spacer()
@@ -974,12 +964,12 @@ struct WeekProgressCard: View {
             HStack {
                 Text(String(format: "%.0f mi planned",
                             liveWeek.totalMiles))
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.metricCaption())
                     .foregroundColor(.secondary)
                 Spacer()
                 Text("\(liveWeek.completedDayCount) of "
                      + "\(liveWeek.trackableDayCount) workouts done")
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.metricCaption())
                     .foregroundColor(.secondary)
                     .contentTransition(.numericText())
                     .animation(.spring(response: 0.4,
@@ -1087,33 +1077,31 @@ struct RaceCountdownCard: View {
     }
 
     var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: Spacing.lg) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("RACE DAY")
-                    .font(.system(size: 9, weight: .semibold,
-                                  design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .eyebrow()
                     .kerning(1.5)
                 Text(label)
-                    .font(.system(size: 13))
+                    .font(.appBody())
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(4)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(daysUntilRace)")
-                    .font(.system(size: 36, weight: .thin,
-                                  design: .monospaced))
+                    .font(.metric(36))
                     .foregroundColor(.primary)
                     .contentTransition(.numericText())
                 Text("days")
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(.metricCaption())
                     .foregroundColor(.secondary)
             }
         }
-        .padding(16)
+        .padding(Spacing.lg)
         .background(Color(.secondarySystemBackground))
-        .cornerRadius(14)
+        .cornerRadius(Radius.lg)
     }
 }
 

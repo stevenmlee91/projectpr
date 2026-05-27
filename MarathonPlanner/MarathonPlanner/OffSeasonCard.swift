@@ -72,8 +72,7 @@ struct OffSeasonCard: View {
                 // 8. Coach's note toggle
                 coachToggle
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(Spacing.lg)
         }
         .background(Color(.secondarySystemBackground))
         .overlay(
@@ -92,25 +91,27 @@ struct OffSeasonCard: View {
     // MARK: - Type Bar
 
     private var typeBar: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(accentColor)
-                .frame(width: 7, height: 7)
-            Text(workout.type.rawValue.uppercased())
-                .font(.system(size: 9, weight: .bold,
-                              design: .monospaced))
-                .foregroundColor(accentColor)
-                .kerning(1.5)
-            Spacer()
-            Text(workout.phaseLabel.uppercased())
-                .font(.system(size: 9, weight: .medium,
-                              design: .monospaced))
-                .foregroundColor(.secondary)
-                .kerning(1)
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(accentColor)
+                    .frame(width: 7, height: 7)
+                Text(workout.type.rawValue.uppercased())
+                    .font(.label())
+                    .foregroundColor(accentColor)
+                    .kerning(1.5)
+                Spacer()
+                Text(workout.phaseLabel.uppercased())
+                    .font(.label())
+                    .foregroundColor(.secondary)
+                    .kerning(1.5)
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, 13)
+
+            Divider()
+                .padding(.horizontal, Spacing.lg)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 9)
-        .background(Color(.tertiarySystemBackground))
     }
 
     // MARK: - Workout Header
@@ -125,16 +126,14 @@ struct OffSeasonCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 if workout.type == .rest {
                     Text(workout.title)
-                        .font(.system(size: 20, weight: .light,
-                                      design: .serif))
+                        .font(.displayTitle(20))
                         .foregroundColor(.primary)
                 } else {
                     Text(workout.distance)
-                        .font(.system(size: 22, weight: .thin,
-                                      design: .monospaced))
+                        .font(.metric(22))
                         .foregroundColor(.primary)
                     Text(workout.title)
-                        .font(.system(size: 11))
+                        .font(.caption())
                         .foregroundColor(.secondary)
                 }
             }
@@ -181,23 +180,23 @@ struct OffSeasonCard: View {
 
     private var reasoningRow: some View {
         Text(workout.reasoning)
-            .font(.system(size: 11, weight: .light))
-            .foregroundColor(Color(hex: "7A7A7A"))
+            .font(.appBody(12))
+            .foregroundColor(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-            .lineSpacing(2)
+            .lineSpacing(3)
     }
 
     // MARK: - Guidance Text
 
     private var guidanceText: some View {
         Text(workout.guidance)
-            .font(.system(size: 11, weight: .light))
-            .foregroundColor(Color(hex: "6A6A6A"))
+            .font(.appBody(12))
+            .foregroundColor(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-            .lineSpacing(3)
-            .padding(10)
+            .lineSpacing(4)
+            .padding(Spacing.md)
             .background(accentColor.opacity(0.05))
-            .cornerRadius(8)
+            .cornerRadius(Radius.sm)
     }
 
     // MARK: - Add-On Row
@@ -209,8 +208,8 @@ struct OffSeasonCard: View {
                 .foregroundColor(accentColor.opacity(0.6))
                 .padding(.top, 1)
             Text(text)
-                .font(.system(size: 11, weight: .light))
-                .foregroundColor(Color(hex: "7A7A7A"))
+                .font(.appBody(12))
+                .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

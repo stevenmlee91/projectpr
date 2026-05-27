@@ -33,20 +33,23 @@ struct TomorrowWorkoutCard: View {
     // MARK: - Label Row
 
     private var labelRow: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "sunrise")
-                .font(.system(size: 9, weight: .medium))
-                .foregroundColor(.secondary)
-            Text("TOMORROW")
-                .font(.system(size: 9, weight: .semibold,
-                              design: .monospaced))
-                .foregroundColor(.secondary)
-                .kerning(2)
-            Spacer()
+        VStack(spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: "sunrise")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(.secondary)
+                Text("TOMORROW")
+                    .font(.label())
+                    .foregroundColor(.secondary)
+                    .kerning(1.5)
+                Spacer()
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
+
+            Divider()
+                .padding(.horizontal, Spacing.lg)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Color(.tertiarySystemBackground).opacity(0.6))
     }
 
     // MARK: - Plan Day Row

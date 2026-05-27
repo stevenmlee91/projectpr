@@ -109,41 +109,36 @@ struct SavedPlanView: View {
     // MARK: - Header
 
     private var planHeader: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(livePlan.planType.uppercased())
-                .font(.system(size: 10, weight: .semibold,
-                              design: .monospaced))
-                .foregroundColor(.secondary)
+                .eyebrow()
                 .kerning(1.5)
             Text(livePlan.name)
-                .font(.system(size: 28, weight: .light,
-                              design: .serif))
+                .font(.displayTitle(28))
                 .foregroundColor(.primary)
-            HStack(spacing: 20) {
-                VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: Spacing.xl) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text("STARTS")
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .eyebrow(size: 9)
                         .kerning(1.5)
                     Text(dateFormatter.string(from: livePlan.startDate))
-                        .font(.system(size: 13))
+                        .font(.caption())
                         .foregroundColor(.secondary)
                 }
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text("RACE DAY")
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .eyebrow(size: 9)
                         .kerning(1.5)
                     Text(dateFormatter.string(from: livePlan.raceDate))
-                        .font(.system(size: 13))
+                        .font(.caption())
                         .foregroundColor(.primary)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 24)
-        .padding(.top, 16)
-        .padding(.bottom, 20)
+        .padding(.horizontal, Spacing.xxl)
+        .padding(.top, Spacing.lg)
+        .padding(.bottom, Spacing.xl)
     }
 
     // MARK: - Completion Banner
@@ -1030,37 +1025,36 @@ struct SPVRaceDayRow: View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 Image(systemName: "flag.checkered")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.black)
                 Text("RACE DAY")
-                    .font(.system(size: 13, weight: .black,
-                                  design: .monospaced))
+                    .font(.label())
                     .foregroundColor(.black)
-                    .kerning(3)
+                    .kerning(1.5)
                 Spacer()
                 Text(dateFormatter.string(from: day.date))
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.caption())
                     .foregroundColor(.black)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
             .background(Color.yellow)
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack {
                     Text(String(format: "%.1f miles", day.miles))
-                        .font(.system(size: 22, weight: .thin,
-                                      design: .monospaced))
+                        .font(.metric(22))
                         .foregroundColor(.primary)
                     Spacer()
                     Text(day.miles > 20 ? "🏅 42.2 km" : "🏅 21.1 km")
-                        .font(.system(size: 13))
+                        .font(.appBody())
                         .foregroundColor(.secondary)
                 }
                 Text(day.description)
-                    .font(.system(size: 12))
+                    .font(.appBody())
                     .foregroundColor(Color(.secondaryLabel))
                     .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(4)
                 if !day.paceNote.isEmpty && day.paceNote != "—" {
                     HStack(spacing: 6) {
                         Image(systemName: "speedometer")

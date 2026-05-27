@@ -87,17 +87,14 @@ struct WorkoutCoachingCard: View {
 
     private func coachingSection(label: String,
                                   content: String) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(label)
-                .font(.system(size: 9, weight: .semibold,
-                              design: .monospaced))
-                .foregroundColor(.secondary)
-                .kerning(1.5)
+                .eyebrow()
                 .padding(.horizontal, 14)
 
             Text(content)
-                .font(.system(size: 13))
-                .foregroundColor(Color(hex: "4A4A4A"))
+                .font(.appBody())
+                .foregroundColor(.secondary)
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 14)

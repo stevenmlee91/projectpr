@@ -219,27 +219,24 @@ struct PaceCalculatorView: View {
     // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Goal Time")
-                .font(.system(size: 11, weight: .semibold,
-                              design: .monospaced))
-                .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("GOAL TIME")
+                .eyebrow()
                 .kerning(1.5)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(String(format: "%d:%02d", hours, minutes))
-                    .font(.system(size: 52, weight: .thin,
-                                  design: .monospaced))
+                    .font(.metric(52))
                     .foregroundColor(.primary)
                 Text(mode == .marathon ? "marathon" : "half marathon")
-                    .font(.system(size: 14, weight: .light))
+                    .font(.caption())
                     .foregroundColor(.secondary)
                     .padding(.bottom, 6)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 24)
-        .padding(.top, 12)
-        .padding(.bottom, 16)
+        .padding(.horizontal, Spacing.xxl)
+        .padding(.top, Spacing.md)
+        .padding(.bottom, Spacing.lg)
         .animation(.none, value: mode)
     }
 
@@ -452,69 +449,66 @@ struct PaceCalculatorView: View {
     private func heroPaceCard(label: String, icon: String,
                                seconds: Int, subtitle: String,
                                color: Color) -> some View {
-        HStack(spacing: 16) {
+        HStack(spacing: Spacing.lg) {
             Image(systemName: icon)
-                .font(.system(size: 22, weight: .light))
+                .font(.system(size: 20, weight: .light))
                 .foregroundColor(color)
-                .frame(width: 36)
+                .frame(width: 32)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(label.uppercased())
-                    .font(.system(size: 9, weight: .semibold,
-                                  design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .eyebrow()
                     .kerning(1.5)
                 Text(displaySingle(seconds))
-                    .font(.system(size: 32, weight: .thin,
-                                  design: .monospaced))
+                    .font(.metric(32))
                     .foregroundColor(.primary)
                 Text(subtitle)
-                    .font(.system(size: 11))
+                    .font(.caption())
                     .foregroundColor(.secondary)
             }
 
             Spacer()
 
             Text(useKilometers ? "/km" : "/mi")
-                .font(.system(size: 11, design: .monospaced))
+                .font(.metricCaption())
                 .foregroundColor(.secondary)
         }
-        .padding(18)
+        .padding(Spacing.lg)
         .background(Color(.secondarySystemBackground))
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(color.opacity(0.3), lineWidth: 1.5)
+            RoundedRectangle(cornerRadius: Radius.lg)
+                .stroke(color.opacity(0.25), lineWidth: 1)
         )
-        .cornerRadius(14)
+        .cornerRadius(Radius.lg)
     }
 
     // MARK: - Standard Pace Card (single)
 
     private func paceCard(label: String, icon: String,
                            seconds: Int, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .light))
+                    .font(.system(size: 13, weight: .light))
                     .foregroundColor(color)
                 Spacer()
                 Text(useKilometers ? "/km" : "/mi")
-                    .font(.system(size: 9, design: .monospaced))
+                    .font(.metricCaption(9))
                     .foregroundColor(.secondary)
             }
             Text(displaySingle(seconds))
-                .font(.system(size: 22, weight: .thin, design: .monospaced))
+                .font(.metric(22))
                 .foregroundColor(.primary)
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(.caption())
                 .foregroundColor(.secondary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(14)
+        .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground))
-        .cornerRadius(14)
+        .cornerRadius(Radius.lg)
     }
 
     // MARK: - Standard Pace Card (range)
@@ -522,29 +516,29 @@ struct PaceCalculatorView: View {
     private func paceCard(label: String, icon: String,
                            range: (low: Int, high: Int),
                            color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .light))
+                    .font(.system(size: 13, weight: .light))
                     .foregroundColor(color)
                 Spacer()
                 Text(useKilometers ? "/km" : "/mi")
-                    .font(.system(size: 9, design: .monospaced))
+                    .font(.metricCaption(9))
                     .foregroundColor(.secondary)
             }
             Text(displayRange(range))
-                .font(.system(size: 18, weight: .thin, design: .monospaced))
+                .font(.metric(18))
                 .foregroundColor(.primary)
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(.caption())
                 .foregroundColor(.secondary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(14)
+        .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground))
-        .cornerRadius(14)
+        .cornerRadius(Radius.lg)
     }
 
     // MARK: - Treadmill Section

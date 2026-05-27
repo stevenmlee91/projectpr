@@ -244,11 +244,11 @@ struct ActivePlanCard: View {
                         .kerning(1.5)
                 }
                 Text(plan.name)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.displayTitle(22))
                     .foregroundColor(.primary)
                 HStack(spacing: 6) {
                     Text(plan.planType)
-                        .font(.system(size: 12))
+                        .font(.caption())
                         .foregroundColor(Color(.tertiaryLabel))
                     Text("·")
                         .foregroundColor(Color(.quaternaryLabel))
@@ -256,7 +256,7 @@ struct ActivePlanCard: View {
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                     Text(raceDateString)
-                        .font(.system(size: 12))
+                        .font(.caption())
                         .foregroundColor(.secondary)
                 }
             }
@@ -271,11 +271,10 @@ struct ActivePlanCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
                         Text("\(daysUntilRace)")
-                            .font(.system(size: 30, weight: .thin,
-                                          design: .monospaced))
+                            .font(.metric(30))
                             .foregroundColor(.primary)
                         Text("days to race")
-                            .font(.system(size: 13))
+                            .font(.caption())
                             .foregroundColor(.secondary)
                     }
                     GeometryReader { geo in
@@ -342,8 +341,7 @@ struct OtherPlanRow: View {
                         .fill(Color(.tertiarySystemGroupedBackground))
                         .frame(width: 36, height: 36)
                     Text("\(index + 1)")
-                        .font(.system(size: 14, weight: .medium,
-                                      design: .rounded))
+                        .font(.metricCaption(13))
                         .foregroundColor(.secondary)
                 }
 
@@ -362,11 +360,10 @@ struct OtherPlanRow: View {
                 // Days + chevron
                 VStack(alignment: .trailing, spacing: 1) {
                     Text("\(daysUntilRace)")
-                        .font(.system(size: 16, weight: .medium,
-                                      design: .rounded))
+                        .font(.metricCaption(15))
                         .foregroundColor(.primary)
                     Text("days")
-                        .font(.system(size: 11))
+                        .font(.caption())
                         .foregroundColor(Color(.tertiaryLabel))
                 }
 
