@@ -4,15 +4,27 @@ import Foundation
 //
 // Pete Pfitzinger's Advanced Marathoning — 18/55 — with corrected progression engine.
 //
-// THE CORE BUG THAT WAS FIXED:
+// THE CORE BUG THAT WAS FIXED (previous session):
 //   Previous: taper % applied to peakWeekly (55).
 //   A 25 mpw runner building to 40 mpw got a 43 mpw "taper week 1."
-//   This breaks trust immediately and is physiologically indefensible.
+//   Fix: taper applies to achievedPeak (actual max in build schedule).
 //
-// THE FIX:
-//   achievablePeak = what this runner can realistically reach in available build weeks.
-//   Smooth progression targets achievablePeak, not the methodology ceiling.
-//   Taper applies to achievedPeak (actual max in build schedule).
+// BUGS FIXED THIS SESSION:
+//
+// FIX 1 — Recovery day count:
+//   `recovPerDay = budgetAfterLT / 2.0` hardcoded denominator assumed 2 recovery days.
+//   A standard Pfitz schedule (1 rest day) produces 3 recovery days: Sun, Mon, Wed.
+//   3 × (budget/2) = 1.5 × budget — ~3-6 mile overflow at peak week.
+//   Fix: count actual recovery days from schedule; divide by that count.
+//
+// FIX 2 — LT description arithmetic:
+//   Description displayed "~2mi warmup · X mi LT · ~2mi cooldown = Y miles" but when
+//   the budget cap compressed ltTotal, the breakdown summed to Y+1 or Y+2.
+//   Fix: derive actual warmup/cooldown from (ltTotal - ltAtPace); display those values.
+//
+// FIX 3 — Adjacent day detection at week boundary:
+//   abs(rawValue1 - rawValue2) == 1 failed for Saturday(7)/Sunday(1) adjacency (diff=6).
+//   Fix: also check diff == 6 (circular week).
 //
 // THE DEFINING FEATURE — MEDIUM-LONG RUN:
 //   Present EVERY week without exception. Volume scales with weekly mileage.
@@ -86,11 +98,7 @@ struct PfitzMarathonGenerator {
                                             raceType: .marathon)
     }
 
-    // MARK: - Weekly Mileage Schedule (FIXED)
-    //
-    // Same progression engine fix as Hansons.
-    // Pfitz specifics: canonical cutbacks at 6 and 11, 9% ramp (slightly
-    // more permissive than Hansons 8% — Pfitz builds more aggressively).
+    // MARK: - Weekly Mileage Schedule
 
     static func weeklyMileageSchedule(n: Int, base: Double,
                                        taperWeeks: Int) -> [Double] {
@@ -121,7 +129,7 @@ struct PfitzMarathonGenerator {
                 result.append(val)
                 // current does NOT update on cutbacks
             } else {
-                let capped = min(smoothTarget, current * 1.09)  // 9% Pfitz ramp
+                let capped = min(smoothTarget, current * 1.09)
                 let val    = min(max(capped.rounded(toPlaces: 0), adaptiveStart),
                                  achievablePeak)
                 result.append(val)
@@ -129,7 +137,6 @@ struct PfitzMarathonGenerator {
             }
         }
 
-        // TAPER FROM ACHIEVED PEAK — not from methodology peak.
         let achievedPeak = result.max() ?? achievablePeak
         let taperPcts: [Double] = taperWeeks == 3
             ? [0.85, 0.70, 0.45]
@@ -141,14 +148,7 @@ struct PfitzMarathonGenerator {
         return result
     }
 
-    // MARK: - Adaptive Long Run Schedule (FIXED for low-base runners)
-    //
-    // Previous: all runners inherited canonical18[offset] regardless of base.
-    // A 25 mpw runner could see 17-mile long runs in week 1.
-    //
-    // Now: advanced runners get canonical schedule; others start from base-appropriate
-    // point and build linearly toward longRunPeak. Max +2 miles/week.
-    // Taper from achievedPeak, not from longRunPeak.
+    // MARK: - Adaptive Long Run Schedule
 
     static func longRunSchedule(n: Int, taperWeeks: Int, base: Double) -> [Double] {
         let tier   = RunnerReadinessTier.from(base: base)
@@ -172,7 +172,6 @@ struct PfitzMarathonGenerator {
             return buildSlice + taperLRs
         }
 
-        // Non-advanced: build from base-appropriate starting point
         let longStart = max(base * tier.longRunStartFraction, 8.0).rounded(toPlaces: 0)
         let buildWeeks = n - taperWeeks
 
@@ -220,11 +219,20 @@ struct PfitzMarathonGenerator {
     }
 
     // MARK: - Stress-Aware MLR Day
+    //
+    // FIX 3 — Adjacent day detection at week boundary.
+    //
+    // Old: abs(ltDay.rawValue - mwDay.rawValue) == 1
+    //   Fails when days are at the week boundary (e.g., Saturday=7, Sunday=1).
+    //   abs(7 - 1) = 6 — not detected as adjacent. Saturday LT + Sunday MLR got no correction.
+    //
+    // Fix: check diff == 1 OR diff == 6 (circular week with rawValues 1–7).
 
     private static func effectiveMlrDay(schedule: UserSchedule) -> Weekday {
         let ltDay    = schedule.workoutDay1
         let mwDay    = schedule.midweekLongDay
-        let adjacent = abs(ltDay.rawValue - mwDay.rawValue) == 1
+        let diff     = abs(ltDay.rawValue - mwDay.rawValue)
+        let adjacent = diff == 1 || diff == 6   // FIX 3: handles week boundary wrap-around
         guard adjacent else { return mwDay }
         let shiftedRaw = (mwDay.rawValue % 7) + 1
         guard let shifted = Weekday(rawValue: shiftedRaw) else { return mwDay }
@@ -233,18 +241,33 @@ struct PfitzMarathonGenerator {
     }
 
     // MARK: - Budget-First Session Allocation
+    //
+    // FIX 1 — Recovery day count is now a parameter.
+    //
+    // Old: `recovPerDay = budgetAfterLT / 2.0` (hardcoded denominator).
+    //   Assumed 2 recovery days. Standard Pfitz schedule (1 rest day) has
+    //   3 recovery days (e.g., Sunday, Monday, Wednesday). Result: 3 × (budget/2)
+    //   = 1.5 × budget → ~3-6 mile overflow at peak every week.
+    //
+    // Fix: recovDayCount is computed in buildWeek from the actual schedule
+    //   (7 days − rest days − lrDay − ltDay − mlrDay), then passed here.
+    //   budgetAfterLT / Double(recovDayCount) gives correct per-day allocation.
 
     private struct WeekAllocation {
-        let longM    : Double
-        let mlrM     : Double
-        let ltTotal  : Double
-        let ltAtPace : Double
+        let longM      : Double
+        let mlrM       : Double
+        let ltTotal    : Double
+        let ltAtPace   : Double
         let recovPerDay: Double
     }
 
-    private static func allocate(totalMiles: Double, longMiles: Double,
-                                  canonical: Int, isTaper: Bool,
-                                  taperWeeks: Int, taperPos: Int) -> WeekAllocation {
+    private static func allocate(totalMiles  : Double,
+                                  longMiles   : Double,
+                                  canonical   : Int,
+                                  isTaper     : Bool,
+                                  taperWeeks  : Int,
+                                  taperPos    : Int,
+                                  recovDayCount: Int) -> WeekAllocation {   // FIX 1: added param
         let longM = min(longMiles, longRunPeak)
         let budgetAfterLong = max(0, totalMiles - longM)
 
@@ -262,9 +285,10 @@ struct PfitzMarathonGenerator {
         let ltAtPace   = (ltTotal * ltFraction).rounded(toPlaces: 1)
         let budgetAfterLT = max(0, budgetAfterMLR - ltTotal)
 
-        // NO floor on recovery — prevents mileage overflow
+        // FIX 1: use recovDayCount (from schedule) instead of hardcoded 2.
+        let safeCount   = max(1, recovDayCount)
         let recovPerDay = budgetAfterLT > 0
-            ? (budgetAfterLT / 2.0).rounded(toPlaces: 1)
+            ? (budgetAfterLT / Double(safeCount)).rounded(toPlaces: 1)
             : 0.0
 
         return WeekAllocation(longM: longM, mlrM: mlrM, ltTotal: ltTotal,
@@ -323,6 +347,11 @@ struct PfitzMarathonGenerator {
     }
 
     // MARK: - Week Builder
+    //
+    // FIX 1 (continued): Compute recovDayCount before calling allocate.
+    // specialDays = rest + lrDay + ltDay + mlrDay.
+    // recoveryDays = all weekdays not in specialDays.
+    // recovDayCount is passed to allocate so per-day recovery is always budget-accurate.
 
     static func buildWeek(
         weekNumber  : Int,
@@ -348,18 +377,19 @@ struct PfitzMarathonGenerator {
         let ltDay   = schedule.workoutDay1
         let mlrDay  = effectiveMlrDay(schedule: schedule)
 
-        // RACE WEEK: longRuns schedule ends with 0 (advanced) or 0 (non-advanced).
-        // Old bug: alloc computed LT + MLR + recovery from the full taper week budget,
-        // producing ~25mi of training on top of injectRaceDay's 26.2+2mi shakeout.
-        // Race week total was ~53mi — essentially identical to the peak training week.
-        // Suppressed here: all days rest, injectRaceDay adds only shakeout + marathon.
+        // FIX 1: Count actual recovery days from this schedule.
+        // This is the denominator for per-day recovery mileage.
+        // Pfitz with 1 rest day (standard): Sun, Mon, Wed = 3 recovery days.
+        // Pfitz with 2 rest days: 2 recovery days. Formula handles both.
+        let specialDays   : Set<Weekday> = restSet.union([lrDay, ltDay, mlrDay])
+        let recoveryDays                  = Weekday.allCases.filter { !specialDays.contains($0) }
+        let recovDayCount                 = recoveryDays.count
+
         let isRaceWeek = isTaper && longMiles <= 0
         if isRaceWeek {
-            // Pfitz race week: short recovery runs early in the week.
-            // Long run, LT, and MLR days stay rest. injectRaceDay handles shakeout + race.
-            let specialDays: Set<Weekday> = restSet.union([lrDay, ltDay, mlrDay])
+            let specialRaceWeekDays: Set<Weekday> = restSet.union([lrDay, ltDay, mlrDay])
             let days = Weekday.allCases.map { day -> TrainingDay in
-                if specialDays.contains(day) {
+                if specialRaceWeekDays.contains(day) {
                     return makeRest(day, isTaper: true)
                 } else {
                     return makeRecoveryRun(day, miles: 2.0, weekNumber: weekNumber,
@@ -373,9 +403,11 @@ struct PfitzMarathonGenerator {
         let mpSection = isTaper ? nil : mpFinishMiles(canonical: canonical,
                                                        weekMiles: totalMiles)
 
+        // FIX 1: pass recovDayCount
         let alloc = allocate(totalMiles: totalMiles, longMiles: longMiles,
                               canonical: canonical, isTaper: isTaper,
-                              taperWeeks: taperWeeks, taperPos: taperPos)
+                              taperWeeks: taperWeeks, taperPos: taperPos,
+                              recovDayCount: recovDayCount)
 
         var days: [TrainingDay] = []
 
@@ -468,6 +500,19 @@ Run at \(gaRange) — comfortably sustained, not easy and not hard.
                            paceNote: "\(gaRange) — general aerobic, sustained")
     }
 
+    // MARK: - LT Run
+    //
+    // FIX 2 — Description arithmetic.
+    //
+    // Old: description hardcoded "~2 miles easy" for warmup and cooldown.
+    //   When the budget cap compressed ltTotal below (ltAtPace + 4.0), the
+    //   displayed breakdown (2 + ltMiles + 2) summed higher than the stated total.
+    //   Example: ltTotal=10.2, ltAtPace=6.5 → displayed "2+7+2=11 miles" vs stored 10.
+    //
+    // Fix: warmup and cooldown are derived from (ltTotal - ltAtPace), split evenly.
+    //   This guarantees: warmupDisplay + ltAtPace + cooldownDisplay = ltTotal exactly.
+    //   Both values are displayed to one decimal place — no rounding gaps.
+
     static func makeLTRun(_ day          : Weekday,
                            totalMiles    : Double,
                            ltMiles       : Double,
@@ -478,6 +523,12 @@ Run at \(gaRange) — comfortably sustained, not easy and not hard.
         let ltPace = PaceEngine.format(paces.pfitzLT)
         let ltHigh = PaceEngine.format(paces.pfitzLT - 10)
         let ltLow  = PaceEngine.format(paces.pfitzLT + 10)
+
+        // FIX 2: derive warmup and cooldown from actual remaining budget.
+        // warmup + ltMiles + cooldown = totalMiles exactly.
+        let warmupCooldownTotal = (totalMiles - ltMiles).rounded(toPlaces: 2)
+        let warmupMiles         = (warmupCooldownTotal / 2.0).rounded(toPlaces: 1)
+        let cooldownMiles       = (totalMiles - ltMiles - warmupMiles).rounded(toPlaces: 1)
 
         let tapNote = isTaper
             ? "\n\nTaper week — run the LT section at effort, not a specific pace."
@@ -494,10 +545,10 @@ Run at \(gaRange) — comfortably sustained, not easy and not hard.
         }
 
         let desc = """
-Lactate threshold run: \(String(format: "%.0f", totalMiles)) miles with \(String(format: "%.0f", ltMiles)) miles at LT pace.\(tapNote)
+Lactate threshold run: \(String(format: "%.1f", totalMiles)) miles with \(String(format: "%.1f", ltMiles)) miles at LT pace.\(tapNote)
 
-Warmup ~2 miles easy. LT section: \(String(format: "%.0f", ltMiles)) miles at \(ltHigh)–\(ltLow)/mi \
-— sustained and hard, not all-out. Cooldown ~2 miles easy.
+\(String(format: "%.1f", warmupMiles)) mi easy warmup · \(String(format: "%.1f", ltMiles)) mi at \(ltHigh)–\(ltLow)/mi · \
+\(String(format: "%.1f", cooldownMiles)) mi easy cooldown · Total: \(String(format: "%.1f", totalMiles)) miles
 
 LT pace sits at the boundary of your aerobic and anaerobic systems. Sustaining it trains \
 your body to clear lactate more effectively, raising the pace you can hold aerobically.
