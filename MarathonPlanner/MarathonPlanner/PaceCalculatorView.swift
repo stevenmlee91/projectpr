@@ -167,7 +167,7 @@ struct PaceCalculatorView: View {
                         .font(.system(size: 12, weight: .semibold,
                                       design: .monospaced))
                         .foregroundColor(.secondary)
-                        .kerning(3)
+                        .kerning(2)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { copyAllPaces() } label: {
@@ -224,7 +224,7 @@ struct PaceCalculatorView: View {
                 .font(.system(size: 11, weight: .semibold,
                               design: .monospaced))
                 .foregroundColor(.secondary)
-                .kerning(3)
+                .kerning(1.5)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(String(format: "%d:%02d", hours, minutes))
                     .font(.system(size: 52, weight: .thin,
@@ -321,7 +321,7 @@ struct PaceCalculatorView: View {
                 .font(.system(size: 10, weight: .semibold,
                               design: .monospaced))
                 .foregroundColor(.secondary)
-                .kerning(2)
+                .kerning(1.5)
             Spacer()
             Picker("Unit", selection: $useKilometers) {
                 Text("Mile").tag(false)
@@ -463,7 +463,7 @@ struct PaceCalculatorView: View {
                     .font(.system(size: 9, weight: .semibold,
                                   design: .monospaced))
                     .foregroundColor(.secondary)
-                    .kerning(2)
+                    .kerning(1.5)
                 Text(displaySingle(seconds))
                     .font(.system(size: 32, weight: .thin,
                                   design: .monospaced))
@@ -555,7 +555,7 @@ struct PaceCalculatorView: View {
                 .font(.system(size: 10, weight: .semibold,
                               design: .monospaced))
                 .foregroundColor(.secondary)
-                .kerning(3)
+                .kerning(1.5)
                 .padding(.horizontal, 4)
 
             VStack(spacing: 0) {

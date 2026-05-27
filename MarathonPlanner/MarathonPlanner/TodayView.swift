@@ -121,7 +121,7 @@ struct TodayView: View {
                         .font(.system(size: 12, weight: .semibold,
                                       design: .monospaced))
                         .foregroundColor(.secondary)
-                        .kerning(4)
+                        .kerning(2)
                 }
             }
         }
@@ -224,14 +224,14 @@ struct TodayView: View {
             Text(formattedDate())
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundColor(.secondary)
-                .kerning(2)
+                .kerning(1.5)
             Text(ctx.plan.name)
                 .font(.system(size: 24, weight: .light,
                               design: .serif))
                 .foregroundColor(.primary)
             Text("Week \(ctx.weekNumber) of \(ctx.totalWeeks)")
                 .font(.system(size: 12, design: .monospaced))
-                .foregroundColor(Color(hex: "4A4A4A"))
+                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 8)
@@ -266,14 +266,14 @@ struct TodayView: View {
                 Text(formattedDate())
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(.secondary)
-                    .kerning(2)
+                    .kerning(1.5)
                 Text("Off-Season")
                     .font(.system(size: 24, weight: .light,
                                   design: .serif))
                     .foregroundColor(.primary)
                 Text(offSeasonPhaseLabel)
                     .font(.system(size: 12, design: .monospaced))
-                    .foregroundColor(Color(hex: "4A4A4A"))
+                    .foregroundColor(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 8)
@@ -367,22 +367,26 @@ struct TodayWorkoutCard: View {
     // MARK: Type Bar
 
     private var workoutTypeBar: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(workoutColor)
-                .frame(width: 8, height: 8)
-            Text(liveDay.displayWorkoutType(
-                    raceType: ctx.plan.settings.raceType).uppercased())
-                .font(.system(size: 10, weight: .bold,
-                              design: .monospaced))
-                .foregroundColor(workoutColor)
-                .kerning(2)
-            Spacer()
-            statusBadge
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(workoutColor)
+                    .frame(width: 7, height: 7)
+                Text(liveDay.displayWorkoutType(
+                        raceType: ctx.plan.settings.raceType).uppercased())
+                    .font(.system(size: 10, weight: .bold,
+                                  design: .monospaced))
+                    .foregroundColor(workoutColor)
+                    .kerning(1.5)
+                Spacer()
+                statusBadge
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+
+            Divider()
+                .padding(.horizontal, 20)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .background(Color(.tertiarySystemBackground))
     }
 
     private var statusBadge: some View {
@@ -416,7 +420,7 @@ struct TodayWorkoutCard: View {
                     Text("NOT STARTED")
                         .font(.system(size: 10, weight: .bold,
                                       design: .monospaced))
-                        .foregroundColor(Color(hex: "3A3A3A"))
+                        .foregroundColor(.secondary)
                 }
             }
         }
@@ -444,7 +448,7 @@ struct TodayWorkoutCard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Image(systemName: "moon.stars")
                             .font(.system(size: 36, weight: .ultraLight))
-                            .foregroundColor(Color(hex: "3A3A3A"))
+                            .foregroundColor(.secondary)
                         Text("Full rest day")
                             .font(.system(size: 14))
                             .foregroundColor(.secondary)
@@ -494,7 +498,7 @@ struct TodayWorkoutCard: View {
     private var descriptionText: some View {
         Text(liveDay.description)
             .font(.system(size: 13))
-            .foregroundColor(Color(hex: "7A7A7A"))
+            .foregroundColor(.secondary)
             .fixedSize(horizontal: false, vertical: true)
             .lineSpacing(3)
     }
@@ -597,7 +601,7 @@ struct TodayWorkoutCard: View {
                                 .font(.system(size: 20))
                                 .foregroundColor(status == .skipped
                                                  ? Color(hex: "FF453A")
-                                                 : Color(hex: "3A3A3A"))
+                                                 : .secondary)
                                 .frame(width: 48, height: 48)
                                 .contentShape(Rectangle())
                                 .background(
@@ -623,7 +627,7 @@ struct TodayWorkoutCard: View {
                             } label: {
                                 Image(systemName: "pencil.circle")
                                     .font(.system(size: 20))
-                                    .foregroundColor(Color(hex: "3A3A3A"))
+                                    .foregroundColor(.secondary)
                                     .frame(width: 48, height: 48)
                                     .contentShape(Rectangle())
                                     .background(
@@ -664,7 +668,7 @@ struct TodayWorkoutCard: View {
                             .padding(.top, 1)
                         Text(note)
                             .font(.system(size: 12))
-                            .foregroundColor(Color(hex: "6A6A6A"))
+                            .foregroundColor(.secondary)
                             .lineLimit(2)
                             .frame(maxWidth: .infinity,
                                    alignment: .leading)
@@ -930,7 +934,7 @@ struct WeekProgressCard: View {
                         .font(.system(size: 10, weight: .semibold,
                                       design: .monospaced))
                         .foregroundColor(.secondary)
-                        .kerning(3)
+                        .kerning(1.5)
                     Text(liveWeek.phaseLabel)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.primary)
@@ -971,12 +975,12 @@ struct WeekProgressCard: View {
                 Text(String(format: "%.0f mi planned",
                             liveWeek.totalMiles))
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(Color(hex: "4A4A4A"))
+                    .foregroundColor(.secondary)
                 Spacer()
                 Text("\(liveWeek.completedDayCount) of "
                      + "\(liveWeek.trackableDayCount) workouts done")
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(Color(hex: "4A4A4A"))
+                    .foregroundColor(.secondary)
                     .contentTransition(.numericText())
                     .animation(.spring(response: 0.4,
                                         dampingFraction: 0.8),
@@ -1006,7 +1010,7 @@ struct WeekProgressCard: View {
             }
             Text(String(day.weekday.prefix(1)))
                 .font(.system(size: 8, design: .monospaced))
-                .foregroundColor(Color(hex: "3A3A3A"))
+                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
         .scaleEffect(day.id == ctx.day.id ? 1.08 : 1.0)
@@ -1088,11 +1092,11 @@ struct RaceCountdownCard: View {
                 Text("RACE DAY")
                     .font(.system(size: 9, weight: .semibold,
                                   design: .monospaced))
-                    .foregroundColor(Color(hex: "3E3E3E"))
-                    .kerning(3)
+                    .foregroundColor(.secondary)
+                    .kerning(1.5)
                 Text(label)
                     .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "7A7A7A"))
+                    .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -1104,7 +1108,7 @@ struct RaceCountdownCard: View {
                     .contentTransition(.numericText())
                 Text("days")
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundColor(Color(hex: "3E3E3E"))
+                    .foregroundColor(.secondary)
             }
         }
         .padding(16)

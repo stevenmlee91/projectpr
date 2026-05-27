@@ -196,9 +196,9 @@ struct PlanListView: View {
 
     private func listSectionHeader(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 12, weight: .semibold))
+            .font(.system(size: 11, weight: .semibold, design: .monospaced))
             .foregroundColor(.secondary)
-            .tracking(0.5)
+            .kerning(1.5)
     }
 }
 
@@ -231,43 +231,38 @@ struct ActivePlanCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
 
-            // Top: active pill
-            HStack(spacing: 0) {
-                Label("Active", systemImage: "bolt.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.accentColor)
-                    .clipShape(Capsule())
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            .padding(.bottom, 14)
-
-            Divider().padding(.horizontal, 16)
-
-            // Middle: name + race date
-            VStack(alignment: .leading, spacing: 4) {
+            // Top: name + race date
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color(hex: "30D158"))
+                        .frame(width: 7, height: 7)
+                    Text("ACTIVE")
+                        .font(.system(size: 10, weight: .semibold,
+                                      design: .monospaced))
+                        .foregroundColor(Color(hex: "30D158"))
+                        .kerning(1.5)
+                }
                 Text(plan.name)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
                 HStack(spacing: 6) {
-                    Image(systemName: "flag.checkered")
+                    Text(plan.planType)
                         .font(.system(size: 12))
+                        .foregroundColor(Color(.tertiaryLabel))
+                    Text("·")
+                        .foregroundColor(Color(.quaternaryLabel))
+                    Image(systemName: "flag.checkered")
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                     Text(raceDateString)
-                        .font(.system(size: 14))
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
-                Text(plan.planType)
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(.tertiaryLabel))
-                    .padding(.top, 2)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.top, 16)
+            .padding(.bottom, 16)
 
             Divider().padding(.horizontal, 16)
 
@@ -277,7 +272,7 @@ struct ActivePlanCard: View {
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
                         Text("\(daysUntilRace)")
                             .font(.system(size: 30, weight: .thin,
-                                          design: .rounded))
+                                          design: .monospaced))
                             .foregroundColor(.primary)
                         Text("days to race")
                             .font(.system(size: 13))
@@ -287,22 +282,22 @@ struct ActivePlanCard: View {
                         ZStack(alignment: .leading) {
                             Capsule()
                                 .fill(Color(.systemFill))
-                                .frame(height: 4)
+                                .frame(height: 3)
                             Capsule()
-                                .fill(Color.accentColor)
+                                .fill(Color(hex: "30D158"))
                                 .frame(width: geo.size.width * progressFraction,
-                                       height: 4)
+                                       height: 3)
                         }
                     }
-                    .frame(height: 4)
-                    .padding(.top, 6)
+                    .frame(height: 3)
+                    .padding(.top, 8)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(.tertiaryLabel))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(Color(.quaternaryLabel))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)

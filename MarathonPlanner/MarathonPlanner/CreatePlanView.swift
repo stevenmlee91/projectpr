@@ -123,7 +123,7 @@ struct CreatePlanView: View {
                 .font(.system(size: 10, weight: .semibold,
                               design: .monospaced))
                 .foregroundColor(.secondary)
-                .kerning(3)
+                .kerning(1.5)
                 .padding(.top, 28)
 
             Text("Create Your Plan")
@@ -429,7 +429,7 @@ struct CreatePlanView: View {
                 .font(.system(size: 10, weight: .semibold,
                               design: .monospaced))
                 .foregroundColor(.secondary)
-                .kerning(2)
+                .kerning(1.5)
                 .padding(.leading, 4)
                 .padding(.bottom, 8)
 
@@ -452,7 +452,7 @@ struct CreatePlanView: View {
                     .font(.system(size: 10, weight: .semibold,
                                   design: .monospaced))
                     .foregroundColor(.secondary)
-                    .kerning(2)
+                    .kerning(1.5)
 
                 Text(scheduleNote)
                     .font(.system(size: 12))

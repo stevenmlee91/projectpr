@@ -114,7 +114,7 @@ struct SavedPlanView: View {
                 .font(.system(size: 10, weight: .semibold,
                               design: .monospaced))
                 .foregroundColor(.secondary)
-                .kerning(3)
+                .kerning(1.5)
             Text(livePlan.name)
                 .font(.system(size: 28, weight: .light,
                               design: .serif))
@@ -123,17 +123,17 @@ struct SavedPlanView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("STARTS")
                         .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(Color(hex: "3E3E3E"))
-                        .kerning(2)
+                        .foregroundColor(.secondary)
+                        .kerning(1.5)
                     Text(dateFormatter.string(from: livePlan.startDate))
                         .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "9A9A9A"))
+                        .foregroundColor(.secondary)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("RACE DAY")
                         .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(Color(hex: "3E3E3E"))
-                        .kerning(2)
+                        .foregroundColor(.secondary)
+                        .kerning(1.5)
                     Text(dateFormatter.string(from: livePlan.raceDate))
                         .font(.system(size: 13))
                         .foregroundColor(.primary)
@@ -174,8 +174,8 @@ struct SavedPlanView: View {
                     Text("TRAINING PROGRESS")
                         .font(.system(size: 10, weight: .semibold,
                                       design: .monospaced))
-                        .foregroundColor(Color(hex: "3E3E3E"))
-                        .kerning(2)
+                        .foregroundColor(.secondary)
+                        .kerning(1.5)
                     Text(progressLabel(pct))
                         .font(.system(size: 13))
                         .foregroundColor(.primary)
@@ -545,7 +545,7 @@ struct SPVWeekDetailView: View {
                     Text(String(format: "%.1f mi planned",
                                 liveWeek.totalMiles))
                         .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "3E3E3E"))
+                        .foregroundColor(.secondary)
                 }
                 Spacer()
                 ZStack {
@@ -648,7 +648,7 @@ struct SPVDayRow: View {
                         .font(.system(size: 9, weight: .bold,
                                       design: .monospaced))
                         .foregroundColor(Color(hex: "0A84FF"))
-                        .kerning(1.5)
+                        .kerning(1)
                     Spacer()
                 }
                 .padding(.horizontal, 14)
@@ -831,7 +831,7 @@ struct SPVDayRow: View {
                             .foregroundColor(.secondary)
                         Text(note)
                             .font(.system(size: 11))
-                            .foregroundColor(Color(hex: "6A6A6A"))
+                            .foregroundColor(.secondary)
                             .lineLimit(2)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         Image(systemName: "pencil")
