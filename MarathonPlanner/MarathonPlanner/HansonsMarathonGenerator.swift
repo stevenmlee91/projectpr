@@ -689,7 +689,7 @@ the effort of the rep comes from the pace, not from grinding through exhaustion.
         }
 
         let desc = """
-Hansons Tempo: \(String(format: "%.1f", actualTotal)) miles at marathon pace.
+Hansons Tempo: \(String(format: "%.1f", actualTotal)) miles total — warmup, \(String(format: "%.1f", tempoSeg)) mi at marathon pace, cooldown.
 
 1.5 mi easy warmup · \(String(format: "%.1f", tempoSeg)) mi at \(tempoPace)/mi · \
 1.5 mi easy cooldown · Total: \(String(format: "%.1f", actualTotal)) miles
