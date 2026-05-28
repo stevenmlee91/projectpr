@@ -368,18 +368,23 @@ struct HansonsMarathonGenerator {
         }
     }
 
-    private static func tempoMiles(canonical: Int, weekMiles: Double,
-                                    isTaper: Bool) -> Double {
-        if isTaper { return max(5.0, weekMiles * 0.14).rounded(toPlaces: 1) }
-        let byCanonical: Double
+    // Returns the prescribed MP *segment* miles only.
+    // Warmup (1.5 mi) and cooldown (1.5 mi) are always additive — never carved
+    // from the quality segment. Total workout = segment + 3.0 mi.
+    private static func tempoSegmentMiles(canonical: Int, weekMiles: Double,
+                                           isTaper: Bool) -> Double {
+        if isTaper { return max(2.0, (weekMiles * 0.08)).rounded(toPlaces: 1) }
+        let canonicalMax: Double
         switch canonical {
-        case ..<6:    byCanonical = 7.0
-        case 6...8:   byCanonical = 8.0
-        case 9...12:  byCanonical = 9.0
-        case 13...15: byCanonical = 10.0
-        default:      byCanonical = 8.0
+        case ..<6:    canonicalMax = 5.0   // Speed phase: up to 5 mi at MP
+        case 6...8:   canonicalMax = 7.0   // Speed peak: up to 7 mi at MP
+        case 9...12:  canonicalMax = 9.0   // Early strength: up to 9 mi at MP
+        case 13...15: canonicalMax = 10.0  // Peak strength: up to 10 mi at MP
+        default:      canonicalMax = 7.0
         }
-        return min(byCanonical, max(weekMiles * 0.17, 5.0)).rounded(toPlaces: 1)
+        // Scale with weekly volume (14 %), floor at 3 miles so the session
+        // always provides meaningful marathon-pace work.
+        return min(canonicalMax, max(weekMiles * 0.14, 3.0)).rounded(toPlaces: 1)
     }
 
     private static func onboardingRunMiles(weekMiles: Double) -> Double {
@@ -442,24 +447,22 @@ struct HansonsMarathonGenerator {
 
         let longM = min(longMiles, longRunCap)
 
-        let idealEasyPerDay = max(4.0, min(6.0, (totalMiles * 0.11).rounded(toPlaces: 1)))
-
-        let easyPerDay: Double
-        if totalMiles >= longM + idealEasyPerDay * 3 {
-            easyPerDay = idealEasyPerDay
-        } else {
-            easyPerDay = max(3.0, ((totalMiles - longM) / 3.0).rounded(toPlaces: 1))
-        }
-
-        let qualityBudget = max(0, totalMiles - longM - easyPerDay * 3)
-
-        let rawQ1 = inOnboarding
+        let rawQ1  = inOnboarding
             ? onboardingRunMiles(weekMiles: totalMiles)
             : q1Miles(canonical: canonical, speedRelativeIdx: speedRelativeIdx,
                       phase: qualityPhase, scale: scale, isTaper: isTaper)
-        let rawQ2  = tempoMiles(canonical: canonical, weekMiles: totalMiles, isTaper: isTaper)
-        let safeQ1 = min(rawQ1, qualityBudget * 0.55)
-        let safeQ2 = min(rawQ2, max(0, qualityBudget - safeQ1))
+
+        // Q2: prescribed MP segment. Warmup/cooldown are additive — not subtracted
+        // from the quality miles. Total Q2 workout = segment + 1.5 warmup + 1.5 cooldown.
+        let q2Seg    = tempoSegmentMiles(canonical: canonical, weekMiles: totalMiles, isTaper: isTaper)
+        let q2Total  = (q2Seg + 3.0).rounded(toPlaces: 1)
+
+        // In Hansons, quality sessions are non-negotiable. Easy days flex to fit.
+        // Cap Q1 only enough to keep easy days at a minimum of 3 miles each.
+        let minEasyTotal = 3.0 * 3.0
+        let safeQ1   = min(rawQ1, max(0, totalMiles - longM - q2Total - minEasyTotal))
+        let easyBudget   = max(minEasyTotal, totalMiles - longM - safeQ1 - q2Total)
+        let easyPerDay   = (easyBudget / 3.0).rounded(toPlaces: 1)
 
         let earlyEasyType: WorkoutType = (inOnboarding && tier == .rebuilding)
             ? .recovery : .easy
@@ -496,7 +499,7 @@ struct HansonsMarathonGenerator {
                     }
                 }
             } else if day == q2Day {
-                td = makeTempoRun(day, canonical: canonical, miles: safeQ2,
+                td = makeTempoRun(day, canonical: canonical, mpSegment: q2Seg,
                                    isTaper: isTaper, trainingDepth: trainingDepth, paces: paces)
             } else {
                 td = easyPerDay > 0
@@ -641,43 +644,30 @@ the effort of the rep comes from the pace, not from grinding through exhaustion.
 
     // MARK: - Tempo Run
     //
-    // FIX 2 — Workout math display bug:
+    // Architecture: mpSegment is the prescribed quality miles at marathon pace.
+    // Warmup (1.5 mi) and cooldown (1.5 mi) are always additive.
+    // TrainingDay.miles = mpSegment + 3.0 — the runner's total workout distance.
     //
-    // Old code used `String(format: "%.0f", 1.5)` which rounds to "2", so the displayed
-    // breakdown (2 mi warmup + X mi MP + 2 mi cooldown) summed to (miles + 1) in most weeks.
-    // The runner saw the components add up to a different number than the stated total.
-    //
-    // Old code also derived tempoSegment as `miles - 3.0`, assuming warmup+cooldown=3.0 (1.5+1.5),
-    // while displaying them as 2+2=4. Both sides of the arithmetic were inconsistent.
-    //
-    // Fix: warmup and cooldown are defined as explicit Double constants (1.5 each).
-    // tempoSeg is computed as `miles - warmup - cooldown`, guaranteed consistent.
-    // actualTotal is derived from the three components — this is what gets stored in
-    // TrainingDay.miles and displayed in the description. Description and stored value
-    // are always identical.
-    //
-    // Verification:
-    //   miles=9.0 → 1.5 + 6.0 + 1.5 = 9.0 ✓
-    //   miles=7.0 → 1.5 + 4.0 + 1.5 = 7.0 ✓
-    //   miles=5.0 → 1.5 + 2.0 + 1.5 = 5.0 ✓  (tempoSeg floor at 2.0)
+    // Verification (55-mile peak week, canonical 14):
+    //   mpSegment = 7.7 mi → total = 7.7 + 1.5 + 1.5 = 10.7 mi ✓
+    // Verification (35-mile mid-plan week, canonical 7):
+    //   mpSegment = 4.9 mi → total = 4.9 + 1.5 + 1.5 = 7.9 mi ✓
 
+    // mpSegment: the prescribed quality distance at marathon pace.
+    // Warmup (1.5 mi) and cooldown (1.5 mi) are additive — total stored = mpSegment + 3.0.
     static func makeTempoRun(_ day          : Weekday,
                                canonical     : Int,
-                               miles         : Double,
+                               mpSegment     : Double,
                                isTaper       : Bool,
                                trainingDepth : Double,
                                paces         : PaceEngine) -> TrainingDay {
-        let tempoPace = PaceEngine.format(paces.hansonsTempo)
-        let goalMP    = PaceEngine.format(paces.MP)
-
-        // Component-based math — single source of truth for both description and TrainingDay.miles
-        let warmup   : Double = 1.5
-        let cooldown : Double = 1.5
-        let tempoSeg : Double = max(2.0, (miles - warmup - cooldown).rounded(toPlaces: 1))
-        let actualTotal: Double = (warmup + tempoSeg + cooldown).rounded(toPlaces: 1)
+        let tempoPace   = PaceEngine.format(paces.hansonsTempo)
+        let warmup      : Double = 1.5
+        let cooldown    : Double = 1.5
+        let actualTotal : Double = (warmup + mpSegment + cooldown).rounded(toPlaces: 1)
 
         let tapNote = isTaper
-            ? "Taper week — run 3–4 miles at marathon pace. Shorten the duration, not the pace."
+            ? "Taper week — \(String(format: "%.0f", mpSegment)) miles at marathon pace. Duration reduces, pace does not."
             : ""
 
         let phaseContext: String
@@ -689,9 +679,9 @@ the effort of the rep comes from the pace, not from grinding through exhaustion.
         }
 
         let desc = """
-Hansons Tempo: \(String(format: "%.1f", actualTotal)) miles total — warmup, \(String(format: "%.1f", tempoSeg)) mi at marathon pace, cooldown.
+Hansons Tempo: \(String(format: "%.1f", mpSegment)) mi at marathon pace · \(String(format: "%.1f", actualTotal)) mi total with warmup/cooldown.
 
-1.5 mi easy warmup · \(String(format: "%.1f", tempoSeg)) mi at \(tempoPace)/mi · \
+1.5 mi easy warmup · \(String(format: "%.1f", mpSegment)) mi at \(tempoPace)/mi · \
 1.5 mi easy cooldown · Total: \(String(format: "%.1f", actualTotal)) miles
 
 \(tapNote.isEmpty ? "" : tapNote + "\n\n")Target: \(tempoPace)/mi — your goal marathon pace. \
@@ -703,7 +693,7 @@ Breathing is deliberate but not desperate.
 """
         return TrainingDay(weekday: day, workoutType: .tempoRun, miles: actualTotal,
                            description: desc,
-                           paceNote: "\(tempoPace)/mi — marathon pace, sustained")
+                           paceNote: "\(tempoPace)/mi — marathon pace, \(String(format: "%.0f", mpSegment)) mi sustained")
     }
 
     // MARK: - Onboarding Run
