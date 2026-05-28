@@ -79,6 +79,21 @@
 		B0A62DB02F9862890093719D /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62DAF2F9862890093719D /* PlanView.swift */; };
 		B0A62DB22F98629C0093719D /* WeekDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62DB12F98629C0093719D /* WeekDetailView.swift */; };
 		B0A62DB42F9862AD0093719D /* MinitabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A62DB32F9862AD0093719D /* MinitabView.swift */; };
+		A1B2C3445566778899AA000D /* MileZeroWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA0008 /* MileZeroWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A1B2C3445566778899AA0020 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA000E /* Color+Hex.swift */; };
+		A1B2C3445566778899AA0021 /* WidgetPlanSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA0010 /* WidgetPlanSnapshot.swift */; };
+		A1B2C3445566778899AA0022 /* WidgetSnapshotBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA0011 /* WidgetSnapshotBuilder.swift */; };
+		A1B2C3445566778899AA0023 /* PlanStore+Widget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA0012 /* PlanStore+Widget.swift */; };
+		A1B2C3445566778899AA002D /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA002C /* WidgetKit.framework */; };
+		A1B2C3445566778899AA0024 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA000E /* Color+Hex.swift */; };
+		A1B2C3445566778899AA0025 /* WidgetPlanSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA0010 /* WidgetPlanSnapshot.swift */; };
+		A1B2C3445566778899AA0026 /* TrainingPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A432FB0492D00BFFC53 /* TrainingPhase.swift */; };
+		A1B2C3445566778899AA0027 /* WidgetTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA0013 /* WidgetTimelineProvider.swift */; };
+		A1B2C3445566778899AA0028 /* TodaySmallWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA0014 /* TodaySmallWidget.swift */; };
+		A1B2C3445566778899AA0029 /* TodayMediumWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA0015 /* TodayMediumWidget.swift */; };
+		A1B2C3445566778899AA002A /* LockScreenWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA0016 /* LockScreenWidget.swift */; };
+		A1B2C3445566778899AA002B /* MileZeroWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA0017 /* MileZeroWidgetBundle.swift */; };
+		A1B2C3445566778899AA002E /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3445566778899AA002C /* WidgetKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,7 +111,29 @@
 			remoteGlobalIDString = B0A62D782F9861A70093719D;
 			remoteInfo = MarathonPlanner;
 		};
+		A1B2C3445566778899AA000C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B0A62D712F9861A70093719D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1B2C3445566778899AA0001;
+			remoteInfo = MileZeroWidgets;
+		};
 /* End PBXContainerItemProxy section */
+
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A1B2C3445566778899AA000A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1B2C3445566778899AA000D /* MileZeroWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		B07526002F9B0C72008F9552 /* SavedPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedPlan.swift; sourceTree = "<group>"; };
@@ -175,6 +212,20 @@
 		B0A62DAF2F9862890093719D /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
 		B0A62DB12F98629C0093719D /* WeekDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekDetailView.swift; sourceTree = "<group>"; };
 		B0A62DB32F9862AD0093719D /* MinitabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MinitabView.swift; sourceTree = "<group>"; };
+		A1B2C3445566778899AA0008 /* MileZeroWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MileZeroWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3445566778899AA000E /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
+		A1B2C3445566778899AA0010 /* WidgetPlanSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetPlanSnapshot.swift; sourceTree = "<group>"; };
+		A1B2C3445566778899AA0011 /* WidgetSnapshotBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotBuilder.swift; sourceTree = "<group>"; };
+		A1B2C3445566778899AA0012 /* PlanStore+Widget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PlanStore+Widget.swift"; sourceTree = "<group>"; };
+		A1B2C3445566778899AA0018 /* MarathonPlanner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MarathonPlanner.entitlements; sourceTree = "<group>"; };
+		A1B2C3445566778899AA0013 /* WidgetTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetTimelineProvider.swift; sourceTree = "<group>"; };
+		A1B2C3445566778899AA0014 /* TodaySmallWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodaySmallWidget.swift; sourceTree = "<group>"; };
+		A1B2C3445566778899AA0015 /* TodayMediumWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayMediumWidget.swift; sourceTree = "<group>"; };
+		A1B2C3445566778899AA0016 /* LockScreenWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenWidget.swift; sourceTree = "<group>"; };
+		A1B2C3445566778899AA0017 /* MileZeroWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MileZeroWidgetBundle.swift; sourceTree = "<group>"; };
+		A1B2C3445566778899AA0019 /* MileZeroWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MileZeroWidgets.entitlements; sourceTree = "<group>"; };
+		A1B2C3445566778899AA001A /* MileZeroWidgets/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1B2C3445566778899AA002C /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -182,6 +233,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3445566778899AA002D /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -199,6 +251,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B2C3445566778899AA0007 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3445566778899AA002E /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -208,6 +268,7 @@
 				B0A62D7B2F9861A70093719D /* MarathonPlanner */,
 				B0A62D8C2F9861AB0093719D /* MarathonPlannerTests */,
 				B0A62D962F9861AB0093719D /* MarathonPlannerUITests */,
+				A1B2C3445566778899AA0009 /* MileZeroWidgets */,
 				B0A62D7A2F9861A70093719D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -218,6 +279,7 @@
 				B0A62D792F9861A70093719D /* MarathonPlanner.app */,
 				B0A62D892F9861AB0093719D /* MarathonPlannerTests.xctest */,
 				B0A62D932F9861AB0093719D /* MarathonPlannerUITests.xctest */,
+				A1B2C3445566778899AA0008 /* MileZeroWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -294,6 +356,11 @@
 				B07526162F9EB5CB008F9552 /* WeeklyMileageChart.swift */,
 				B08F5A372FAEFC8500BFFC53 /* TrainingPhaseEngine.swift */,
 				B0A62D802F9861AB0093719D /* Assets.xcassets */,
+				A1B2C3445566778899AA000E /* Color+Hex.swift */,
+				A1B2C3445566778899AA0010 /* WidgetPlanSnapshot.swift */,
+				A1B2C3445566778899AA0011 /* WidgetSnapshotBuilder.swift */,
+				A1B2C3445566778899AA0012 /* PlanStore+Widget.swift */,
+				A1B2C3445566778899AA0018 /* MarathonPlanner.entitlements */,
 				B0A62D822F9861AB0093719D /* Preview Content */,
 			);
 			path = MarathonPlanner;
@@ -324,6 +391,20 @@
 			path = MarathonPlannerUITests;
 			sourceTree = "<group>";
 		};
+		A1B2C3445566778899AA0009 /* MileZeroWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3445566778899AA001A /* Info.plist */,
+				A1B2C3445566778899AA0019 /* MileZeroWidgets.entitlements */,
+				A1B2C3445566778899AA0017 /* MileZeroWidgetBundle.swift */,
+				A1B2C3445566778899AA0013 /* WidgetTimelineProvider.swift */,
+				A1B2C3445566778899AA0014 /* TodaySmallWidget.swift */,
+				A1B2C3445566778899AA0015 /* TodayMediumWidget.swift */,
+				A1B2C3445566778899AA0016 /* LockScreenWidget.swift */,
+			);
+			path = MileZeroWidgets;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -334,10 +415,12 @@
 				B0A62D752F9861A70093719D /* Sources */,
 				B0A62D762F9861A70093719D /* Frameworks */,
 				B0A62D772F9861A70093719D /* Resources */,
+				A1B2C3445566778899AA000A /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A1B2C3445566778899AA000B /* PBXTargetDependency */,
 			);
 			name = MarathonPlanner;
 			productName = MarathonPlanner;
@@ -380,6 +463,23 @@
 			productReference = B0A62D932F9861AB0093719D /* MarathonPlannerUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		A1B2C3445566778899AA0001 /* MileZeroWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3445566778899AA0002 /* Build configuration list for PBXNativeTarget "MileZeroWidgets" */;
+			buildPhases = (
+				A1B2C3445566778899AA0005 /* Sources */,
+				A1B2C3445566778899AA0007 /* Frameworks */,
+				A1B2C3445566778899AA0006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MileZeroWidgets;
+			productName = MileZeroWidgets;
+			productReference = A1B2C3445566778899AA0008 /* MileZeroWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -401,6 +501,9 @@
 						CreatedOnToolsVersion = 14.3.1;
 						TestTargetID = B0A62D782F9861A70093719D;
 					};
+					A1B2C3445566778899AA0001 = {
+						CreatedOnToolsVersion = 16.2;
+					};
 				};
 			};
 			buildConfigurationList = B0A62D742F9861A70093719D /* Build configuration list for PBXProject "MarathonPlanner" */;
@@ -419,6 +522,7 @@
 				B0A62D782F9861A70093719D /* MarathonPlanner */,
 				B0A62D882F9861AB0093719D /* MarathonPlannerTests */,
 				B0A62D922F9861AB0093719D /* MarathonPlannerUITests */,
+				A1B2C3445566778899AA0001 /* MileZeroWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -441,6 +545,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B0A62D912F9861AB0093719D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3445566778899AA0006 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -521,6 +632,10 @@
 				B075261B2F9EC478008F9552 /* SettingsView.swift in Sources */,
 				B08F59DD2FA5BBD600BFFC53 /* SavedRouteLibraryView.swift in Sources */,
 				B08F59DB2FA5BBC400BFFC53 /* SavedRouteSheet.swift in Sources */,
+				A1B2C3445566778899AA0020 /* Color+Hex.swift in Sources */,
+				A1B2C3445566778899AA0021 /* WidgetPlanSnapshot.swift in Sources */,
+				A1B2C3445566778899AA0022 /* WidgetSnapshotBuilder.swift in Sources */,
+				A1B2C3445566778899AA0023 /* PlanStore+Widget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -541,6 +656,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B2C3445566778899AA0005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3445566778899AA0024 /* Color+Hex.swift in Sources */,
+				A1B2C3445566778899AA0025 /* WidgetPlanSnapshot.swift in Sources */,
+				A1B2C3445566778899AA0026 /* TrainingPhase.swift in Sources */,
+				A1B2C3445566778899AA0027 /* WidgetTimelineProvider.swift in Sources */,
+				A1B2C3445566778899AA0028 /* TodaySmallWidget.swift in Sources */,
+				A1B2C3445566778899AA0029 /* TodayMediumWidget.swift in Sources */,
+				A1B2C3445566778899AA002A /* LockScreenWidget.swift in Sources */,
+				A1B2C3445566778899AA002B /* MileZeroWidgetBundle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -553,6 +683,11 @@
 			isa = PBXTargetDependency;
 			target = B0A62D782F9861A70093719D /* MarathonPlanner */;
 			targetProxy = B0A62D942F9861AB0093719D /* PBXContainerItemProxy */;
+		};
+		A1B2C3445566778899AA000B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1B2C3445566778899AA0001 /* MileZeroWidgets */;
+			targetProxy = A1B2C3445566778899AA000C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -676,6 +811,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MarathonPlanner/MarathonPlanner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"MarathonPlanner/Preview Content\"";
@@ -709,6 +845,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MarathonPlanner/MarathonPlanner.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"MarathonPlanner/Preview Content\"";
@@ -809,6 +946,52 @@
 			};
 			name = Release;
 		};
+		A1B2C3445566778899AA0003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MileZeroWidgets/MileZeroWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BX2P9YS3TZ;
+				INFOPLIST_FILE = MileZeroWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.2;
+				PRODUCT_BUNDLE_IDENTIFIER = MarathonPlanner.MarathonPlanner.MileZeroWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1B2C3445566778899AA0004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MileZeroWidgets/MileZeroWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BX2P9YS3TZ;
+				INFOPLIST_FILE = MileZeroWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.2;
+				PRODUCT_BUNDLE_IDENTIFIER = MarathonPlanner.MarathonPlanner.MileZeroWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -844,6 +1027,15 @@
 			buildConfigurations = (
 				B0A62DA42F9861AB0093719D /* Debug */,
 				B0A62DA52F9861AB0093719D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3445566778899AA0002 /* Build configuration list for PBXNativeTarget "MileZeroWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3445566778899AA0003 /* Debug */,
+				A1B2C3445566778899AA0004 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

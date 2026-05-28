@@ -72,6 +72,7 @@ struct MarathonTrainerApp: App {
                 .preferredColorScheme(
                     appearanceManager.appearance.colorScheme)
                 .onAppear {
+                    store.syncWidget()
                     notificationManager.refreshAuthorizationStatus()
                     DispatchQueue.main.asyncAfter(
                         deadline: .now() + 0.5) {

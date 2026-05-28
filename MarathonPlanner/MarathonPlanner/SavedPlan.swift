@@ -317,6 +317,7 @@ class PlanStore: ObservableObject {
 
     func setPrimary(_ plan: SavedPlan) {
         primaryPlanID = plan.id
+        syncWidget()
         NotificationManager.shared.scheduleWorkoutReminders(
             for: plans, primaryID: primaryPlanID)
         WeeklySummaryManager.shared.scheduleWeeklySummary(
@@ -330,6 +331,7 @@ class PlanStore: ObservableObject {
         plans.append(plan)
         if plans.count == 1 { primaryPlanID = plan.id }
         persist()
+        syncWidget()
         NotificationManager.shared.scheduleWorkoutReminders(
             for: plans, primaryID: primaryPlanID)
         WeeklySummaryManager.shared.scheduleWeeklySummary(
@@ -341,6 +343,7 @@ class PlanStore: ObservableObject {
         plans.removeAll { $0.id == plan.id }
         if wasPrimary { primaryPlanID = plans.first?.id }
         persist()
+        syncWidget()
         NotificationManager.shared.scheduleWorkoutReminders(
             for: plans, primaryID: primaryPlanID)
         WeeklySummaryManager.shared.scheduleWeeklySummary(
@@ -377,6 +380,8 @@ class PlanStore: ObservableObject {
         if status == .notStarted {
             plans[pi].weeks[wi].days[di].actualMiles = nil
         }
+
+        syncWidget()
 
         let snapshot = plans
         DispatchQueue.global(qos: .utility).async {
