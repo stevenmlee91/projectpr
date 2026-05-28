@@ -890,6 +890,96 @@ struct EditDurationChip: View {
     }
 }
 
+// MARK: - Single Day Picker
+
+struct SingleDayPicker: View {
+    @Binding var selected : Weekday
+    let disabled          : [Weekday]
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(Weekday.displayOrder, id: \.self) { day in
+                let isSel = selected == day
+                let isDis = disabled.contains(day)
+                Button {
+                    guard !isDis else { return }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    selected = day
+                } label: {
+                    Text(day.name)
+                        .font(.system(size: 11,
+                                      weight: isSel ? .semibold : .regular,
+                                      design: .monospaced))
+                        .foregroundColor(
+                            isDis ? Color(.tertiaryLabel) :
+                            isSel ? Color(.systemBackground) :
+                                    .primary
+                        )
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 38)
+                        .background(
+                            isDis ? Color(.tertiarySystemFill) :
+                            isSel ? Color(.label) :
+                                    Color(.systemFill)
+                        )
+                        .cornerRadius(8)
+                        .animation(.easeInOut(duration: 0.12), value: isSel)
+                }
+                .buttonStyle(.plain)
+                .disabled(isDis)
+            }
+        }
+    }
+}
+
+// MARK: - Multi Day Picker
+
+struct MultiDayPicker: View {
+    @Binding var selected : [Weekday]
+    let disabled          : [Weekday]
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(Weekday.displayOrder, id: \.self) { day in
+                let isSel = selected.contains(day)
+                let isDis = disabled.contains(day)
+                Button {
+                    guard !isDis else { return }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    if isSel {
+                        selected.removeAll { $0 == day }
+                    } else {
+                        selected.append(day)
+                    }
+                } label: {
+                    Text(day.name)
+                        .font(.system(size: 11,
+                                      weight: isSel ? .semibold : .regular,
+                                      design: .monospaced))
+                        .foregroundColor(
+                            isDis ? Color(.tertiaryLabel) :
+                            isSel ? Color(.systemBackground) :
+                                    .primary
+                        )
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 38)
+                        .background(
+                            isDis ? Color(.tertiarySystemFill) :
+                            isSel ? Color(.label) :
+                                    Color(.systemFill)
+                        )
+                        .cornerRadius(8)
+                        .animation(.easeInOut(duration: 0.12), value: isSel)
+                }
+                .buttonStyle(.plain)
+                .disabled(isDis)
+            }
+        }
+    }
+}
+
+// MARK: - Cross-Train Toggle
+
 struct EditCrossTrainToggle: View {
     @Binding var schedule : UserSchedule
     let taken             : [Weekday]
