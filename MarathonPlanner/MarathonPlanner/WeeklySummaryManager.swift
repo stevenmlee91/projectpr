@@ -84,6 +84,7 @@ final class WeeklySummaryManager {
         let longRunDone = currentWeek.days.contains {
             let isLong = $0.workoutType == "Long Run"
                 || $0.workoutType == "Long Run w/ MP Finish"
+                || $0.workoutType == "Long Run w/ HMP Finish"
             let isDone = $0.completionStatus == .completed
                 || $0.completionStatus == .modified
             return isLong && isDone
@@ -104,6 +105,7 @@ final class WeeklySummaryManager {
                 .filter {
                     $0.workoutType == "Long Run"
                         || $0.workoutType == "Long Run w/ MP Finish"
+                        || $0.workoutType == "Long Run w/ HMP Finish"
                 }
                 .map { $0.miles }
                 .max() ?? 0

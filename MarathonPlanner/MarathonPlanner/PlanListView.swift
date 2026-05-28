@@ -105,6 +105,12 @@ struct PlanListView: View {
                 if !editing { selectedIDs.removeAll() }
             }
         }
+        .onAppear {
+            if let id = store.pendingOpenPlanID {
+                navPath.append(PlanNavID(id: id))
+                store.pendingOpenPlanID = nil
+            }
+        }
     }
 
     // MARK: - Helpers

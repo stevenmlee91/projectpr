@@ -279,6 +279,7 @@ func buildSavedWeeks(from trainingWeeks: [TrainingWeek],
 
 class PlanStore: ObservableObject {
     @Published var plans: [SavedPlan] = []
+    @Published var pendingOpenPlanID: UUID? = nil
 
     @Published private(set) var primaryPlanID: UUID? {
         didSet {

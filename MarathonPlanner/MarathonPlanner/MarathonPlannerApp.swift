@@ -72,6 +72,9 @@ struct MarathonTrainerApp: App {
                 .preferredColorScheme(
                     appearanceManager.appearance.colorScheme)
                 .onAppear {
+                    if store.pendingOpenPlanID != nil {
+                        selectedTab = 1   // Plans tab
+                    }
                     store.syncWidget()
                     notificationManager.refreshAuthorizationStatus()
                     DispatchQueue.main.asyncAfter(

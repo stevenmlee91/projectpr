@@ -36,6 +36,7 @@ struct OnboardingView: View {
 
     @State private var currentPage    = 0
     @State private var showCreatePlan = false
+    @State private var newPlanID      : UUID? = nil
 
     private let totalPages = 5
 
@@ -74,8 +75,12 @@ struct OnboardingView: View {
             }
         }
         .sheet(isPresented: $showCreatePlan,
-               onDismiss: { hasCompletedOnboarding = true }) {
-            CreatePlanView().environmentObject(store)
+               onDismiss: {
+                   store.pendingOpenPlanID = newPlanID
+                   hasCompletedOnboarding  = true
+               }) {
+            CreatePlanView(onPlanCreated: { id in newPlanID = id })
+                .environmentObject(store)
         }
     }
 

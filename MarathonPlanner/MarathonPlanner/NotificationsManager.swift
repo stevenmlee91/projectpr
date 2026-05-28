@@ -170,7 +170,9 @@ class NotificationManager: ObservableObject {
         case "Rest":
             return "Rest is training. Recover well today."
         case "Race Day 🏁":
-            return "26.2 miles. You trained for this. Run free."
+            return day.miles < 20
+                ? "13.1 miles. You trained for this. Run free."
+                : "26.2 miles. You trained for this. Run free."
         default:
             var body = ""
             if day.miles > 0 {

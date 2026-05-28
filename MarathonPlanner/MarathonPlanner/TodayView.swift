@@ -13,6 +13,8 @@ struct TodayView: View {
     @State private var offSeasonWorkout  : SuggestedWorkout?      = nil
     @State private var offSeasonGoal     : OffSeasonWeeklyGoal?   = nil
     @State private var showCreatePlan    : Bool                   = false
+    @State private var navPath           = NavigationPath()
+    @State private var newPlanID         : UUID?                  = nil
 
     private var todayContext: TodayContext? {
         TodayContext.find(in: store.plans,
@@ -20,7 +22,7 @@ struct TodayView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             ZStack {
                 Color(.systemBackground).ignoresSafeArea()
 
@@ -115,6 +117,11 @@ struct TodayView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: PlanNavID.self) { nav in
+                if let plan = store.plans.first(where: { $0.id == nav.id }) {
+                    SavedPlanView(plan: plan).environmentObject(store)
+                }
+            }
         }
         .onAppear {
             refreshInsight()
@@ -133,8 +140,13 @@ struct TodayView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: showCompletion)
         .animation(.easeInOut(duration: 0.25), value: showMilestone)
-        .sheet(isPresented: $showCreatePlan) {
-            CreatePlanView()
+        .sheet(isPresented: $showCreatePlan, onDismiss: {
+            if let id = newPlanID {
+                navPath.append(PlanNavID(id: id))
+                newPlanID = nil
+            }
+        }) {
+            CreatePlanView(onPlanCreated: { id in newPlanID = id })
                 .environmentObject(store)
         }
     }
