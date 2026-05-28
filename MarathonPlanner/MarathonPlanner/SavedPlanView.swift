@@ -11,7 +11,7 @@ extension URL: Identifiable {
 struct SavedPlanView: View {
     let plan: SavedPlan
     @EnvironmentObject var store: PlanStore
-    @State private var showingEdit = false
+    @State private var showingEdit    = false
     @State private var shareURL: URL? = nil
 
     private var livePlan: SavedPlan {
@@ -63,6 +63,9 @@ struct SavedPlanView: View {
                 VStack(spacing: 0) {
                     planHeader
                     completionBanner
+                    PlanPhilosophyCard(plan: livePlan)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 12)
                     exportButtons
                     WeeklyMileageChartView(
                         plan:           livePlan,

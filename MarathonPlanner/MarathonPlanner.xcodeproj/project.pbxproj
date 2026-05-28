@@ -46,6 +46,10 @@
 		B08F5A262FAB069400BFFC53 /* WeeklySummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A252FAB069400BFFC53 /* WeeklySummaryView.swift */; };
 		B08F5A282FAB0B4F00BFFC53 /* MilestoneOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */; };
 		B08F5A2A2FAB0B6200BFFC53 /* MilestoneDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A292FAB0B6200BFFC53 /* MilestoneDetector.swift */; };
+		B08F5A3B2FB0000000BFFC53 /* PlanValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A3A2FB0000000BFFC53 /* PlanValidator.swift */; };
+		B08F5A3F2FB0000000BFFC53 /* PlanCorrector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A3E2FB0000000BFFC53 /* PlanCorrector.swift */; };
+		B08F5A412FB0000000BFFC53 /* PlanPhilosophyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A402FB0000000BFFC53 /* PlanPhilosophyCard.swift */; };
+		B08F5A3D2FB0000000BFFC53 /* PlanValidationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A3C2FB0000000BFFC53 /* PlanValidationView.swift */; };
 		B08F5A2C2FAC281D00BFFC53 /* OffSeasonEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A2B2FAC281D00BFFC53 /* OffSeasonEngine.swift */; };
 		B08F5A2E2FAC283200BFFC53 /* OffSeasonCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A2D2FAC283200BFFC53 /* OffSeasonCard.swift */; };
 		B08F5A302FAC31D400BFFC53 /* CreateplanCTAButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A2F2FAC31D400BFFC53 /* CreateplanCTAButton.swift */; };
@@ -176,6 +180,10 @@
 		B08F5A252FAB069400BFFC53 /* WeeklySummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklySummaryView.swift; sourceTree = "<group>"; };
 		B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MilestoneOverlayView.swift; sourceTree = "<group>"; };
 		B08F5A292FAB0B6200BFFC53 /* MilestoneDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MilestoneDetector.swift; sourceTree = "<group>"; };
+		B08F5A3A2FB0000000BFFC53 /* PlanValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanValidator.swift; sourceTree = "<group>"; };
+		B08F5A3E2FB0000000BFFC53 /* PlanCorrector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanCorrector.swift; sourceTree = "<group>"; };
+		B08F5A402FB0000000BFFC53 /* PlanPhilosophyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPhilosophyCard.swift; sourceTree = "<group>"; };
+		B08F5A3C2FB0000000BFFC53 /* PlanValidationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanValidationView.swift; sourceTree = "<group>"; };
 		B08F5A2B2FAC281D00BFFC53 /* OffSeasonEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffSeasonEngine.swift; sourceTree = "<group>"; };
 		B08F5A2D2FAC283200BFFC53 /* OffSeasonCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OffSeasonCard.swift; sourceTree = "<group>"; };
 		B08F5A2F2FAC31D400BFFC53 /* CreateplanCTAButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateplanCTAButton.swift; sourceTree = "<group>"; };
@@ -343,6 +351,10 @@
 				B08F5A472FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift */,
 				B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */,
 				B08F5A292FAB0B6200BFFC53 /* MilestoneDetector.swift */,
+				B08F5A3A2FB0000000BFFC53 /* PlanValidator.swift */,
+				B08F5A3E2FB0000000BFFC53 /* PlanCorrector.swift */,
+				B08F5A402FB0000000BFFC53 /* PlanPhilosophyCard.swift */,
+				B08F5A3C2FB0000000BFFC53 /* PlanValidationView.swift */,
 				B08F5A232FAB067A00BFFC53 /* WeeklySummaryManager.swift */,
 				B08F5A252FAB069400BFFC53 /* WeeklySummaryView.swift */,
 				B08F5A212FA7F64600BFFC53 /* WorkoutCompletionView.swift */,
@@ -587,6 +599,10 @@
 				B08F59C82FA46AE800BFFC53 /* RouteMapView.swift in Sources */,
 				B08F5A1E2FA7F4F300BFFC53 /* DailyInsightEngine.swift in Sources */,
 				B08F5A2A2FAB0B6200BFFC53 /* MilestoneDetector.swift in Sources */,
+				B08F5A3B2FB0000000BFFC53 /* PlanValidator.swift in Sources */,
+				B08F5A3F2FB0000000BFFC53 /* PlanCorrector.swift in Sources */,
+				B08F5A412FB0000000BFFC53 /* PlanPhilosophyCard.swift in Sources */,
+				B08F5A3D2FB0000000BFFC53 /* PlanValidationView.swift in Sources */,
 				B08F5A202FA7F50E00BFFC53 /* DailyInsightCard.swift in Sources */,
 				B08F59CF2FA565B400BFFC53 /* ElevationChartView.swift in Sources */,
 				B08F5A442FB0492D00BFFC53 /* TrainingPhase.swift in Sources */,

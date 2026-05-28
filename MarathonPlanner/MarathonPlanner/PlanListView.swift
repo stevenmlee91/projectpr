@@ -28,6 +28,8 @@ enum PlanSortOrder: String, CaseIterable, Identifiable {
 struct PlanListView: View {
     @EnvironmentObject var store: PlanStore
 
+    @State private var navPath         = NavigationPath()
+    @State private var newPlanID       : UUID? = nil
     @State private var showingCreate   = false
     @State private var isEditing       = false
     @State private var selectedIDs     : Set<UUID> = []
@@ -52,7 +54,7 @@ struct PlanListView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             ZStack {
                 Color(.systemGroupedBackground).ignoresSafeArea()
                 if store.plans.isEmpty {
@@ -78,8 +80,14 @@ struct PlanListView: View {
                      ? "This will permanently delete the selected plan. This action cannot be undone."
                      : "This will permanently delete \(selectedIDs.count) plans. This action cannot be undone.")
             }
-            .sheet(isPresented: $showingCreate) {
-                CreatePlanView().environmentObject(store)
+            .sheet(isPresented: $showingCreate, onDismiss: {
+                if let id = newPlanID {
+                    navPath.append(PlanNavID(id: id))
+                    newPlanID = nil
+                }
+            }) {
+                CreatePlanView(onPlanCreated: { id in newPlanID = id })
+                    .environmentObject(store)
             }
             .navigationDestination(for: PlanNavID.self) { nav in
                 if let plan = store.plans.first(where: { $0.id == nav.id }) {
