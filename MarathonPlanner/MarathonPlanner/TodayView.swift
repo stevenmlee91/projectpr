@@ -55,7 +55,7 @@ struct TodayView: View {
                                 }.joined())
                             }
 
-                            RaceCountdownCard(ctx: ctx)
+                            RaceCountdownStrip(ctx: ctx)
 
                         } else {
                             emptyState
@@ -114,16 +114,7 @@ struct TodayView: View {
                     .zIndex(1000)
                 }
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("TODAY")
-                        .font(.system(size: 12, weight: .semibold,
-                                      design: .monospaced))
-                        .foregroundColor(.secondary)
-                        .kerning(2)
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
         }
         .onAppear {
             refreshInsight()
@@ -220,19 +211,61 @@ struct TodayView: View {
     // MARK: - Header
 
     private func todayHeader(ctx: TodayContext) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
+        let daysToRace = max(0, Calendar.current.dateComponents(
+            [.day],
+            from: Calendar.current.startOfDay(for: Date()),
+            to:   Calendar.current.startOfDay(for: ctx.plan.raceDate)
+        ).day ?? 0)
+
+        return VStack(alignment: .leading, spacing: 0) {
             Text(formattedDate())
                 .eyebrow()
                 .kerning(1.5)
+                .padding(.bottom, 10)
+
             Text(ctx.plan.name)
-                .font(.displayTitle(24))
+                .font(.system(size: 28, weight: .light, design: .serif))
                 .foregroundColor(.primary)
-            Text("Week \(ctx.weekNumber) of \(ctx.totalWeeks)")
-                .font(.metricCaption())
-                .foregroundColor(.secondary)
+                .padding(.bottom, 10)
+
+            HStack(alignment: .center, spacing: 6) {
+                Circle()
+                    .fill(ctx.week.phase.accentColor)
+                    .frame(width: 6, height: 6)
+
+                Text("Week \(ctx.weekNumber) of \(ctx.totalWeeks)")
+                    .font(.metricCaption())
+                    .foregroundColor(.secondary)
+
+                Text("·")
+                    .font(.metricCaption())
+                    .foregroundColor(Color(.tertiaryLabel))
+
+                Text(ctx.week.phaseLabel)
+                    .font(.metricCaption())
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                if daysToRace > 0 {
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
+                        Text("\(daysToRace)")
+                            .font(.system(size: 13, weight: .semibold,
+                                          design: .monospaced))
+                            .foregroundColor(.primary)
+                        Text("days")
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    Label("Race day", systemImage: "flag.checkered")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(Color(hex: "FFD60A"))
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, Spacing.sm)
+        .padding(.top, 20)
     }
 
     private func formattedDate() -> String {
@@ -337,52 +370,52 @@ struct TodayWorkoutCard: View {
     private var status: CompletionStatus { liveDay.completionStatus }
 
     var body: some View {
-        VStack(spacing: 0) {
-            workoutTypeBar
-            VStack(alignment: .leading, spacing: 16) {
-                milesAndPace
-                descriptionText
-                if !liveDay.paceNote.isEmpty && liveDay.paceNote != "—" {
-                    paceNote
+        HStack(spacing: 0) {
+            // Left accent bar — communicates workout type before reading a word
+            accentBarColor
+                .frame(width: 3)
+
+            // Card content
+            VStack(spacing: 0) {
+                workoutTypeBar
+                VStack(alignment: .leading, spacing: 16) {
+                    milesAndPace
+                    descriptionText
+                    if !liveDay.paceNote.isEmpty && liveDay.paceNote != "—" {
+                        paceNote
+                    }
+                    coachingCard
+                    completionControls
+                    if showingActualMiles { actualMilesRow }
                 }
-                coachingCard        // ← ADD THIS LINE
-                completionControls
-                if showingActualMiles { actualMilesRow }
+                .padding(20)
             }
-            .padding(20)
         }
         .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(cardBorder, lineWidth: 1.5)
+                .stroke(Color(.separator).opacity(0.3), lineWidth: 1)
         )
-        .cornerRadius(16)
         .animation(.easeInOut(duration: 0.2), value: status)
     }
 
     // MARK: Type Bar
 
     private var workoutTypeBar: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(workoutColor)
-                    .frame(width: 7, height: 7)
-                Text(liveDay.displayWorkoutType(
-                        raceType: ctx.plan.settings.raceType).uppercased())
-                    .font(.system(size: 10, weight: .bold,
-                                  design: .monospaced))
-                    .foregroundColor(workoutColor)
-                    .kerning(1.5)
-                Spacer()
-                statusBadge
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-
-            Divider()
-                .padding(.horizontal, 20)
+        HStack(spacing: 8) {
+            Text(liveDay.displayWorkoutType(
+                    raceType: ctx.plan.settings.raceType).uppercased())
+                .font(.system(size: 10, weight: .bold,
+                              design: .monospaced))
+                .foregroundColor(workoutColor)
+                .kerning(1.5)
+            Spacer()
+            statusBadge
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 4)
     }
 
     private var statusBadge: some View {
@@ -876,29 +909,28 @@ struct TodayWorkoutCard: View {
         }
     }
 
-    private var cardBackground: Color {
+    // Left accent bar: workout colour before starting; status colour after
+    private var accentBarColor: Color {
+        guard liveDay.workoutType != "Rest" else { return .clear }
         switch status {
-        case .completed:  return Color(.systemGreen).opacity(0.12)
-        case .skipped:    return Color(.systemRed).opacity(0.10)
-        case .modified:   return Color(.systemBlue).opacity(0.10)
         case .notStarted:
-            if liveDay.workoutType == "Race Day 🏁" {
-                return Color(.systemYellow).opacity(0.10)
-            }
-            return Color(.secondarySystemBackground)
+            return liveDay.workoutType == "Race Day 🏁" ? .yellow : workoutColor
+        case .completed: return Color(hex: "30D158")
+        case .skipped:   return Color(hex: "FF453A")
+        case .modified:  return Color(hex: "0A84FF")
         }
     }
 
-    private var cardBorder: Color {
+    private var cardBackground: Color {
         switch status {
-        case .completed:  return Color(hex: "30D158").opacity(0.5)
-        case .skipped:    return Color(hex: "FF453A").opacity(0.5)
-        case .modified:   return Color(hex: "0A84FF").opacity(0.5)
+        case .completed:  return Color(.systemGreen).opacity(0.10)
+        case .skipped:    return Color(.systemRed).opacity(0.08)
+        case .modified:   return Color(.systemBlue).opacity(0.08)
         case .notStarted:
             if liveDay.workoutType == "Race Day 🏁" {
-                return Color.yellow.opacity(0.6)
+                return Color(.systemYellow).opacity(0.08)
             }
-            return Color(.separator)
+            return Color(.secondarySystemBackground)
         }
     }
 }
@@ -955,7 +987,7 @@ struct WeekProgressCard: View {
                 .frame(width: 52, height: 52)
             }
 
-            HStack(spacing: 6) {
+            HStack(spacing: 2) {
                 ForEach(sortedDays(liveWeek.days)) { day in
                     dayDot(day: day)
                 }
@@ -983,24 +1015,24 @@ struct WeekProgressCard: View {
     }
 
     private func dayDot(day: SavedDay) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 5) {
             ZStack {
                 Circle()
                     .fill(dotBg(day))
-                    .frame(width: 28, height: 28)
+                    .frame(width: 34, height: 34)
                     .animation(.spring(response: 0.35,
                                         dampingFraction: 0.7),
                                value: day.completionStatus)
                 if day.id == ctx.day.id {
                     Circle()
                         .stroke(Color.white, lineWidth: 2)
-                        .frame(width: 28, height: 28)
+                        .frame(width: 34, height: 34)
                 }
                 dotIcon(day)
             }
             Text(String(day.weekday.prefix(1)))
-                .font(.system(size: 8, design: .monospaced))
-                .foregroundColor(.secondary)
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundColor(day.id == ctx.day.id ? .primary : .secondary)
         }
         .frame(maxWidth: .infinity)
         .scaleEffect(day.id == ctx.day.id ? 1.08 : 1.0)
@@ -1054,22 +1086,24 @@ struct WeekProgressCard: View {
     }
 }
 
-// MARK: - Race Countdown Card
+// MARK: - Race Countdown Strip
 
-struct RaceCountdownCard: View {
+struct RaceCountdownStrip: View {
     let ctx: TodayContext
 
     private var daysUntilRace: Int {
         max(0, Calendar.current.dateComponents(
-            [.day], from: Date(),
-            to: ctx.plan.raceDate).day ?? 0)
+            [.day],
+            from: Calendar.current.startOfDay(for: Date()),
+            to:   Calendar.current.startOfDay(for: ctx.plan.raceDate)
+        ).day ?? 0)
     }
 
     private var label: String {
         switch daysUntilRace {
-        case 0:       return "Race day is today. Go run your marathon."
+        case 0:       return "Race day is today."
         case 1:       return "Race day is tomorrow. Trust your training."
-        case 2...6:   return "Race week. Protect your legs. Stay sharp."
+        case 2...6:   return "Race week. Protect your legs."
         case 7...14:  return "Final stretch. The hay is in the barn."
         case 15...21: return "Three weeks out. Taper is working."
         default:      return "Keep building. Every session counts."
@@ -1077,31 +1111,35 @@ struct RaceCountdownCard: View {
     }
 
     var body: some View {
-        HStack(spacing: Spacing.lg) {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("RACE DAY")
-                    .eyebrow()
-                    .kerning(1.5)
-                Text(label)
-                    .font(.appBody())
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .lineSpacing(4)
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
+        HStack(spacing: 10) {
+            Image(systemName: daysUntilRace <= 7
+                  ? "flag.checkered" : "flag")
+                .font(.system(size: 13, weight: .light))
+                .foregroundColor(daysUntilRace <= 7
+                                 ? Color(hex: "FFD60A") : .secondary)
+
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text("\(daysUntilRace)")
-                    .font(.metric(36))
+                    .font(.system(size: 20, weight: .light,
+                                  design: .monospaced))
                     .foregroundColor(.primary)
                     .contentTransition(.numericText())
                 Text("days")
-                    .font(.metricCaption())
+                    .font(.system(size: 11, design: .monospaced))
                     .foregroundColor(.secondary)
             }
         }
-        .padding(Spacing.lg)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(Color(.secondarySystemBackground))
-        .cornerRadius(Radius.lg)
+        .cornerRadius(12)
     }
 }
 

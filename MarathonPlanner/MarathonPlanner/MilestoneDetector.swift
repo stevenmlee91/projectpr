@@ -299,10 +299,10 @@ struct MilestoneDetector {
             if prevFiftyWeeks.isEmpty { return .fiftyMileWeek }
         }
 
-        // 12. 14-day streak
+        // 12. 14-day streak — fire exactly once on day 7 / day 14
         let streak = consecutiveStreak(before: completedDay, in: allDays)
-        if streak >= 14 { return .fourteenDayStreak }
-        if streak >= 7  { return .sevenDayStreak }
+        if streak == 14 { return .fourteenDayStreak }
+        if streak == 7  { return .sevenDayStreak }
 
         // 13. First workout ever completed
         let prevCompleted = allDays.filter {

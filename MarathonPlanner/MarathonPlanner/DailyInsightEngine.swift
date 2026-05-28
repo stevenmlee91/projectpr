@@ -34,8 +34,8 @@ struct DailyInsightEngine {
         if ctx.daysToRace <= 7         { return insightRaceWeek(ctx)    }
         if ctx.isInTaper               { return insightTaper(ctx)       }
         if ctx.isPeakWeek              { return insightPeak(ctx)        }
-        if ctx.daysSinceLastRun >= 2
-            && ctx.daysSinceLastRun < 5 { return insightMissed(ctx)    }
+        if ctx.missedWorkoutsSinceLastRun >= 2
+            && ctx.missedWorkoutsSinceLastRun < 5 { return insightMissed(ctx) }
         if ctx.tomorrowIsLongRun       { return insightLongRunEve(ctx)  }
         if ctx.todayIsLongRun
             && !ctx.todayCompleted     { return insightLongRunDay(ctx)  }
@@ -48,28 +48,31 @@ struct DailyInsightEngine {
     // MARK: - Context
 
     private struct Context {
-        var plan               : SavedPlan
-        var today              : Date
-        var currentWeek        : SavedWeek?
-        var todayDay           : SavedDay?
-        var tomorrowDay        : SavedDay?
-        var daysToRace         : Int
-        var isRaceDay          : Bool
-        var isInTaper          : Bool
-        var isPeakWeek         : Bool
-        var weekCompletionPct  : Double
-        var completedThisWeek  : Int
-        var trackableThisWeek  : Int
-        var daysSinceLastRun   : Int
-        var currentStreak      : Int
-        var todayIsLongRun     : Bool
-        var tomorrowIsLongRun  : Bool
-        var todayCompleted     : Bool
-        var totalWeeks         : Int
-        var currentWeekNum     : Int
-        var currentPhase       : TrainingPhase   // was phaseName: String
-        var weeklyMilesPlanned : Double
-        var weeklyMilesDone    : Double
+        var plan                       : SavedPlan
+        var today                      : Date
+        var currentWeek                : SavedWeek?
+        var todayDay                   : SavedDay?
+        var tomorrowDay                : SavedDay?
+        var daysToRace                 : Int
+        var isRaceDay                  : Bool
+        var isInTaper                  : Bool
+        var isPeakWeek                 : Bool
+        var weekCompletionPct          : Double
+        var completedThisWeek          : Int
+        var trackableThisWeek          : Int
+        var daysSinceLastRun           : Int
+        /// Scheduled workout days since last run that were not completed.
+        /// Rest days in the gap are excluded so this stays 0 on a rest day.
+        var missedWorkoutsSinceLastRun : Int
+        var currentStreak              : Int
+        var todayIsLongRun             : Bool
+        var tomorrowIsLongRun          : Bool
+        var todayCompleted             : Bool
+        var totalWeeks                 : Int
+        var currentWeekNum             : Int
+        var currentPhase               : TrainingPhase
+        var weeklyMilesPlanned         : Double
+        var weeklyMilesDone            : Double
     }
 
     private static func buildContext(
@@ -79,28 +82,29 @@ struct DailyInsightEngine {
     ) -> Context {
 
         var ctx = Context(
-            plan:               plan,
-            today:              today,
-            currentWeek:        nil,
-            todayDay:           nil,
-            tomorrowDay:        nil,
-            daysToRace:         0,
-            isRaceDay:          false,
-            isInTaper:          false,
-            isPeakWeek:         false,
-            weekCompletionPct:  0,
-            completedThisWeek:  0,
-            trackableThisWeek:  0,
-            daysSinceLastRun:   0,
-            currentStreak:      0,
-            todayIsLongRun:     false,
-            tomorrowIsLongRun:  false,
-            todayCompleted:     false,
-            totalWeeks:         plan.weeks.count,
-            currentWeekNum:     1,
-            currentPhase:       .base,           // default
-            weeklyMilesPlanned: 0,
-            weeklyMilesDone:    0
+            plan:                       plan,
+            today:                      today,
+            currentWeek:                nil,
+            todayDay:                   nil,
+            tomorrowDay:                nil,
+            daysToRace:                 0,
+            isRaceDay:                  false,
+            isInTaper:                  false,
+            isPeakWeek:                 false,
+            weekCompletionPct:          0,
+            completedThisWeek:          0,
+            trackableThisWeek:          0,
+            daysSinceLastRun:           0,
+            missedWorkoutsSinceLastRun: 0,
+            currentStreak:              0,
+            todayIsLongRun:             false,
+            tomorrowIsLongRun:          false,
+            todayCompleted:             false,
+            totalWeeks:                 plan.weeks.count,
+            currentWeekNum:             1,
+            currentPhase:               .base,
+            weeklyMilesPlanned:         0,
+            weeklyMilesDone:            0
         )
 
         // Days to race
@@ -172,6 +176,20 @@ struct DailyInsightEngine {
         } else {
             ctx.daysSinceLastRun = 99
         }
+
+        // Missed scheduled workouts since last run (excludes rest days in gap)
+        // A day counts as "missed" only if it had a non-rest workout that was
+        // not completed and it falls strictly between the last run and today.
+        let cutoff = lastRunDate ?? cal.date(byAdding: .year, value: -1, to: today)!
+        ctx.missedWorkoutsSinceLastRun = plan.weeks
+            .flatMap { $0.days }
+            .filter { day in
+                let d = cal.startOfDay(for: day.date)
+                guard d > cutoff && d < today        else { return false }
+                guard day.workoutType != "Rest"      else { return false }
+                return day.completionStatus == .notStarted
+                    || day.completionStatus == .skipped
+            }.count
 
         // Current streak
         var streak    = 0
@@ -257,10 +275,10 @@ struct DailyInsightEngine {
     }
 
     private static func insightMissed(_ c: Context) -> DailyInsight {
-        let d   = c.daysSinceLastRun
+        let d   = c.missedWorkoutsSinceLastRun
         let msg = d == 2
-            ? "Two days off the plan."
-            : "\(d) days since your last run."
+            ? "Two workouts missed."
+            : "\(d) workouts missed."
         return DailyInsight(
             message:  msg,
             detail:   "Today is a clean slate. Get one run in.",

@@ -5,23 +5,16 @@ struct DailyInsightCard: View {
     @State private var appeared = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: insight.icon)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(iconColor)
+                .frame(width: 16, alignment: .center)
+                .padding(.top, 1)
 
-            // Icon
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(iconBackground)
-                    .frame(width: 40, height: 40)
-                Image(systemName: insight.icon)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(iconColor)
-            }
-            .padding(.top, 1)
-
-            // Text
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(insight.message)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.primary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -29,26 +22,25 @@ struct DailyInsightCard: View {
                     Text(detail)
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
-                        .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
+                        .lineSpacing(2)
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(16)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(16)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(iconColor.opacity(0.08))
+        .cornerRadius(10)
         .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 8)
+        .offset(y: appeared ? 0 : 4)
         .onAppear {
-            withAnimation(.easeOut(duration: 0.4).delay(0.1)) {
+            withAnimation(.easeOut(duration: 0.3).delay(0.1)) {
                 appeared = true
             }
         }
     }
-
-    // MARK: - Colors
 
     private var iconColor: Color {
         switch insight.category {
@@ -60,9 +52,5 @@ struct DailyInsightCard: View {
         case .consistency: return Color(hex: "FF9F0A")
         case .motivation:  return .primary
         }
-    }
-
-    private var iconBackground: Color {
-        iconColor.opacity(0.12)
     }
 }
