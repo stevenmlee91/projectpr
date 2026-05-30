@@ -22,8 +22,6 @@ struct MilestoneOverlayView: View {
     @State private var pulseScale     : CGFloat = 1.0
     @State private var particleAnims  : [ParticleState] = []
 
-    private let accent: Color  = { milestone in milestone.accentColor }(Milestone.firstWorkoutCompleted)
-
     var body: some View {
         ZStack {
             // Backdrop

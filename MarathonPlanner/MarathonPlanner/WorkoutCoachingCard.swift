@@ -109,11 +109,12 @@ struct WorkoutCoachingCard: View {
 struct CoachingCardBuilder {
 
     static func card(
-        for day     : SavedDay,
-        plan        : SavedPlan,
-        week        : SavedWeek,
-        totalWeeks  : Int,
-        accentColor : Color = Color(hex: "0A84FF")
+        for day      : SavedDay,
+        plan         : SavedPlan,
+        week         : SavedWeek,
+        totalWeeks   : Int,
+        accentColor  : Color = Color(hex: "0A84FF"),
+        weekSnapshot : WeekCompletionSnapshot? = nil
     ) -> WorkoutCoachingCard? {
 
         guard
@@ -123,12 +124,13 @@ struct CoachingCardBuilder {
         else { return nil }
 
         guard let content = WorkoutCoachingEngine.content(
-            workoutType: workoutType,
-            planType:    plan.settings.planType,
-            phase:       week.phase,
-            weekNumber:  week.weekNumber,
-            totalWeeks:  totalWeeks,
-            raceType:    plan.settings.raceType
+            workoutType:  workoutType,
+            planType:     plan.settings.planType,
+            phase:        week.phase,
+            weekNumber:   week.weekNumber,
+            totalWeeks:   totalWeeks,
+            raceType:     plan.settings.raceType,
+            weekSnapshot: weekSnapshot
         ) else { return nil }
 
         return WorkoutCoachingCard(

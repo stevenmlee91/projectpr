@@ -369,7 +369,9 @@ struct OffSeasonCard: View {
             .buttonStyle(.plain)
             Spacer()
             Button("Skip") {
-                store.markToday(miles: 0)
+                // Dismiss the miles input without logging a run.
+                // Tapping the main "Log today's run" button shows this row;
+                // Skip simply hides it again — it does not mark today as done.
                 milesInput = ""
                 withAnimation { showMiles = false }
             }

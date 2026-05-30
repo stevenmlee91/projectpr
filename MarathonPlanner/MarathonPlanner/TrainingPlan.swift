@@ -321,23 +321,31 @@ enum WorkoutType: String, Codable {
 // MARK: - Training Day
 
 struct TrainingDay: Identifiable, Codable {
-    let id          : UUID
-    let weekday     : Weekday
-    let workoutType : WorkoutType
-    let miles       : Double
-    let description : String
-    let paceNote    : String
+    let id           : UUID
+    let weekday      : Weekday
+    let workoutType  : WorkoutType
+    let miles        : Double
+    let description  : String
+    let paceNote     : String
+    /// Quality-segment miles for structured workouts (Tempo, Strength, Speed).
+    /// nil for unstructured workouts (easy runs, long runs, rest).
+    /// For Tempo: the marathon-pace miles (excluding warmup/cooldown).
+    /// For Strength: the total MP rep miles (reps × dist, excluding wu/cd/recovery jogs).
+    /// For Speed: the total interval miles (reps × repDist, excluding wu/cd/recovery jogs).
+    var qualityMiles : Double?
 
     init(id: UUID = UUID(), weekday: Weekday,
          workoutType: WorkoutType,
          miles: Double, description: String,
-         paceNote: String) {
-        self.id          = id
-        self.weekday     = weekday
-        self.workoutType = workoutType
-        self.miles       = miles
-        self.description = description
-        self.paceNote    = paceNote
+         paceNote: String,
+         qualityMiles: Double? = nil) {
+        self.id           = id
+        self.weekday      = weekday
+        self.workoutType  = workoutType
+        self.miles        = miles
+        self.description  = description
+        self.paceNote     = paceNote
+        self.qualityMiles = qualityMiles
     }
 }
 

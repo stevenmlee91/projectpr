@@ -44,6 +44,7 @@
 		B08F5A262FAB069400BFFC53 /* WeeklySummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A252FAB069400BFFC53 /* WeeklySummaryView.swift */; };
 		B08F5A282FAB0B4F00BFFC53 /* MilestoneOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */; };
 		B08F5A2A2FAB0B6200BFFC53 /* MilestoneDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A292FAB0B6200BFFC53 /* MilestoneDetector.swift */; };
+		0591C76151F0445CBB06815E /* WeekCompletionSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00B4342AA084ACDA129030F /* WeekCompletionSnapshot.swift */; };
 		B08F5A3B2FB0000000BFFC53 /* PlanValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A3A2FB0000000BFFC53 /* PlanValidator.swift */; };
 		B08F5A3F2FB0000000BFFC53 /* PlanCorrector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A3E2FB0000000BFFC53 /* PlanCorrector.swift */; };
 		B08F5A412FB0000000BFFC53 /* PlanPhilosophyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A402FB0000000BFFC53 /* PlanPhilosophyCard.swift */; };
@@ -170,6 +171,7 @@
 		B08F5A252FAB069400BFFC53 /* WeeklySummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklySummaryView.swift; sourceTree = "<group>"; };
 		B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MilestoneOverlayView.swift; sourceTree = "<group>"; };
 		B08F5A292FAB0B6200BFFC53 /* MilestoneDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MilestoneDetector.swift; sourceTree = "<group>"; };
+		E00B4342AA084ACDA129030F /* WeekCompletionSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekCompletionSnapshot.swift; sourceTree = "<group>"; };
 		B08F5A3A2FB0000000BFFC53 /* PlanValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanValidator.swift; sourceTree = "<group>"; };
 		B08F5A3E2FB0000000BFFC53 /* PlanCorrector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanCorrector.swift; sourceTree = "<group>"; };
 		B08F5A402FB0000000BFFC53 /* PlanPhilosophyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanPhilosophyCard.swift; sourceTree = "<group>"; };
@@ -330,6 +332,7 @@
 				B07526142F9E6FF4008F9552 /* TodayView.swift */,
 				B08F5A452FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift */,
 				B08F5A472FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift */,
+				E00B4342AA084ACDA129030F /* WeekCompletionSnapshot.swift */,
 				B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */,
 				B08F5A292FAB0B6200BFFC53 /* MilestoneDetector.swift */,
 				B08F5A3A2FB0000000BFFC53 /* PlanValidator.swift */,
@@ -554,6 +557,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B08F5A462FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift in Sources */,
+				0591C76151F0445CBB06815E /* WeekCompletionSnapshot.swift in Sources */,
 				B08F5A242FAB067A00BFFC53 /* WeeklySummaryManager.swift in Sources */,
 				B08F59BE2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift in Sources */,
 				B0A62DA92F9862340093719D /* PlanGenerator.swift in Sources */,

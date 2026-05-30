@@ -379,6 +379,19 @@ struct TodayWorkoutCard: View {
         ?? ctx.day
     }
 
+    private var liveWeek: SavedWeek {
+        store.plans
+            .first { $0.id == ctx.plan.id }?
+            .weeks.first { $0.id == ctx.week.id }
+        ?? ctx.week
+    }
+
+    /// Snapshot of what has already been done this week (past days only,
+    /// today excluded). Rebuilt whenever the store updates.
+    private var weekSnapshot: WeekCompletionSnapshot {
+        WeekCompletionSnapshot.from(liveWeek, excludingDayID: ctx.day.id)
+    }
+
     private var status: CompletionStatus { liveDay.completionStatus }
 
     var body: some View {
@@ -474,7 +487,26 @@ struct TodayWorkoutCard: View {
     private var milesAndPace: some View {
         HStack(alignment: .bottom, spacing: 0) {
             Group {
-                if liveDay.miles > 0 {
+                if let quality = liveDay.qualityMiles {
+                    // Structured workout: quality segment is the hero number.
+                    // Total miles shown inline so the runner has both data points.
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        Text(String(format: "%.1f", quality))
+                            .font(.metric(38))
+                            .foregroundColor(.primary)
+                        HStack(spacing: 5) {
+                            Text(qualityMilesLabel)
+                                .font(.metricCaption())
+                                .foregroundColor(.secondary)
+                            Text("·")
+                                .font(.metricCaption())
+                                .foregroundColor(Color(.tertiaryLabel))
+                            Text(String(format: "%.1f mi total", liveDay.miles))
+                                .font(.metricCaption())
+                                .foregroundColor(Color(.tertiaryLabel))
+                        }
+                    }
+                } else if liveDay.miles > 0 {
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text(String(format: "%.1f", liveDay.miles))
                             .font(.metric(38))
@@ -530,6 +562,16 @@ struct TodayWorkoutCard: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.75),
                    value: status)
+    }
+
+    /// Human-readable label for the quality-miles hero number.
+    private var qualityMilesLabel: String {
+        switch liveDay.workoutType {
+        case "Tempo Run":      return "mi at marathon pace"
+        case "Strength (MP)": return "mi at strength pace"
+        case "Speed Work":    return "mi at 5K pace"
+        default:              return "quality miles"
+        }
     }
 
     private var descriptionText: some View {
@@ -879,12 +921,13 @@ struct TodayWorkoutCard: View {
         Group {
             if let workoutType = WorkoutType(rawValue: liveDay.workoutType),
                let coaching = WorkoutCoachingEngine.content(
-                   workoutType: workoutType,
-                   planType:    ctx.plan.settings.planType,
-                   phase:       ctx.week.phase,
-                   weekNumber:  ctx.weekNumber,
-                   totalWeeks:  ctx.totalWeeks,
-                   raceType:    ctx.plan.settings.raceType
+                   workoutType:  workoutType,
+                   planType:     ctx.plan.settings.planType,
+                   phase:        ctx.week.phase,
+                   weekNumber:   ctx.weekNumber,
+                   totalWeeks:   ctx.totalWeeks,
+                   raceType:     ctx.plan.settings.raceType,
+                   weekSnapshot: weekSnapshot
                ) {
                 WorkoutCoachingCard(
                     content:     coaching,

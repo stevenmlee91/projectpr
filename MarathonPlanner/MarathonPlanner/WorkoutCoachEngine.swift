@@ -13,27 +13,43 @@ struct WorkoutCoachingContent {
 // Generates methodology-aware, phase-aware coaching content for every
 // workout type. Never generic — always reflects the specific system
 // the runner chose and the moment in their training cycle.
+//
+// When a WeekCompletionSnapshot is supplied, the "THIS WEEK" context
+// responds to what the runner has actually done — skipped sessions,
+// overrun long runs, a clean week so far — before falling back to the
+// standard phase context.
 
 struct WorkoutCoachingEngine {
 
     // MARK: - Public Entry Point
 
     static func content(
-        workoutType : WorkoutType,
-        planType    : PlanType,
-        phase       : TrainingPhase,
-        weekNumber  : Int,
-        totalWeeks  : Int,
-        raceType    : RaceType
+        workoutType  : WorkoutType,
+        planType     : PlanType,
+        phase        : TrainingPhase,
+        weekNumber   : Int,
+        totalWeeks   : Int,
+        raceType     : RaceType,
+        weekSnapshot : WeekCompletionSnapshot? = nil
     ) -> WorkoutCoachingContent? {
 
         guard workoutType != .rest,
               workoutType != .crossTrain,
               workoutType != .raceDay else { return nil }
 
-        let obj     = objective(workoutType, planType, raceType)
-        let foc     = focus(workoutType, planType, phase)
-        let ctx     = phaseContext(phase, weekNumber, totalWeeks, workoutType)
+        let obj = objective(workoutType, planType, raceType)
+        let foc = focus(workoutType, planType, phase)
+
+        // Completion-aware context takes priority when the snapshot has
+        // something meaningful to say. Phase context is the fallback.
+        let ctx: String?
+        if let snap = weekSnapshot,
+           !snap.noPriorActivity,
+           let completionCtx = completionAwareContext(snap, workoutType) {
+            ctx = completionCtx
+        } else {
+            ctx = phaseContext(phase, weekNumber, totalWeeks, workoutType)
+        }
 
         return WorkoutCoachingContent(
             objective: obj,
@@ -237,6 +253,60 @@ struct WorkoutCoachingEngine {
         }
     }
 
+    // MARK: - Completion-Aware Context
+    // Responds to what has actually happened in the current week.
+    // Priority over phase context — if something meaningful can be said
+    // about the week's actual progress, say that instead.
+
+    private static func completionAwareContext(
+        _ snap    : WeekCompletionSnapshot,
+        _ workout : WorkoutType
+    ) -> String? {
+
+        let isQuality = workout.isQualityType
+        let isLong    = workout.isLongRunType
+        let isEasy    = workout.isEasyType
+
+        // ── 1. Long run significantly overrun ────────────────────────
+        // Warn about carry-over fatigue for any non-long workout after an
+        // overrun long run.
+        if snap.longRunOverrun && !isLong {
+            let extra = Int((snap.longRunActual ?? 0) - snap.longRunPlanned)
+            let milesWord = extra == 1 ? "mile" : "miles"
+            return "Your long run was \(extra) \(milesWord) longer than planned. That extra mileage carries real fatigue into today. Let effort — not pace — be your guide."
+        }
+
+        // ── 2. Skipped sessions ───────────────────────────────────────
+        if snap.hasSkips {
+            if isQuality {
+                return "A session slipped earlier this week. Don't try to compensate by pushing harder today — execute this workout at the right effort and move on. One well-run session recovers the week better than one punishing one."
+            }
+            if isLong {
+                return "The week leading into this long run has been imperfect. The long run is the most important session in this training cycle. Get it done at a controlled, sustainable effort and the week is salvaged."
+            }
+            if isEasy {
+                return "It has been an uneven week. An easy run banked today keeps the weekly training load from falling further behind. Keep it controlled — and let it be enough."
+            }
+        }
+
+        // ── 3. All quality sessions complete → today is easy/recovery ─
+        if snap.allQualityDone && isEasy {
+            return "The quality work this week is done. Today's easy miles complete the weekly training load. Run genuinely easy and let the adaptations set in."
+        }
+
+        // ── 4. Running a clean week (≥3 done, no skips) ──────────────
+        if snap.completedCount >= 3 && snap.skippedCount == 0 {
+            return "Every session this week has been completed on schedule. Consistency is the whole job — today keeps that record intact."
+        }
+
+        // ── 5. Consistent week heading into the long run ──────────────
+        if isLong && snap.completedCount >= 2 && snap.completionPct >= 0.75 {
+            return "You have been consistent this week. The long run is the payoff session — start controlled, settle into a rhythm, and let the miles develop."
+        }
+
+        return nil
+    }
+
     // MARK: - Phase Context
     // Optional additional layer for key training moments.
     // Only shown when it meaningfully adds to runner understanding.
@@ -280,6 +350,41 @@ struct WorkoutCoachingEngine {
         case .race:
             return nil  // Race day cards handle their own context
 
+        }
+    }
+}
+
+// MARK: - WorkoutType classification (file-private)
+// Used only by the completion-aware context logic above.
+
+private extension WorkoutType {
+
+    /// True for sessions that demand targeted intensity:
+    /// tempo, speed, strength, threshold, intervals, marathon-pace reps.
+    var isQualityType: Bool {
+        switch self {
+        case .strengthMP, .speedWork, .lactateThreshold, .cruiseIntervals,
+             .intervalWork, .repetitionWork, .tempoRun, .marathonPace:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// True for the primary long run (plain or with a pace finish).
+    var isLongRunType: Bool {
+        self == .longRun || self == .longRunWithMP
+    }
+
+    /// True for workouts that should be run at genuinely easy effort:
+    /// easy, recovery, general aerobic, steady, medium-long, midweek long.
+    var isEasyType: Bool {
+        switch self {
+        case .easy, .recovery, .generalAerobic, .steadyRun,
+             .mediumLong, .midweekLong:
+            return true
+        default:
+            return false
         }
     }
 }

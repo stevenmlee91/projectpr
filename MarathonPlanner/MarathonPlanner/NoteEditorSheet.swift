@@ -18,7 +18,7 @@ struct NoteEditorSheet: View {
             VStack(alignment: .leading, spacing: 20) {
 
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(Color(hex: "3A3A3A"))
+                    .fill(Color(.tertiaryLabel))
                     .frame(width: 36, height: 4)
                     .frame(maxWidth: .infinity)
                     .padding(.top, 12)
@@ -69,7 +69,7 @@ struct NoteEditorSheet: View {
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(noteInput.count > limit - 20
                                          ? Color(hex: "FF453A")
-                                         : Color(hex: "3A3A3A"))
+                                         : .secondary)
                     Spacer()
                 }
                 .padding(.horizontal, 24)

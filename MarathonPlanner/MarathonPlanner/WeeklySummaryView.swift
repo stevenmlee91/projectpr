@@ -31,6 +31,7 @@ struct WeeklySummaryView: View {
         currentWeek?.days.contains {
             let isLong = $0.workoutType == "Long Run"
                 || $0.workoutType == "Long Run w/ MP Finish"
+                || $0.workoutType == "Long Run w/ HMP Finish"
             let isDone = $0.completionStatus == .completed
                 || $0.completionStatus == .modified
             return isLong && isDone
@@ -42,6 +43,7 @@ struct WeeklySummaryView: View {
             .filter {
                 $0.workoutType == "Long Run"
                     || $0.workoutType == "Long Run w/ MP Finish"
+                    || $0.workoutType == "Long Run w/ HMP Finish"
             }
             .map { $0.miles }
             .max() ?? 0
@@ -49,7 +51,7 @@ struct WeeklySummaryView: View {
 
     private var motivationLine: String {
         guard let cw = currentWeek else {
-            return "Keep building."
+            return "Training complete. Trust what you have built."
         }
         let pct = cw.completionPercentage
         switch pct {
@@ -88,6 +90,9 @@ struct WeeklySummaryView: View {
                             } else {
                                 raceWeekSection
                             }
+                        } else {
+                            // Training is complete — show the final week's data
+                            trainingCompleteSection
                         }
 
                         // Motivation
@@ -138,7 +143,7 @@ struct WeeklySummaryView: View {
     }
 
     private var weekRangeLabel: String {
-        guard let cw = currentWeek else { return "THIS WEEK" }
+        guard let cw = currentWeek else { return "TRAINING COMPLETE" }
         let sorted = cw.days.sorted { $0.date < $1.date }
         guard let first = sorted.first?.date,
               let last  = sorted.last?.date else { return "THIS WEEK" }
@@ -267,6 +272,86 @@ struct WeeklySummaryView: View {
                 .foregroundColor(.black)
         case .notStarted:
             EmptyView()
+        }
+    }
+
+    // MARK: - Training Complete
+
+    // Totals computed outside ViewBuilder to avoid type-checker timeout
+    private var planTotalCompleted: Int {
+        var count = 0
+        for week in plan.weeks {
+            for day in week.days {
+                if day.completionStatus == .completed
+                    || day.completionStatus == .modified { count += 1 }
+            }
+        }
+        return count
+    }
+    private var planTotalTrackable: Int {
+        var count = 0
+        for week in plan.weeks {
+            for day in week.days where day.workoutType != "Rest" { count += 1 }
+        }
+        return count
+    }
+    private var planTotalMilesRun: Double {
+        plan.weeks.reduce(0.0) { acc, w in acc + w.actualTotalMiles }
+    }
+
+    @ViewBuilder
+    private var trainingCompleteSection: some View {
+        // Race day congratulations card
+        VStack(spacing: 16) {
+            VStack(spacing: 12) {
+                Image(systemName: "flag.checkered")
+                    .font(.system(size: 36, weight: .ultraLight))
+                    .foregroundColor(.yellow)
+                Text("Training Complete")
+                    .font(.system(size: 22, weight: .light, design: .serif))
+                    .foregroundColor(.primary)
+                Text(plan.name)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
+            .background(Color.yellow.opacity(0.06))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.yellow.opacity(0.25), lineWidth: 1)
+            )
+            .cornerRadius(16)
+
+            // Final plan totals
+            if let lastWeek = plan.weeks.sorted(by: {
+                $0.weekNumber < $1.weekNumber
+            }).last {
+                HStack(spacing: 8) {
+                    statCell(
+                        value: String(format: "%.0f", planTotalMilesRun),
+                        label: "MILES RUN"
+                    )
+                    statCell(
+                        value: "\(planTotalCompleted)/\(planTotalTrackable)",
+                        label: "WORKOUTS"
+                    )
+                    statCell(
+                        value: "\(plan.weeks.count)",
+                        label: "WEEKS"
+                    )
+                }
+
+                // Show final week
+                Text("FINAL WEEK")
+                    .font(.system(size: 10, weight: .semibold,
+                                  design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .kerning(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                thisWeekSection(lastWeek)
+            }
         }
     }
 

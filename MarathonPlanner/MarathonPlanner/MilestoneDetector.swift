@@ -192,17 +192,17 @@ struct MilestoneDetector {
             }
         }
 
-        // 2. 20-mile long run (marathon only)
+        // 2. 20-mile long run (marathon only) — fire on the very first one
         if isLong && plan.settings.raceType == .marathon {
             let miles = completedDay.actualMiles ?? completedDay.miles
             if miles >= 20 {
-                let alreadyHit = allDays.filter {
+                let isFirstTwenty = allDays.filter {
                     $0.id != completedDay.id
                         && isLongRun($0)
                         && ($0.actualMiles ?? $0.miles) >= 20
                         && isComplete($0)
-                }.isEmpty
-                if alreadyHit { return .twentyMileLongRun }
+                }.isEmpty   // isEmpty = no other completed 20-milers = this is the first
+                if isFirstTwenty { return .twentyMileLongRun }
             }
         }
 

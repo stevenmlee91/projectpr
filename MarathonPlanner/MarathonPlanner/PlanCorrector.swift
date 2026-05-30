@@ -305,6 +305,7 @@ private extension SavedDay {
             miles:            m,
             description:      description,
             paceNote:         paceNote,
+            qualityMiles:     qualityMiles,
             completionStatus: completionStatus,
             actualMiles:      actualMiles,
             completionNote:   completionNote

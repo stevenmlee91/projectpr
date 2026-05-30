@@ -149,6 +149,10 @@ struct SavedDay: Identifiable, Codable {
     let miles            : Double
     let description      : String
     let paceNote         : String
+    /// Quality-segment miles for structured workouts. nil for easy/long/rest.
+    /// Tempo → MP segment; Strength → rep miles; Speed → interval miles.
+    /// Optional so existing saved plans without this field decode as nil.
+    var qualityMiles     : Double?
     var completionStatus : CompletionStatus
     var actualMiles      : Double?
     var completionNote   : String?
@@ -156,6 +160,7 @@ struct SavedDay: Identifiable, Codable {
     init(id: UUID = UUID(), date: Date, weekday: String,
          workoutType: String, miles: Double, description: String,
          paceNote: String,
+         qualityMiles: Double? = nil,
          completionStatus: CompletionStatus = .notStarted,
          actualMiles: Double? = nil,
          completionNote: String? = nil) {
@@ -166,6 +171,7 @@ struct SavedDay: Identifiable, Codable {
         self.miles            = miles
         self.description      = description
         self.paceNote         = paceNote
+        self.qualityMiles     = qualityMiles
         self.completionStatus = completionStatus
         self.actualMiles      = actualMiles
         self.completionNote   = completionNote
@@ -258,12 +264,13 @@ func buildSavedWeeks(from trainingWeeks: [TrainingWeek],
             ) ?? monday
 
             return SavedDay(
-                date:        realDate,
-                weekday:     day.weekday.fullName,
-                workoutType: day.workoutType.rawValue,
-                miles:       day.miles,
-                description: day.description,
-                paceNote:    day.paceNote
+                date:         realDate,
+                weekday:      day.weekday.fullName,
+                workoutType:  day.workoutType.rawValue,
+                miles:        day.miles,
+                description:  day.description,
+                paceNote:     day.paceNote,
+                qualityMiles: day.qualityMiles
             )
         }
         return SavedWeek(

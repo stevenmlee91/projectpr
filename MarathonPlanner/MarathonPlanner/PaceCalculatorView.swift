@@ -24,8 +24,8 @@ enum PaceCalculatorMode: String, CaseIterable {
 
     var heroSubtitle: String {
         switch self {
-        case .marathon:     return "Your goal race pace"
-        case .halfMarathon: return "Your goal half marathon pace"
+        case .marathon:     return "All training zones are derived from this pace."
+        case .halfMarathon: return "All training zones are derived from this pace."
         }
     }
 
@@ -156,6 +156,7 @@ struct PaceCalculatorView: View {
                         unitToggle
                         paceCards
                         treadmillSection
+                        zoneGuide
                         Spacer().frame(height: 40)
                     }
                 }
@@ -171,8 +172,15 @@ struct PaceCalculatorView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { copyAllPaces() } label: {
-                        Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                            .foregroundColor(.primary)
+                        Label(
+                            copied ? "Copied" : "Copy",
+                            systemImage: copied ? "checkmark" : "doc.on.doc"
+                        )
+                        .labelStyle(.iconOnly)
+                        .foregroundColor(copied
+                                         ? Color(hex: "30D158")
+                                         : .primary)
+                        .animation(.easeInOut(duration: 0.2), value: copied)
                     }
                 }
             }
@@ -362,35 +370,48 @@ struct PaceCalculatorView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 10) {
-                paceCard(label: "Easy Run",
-                         icon:  "figure.walk",
-                         range: marathonEngine.easy,
-                         color: Color(hex: "30D158"))
-
-                paceCard(label: "Long Run",
-                         icon:  "arrow.right.to.line",
-                         range: marathonEngine.longRun,
-                         color: Color(hex: "30D158"))
-
-                paceCard(label: "Tempo",
-                         icon:  "flame",
-                         seconds: marathonEngine.higdonTempo,
-                         color: Color(hex: "FF9F0A"))
-
-                paceCard(label: "Threshold",
-                         icon:  "bolt",
-                         seconds: marathonEngine.pfitzLT,
-                         color: Color(hex: "FF9F0A"))
-
-                paceCard(label: "Intervals",
-                         icon:  "repeat",
-                         seconds: marathonEngine.dInterval,
-                         color: Color(hex: "FF453A"))
-
-                paceCard(label: "Recovery",
-                         icon:  "moon",
-                         seconds: marathonEngine.recovery,
-                         color: Color(hex: "BF5AF2"))
+                paceCard(
+                    label:  "Easy Run",
+                    icon:   "figure.walk",
+                    range:  marathonEngine.easy,
+                    color:  Color(hex: "30D158"),
+                    detail: "Conversational. Should feel effortlessly comfortable."
+                )
+                paceCard(
+                    label:  "Long Run",
+                    icon:   "arrow.right.to.line",
+                    range:  marathonEngine.longRun,
+                    color:  Color(hex: "30D158"),
+                    detail: "60–90 sec/mi slower than MP. Aerobic base."
+                )
+                paceCard(
+                    label:   "Tempo",
+                    icon:    "flame",
+                    seconds: marathonEngine.higdonTempo,
+                    color:   Color(hex: "FF9F0A"),
+                    detail:  "Comfortably hard. Higdon & Hansons quality work."
+                )
+                paceCard(
+                    label:   "Threshold",
+                    icon:    "bolt",
+                    seconds: marathonEngine.pfitzLT,
+                    color:   Color(hex: "FF9F0A"),
+                    detail:  "Pfitz lactate threshold. Slightly harder than tempo."
+                )
+                paceCard(
+                    label:   "Intervals",
+                    icon:    "repeat",
+                    seconds: marathonEngine.dInterval,
+                    color:   Color(hex: "FF453A"),
+                    detail:  "~5K race effort. VO₂max development."
+                )
+                paceCard(
+                    label:   "Recovery",
+                    icon:    "moon",
+                    seconds: marathonEngine.recovery,
+                    color:   Color(hex: "BF5AF2"),
+                    detail:  "Very easy. Promotes blood flow after hard sessions."
+                )
             }
         }
     }
@@ -411,35 +432,48 @@ struct PaceCalculatorView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 10) {
-                paceCard(label: "Easy Run",
-                         icon:  "figure.walk",
-                         range: halfEngine.easy,
-                         color: Color(hex: "30D158"))
-
-                paceCard(label: "Long Run",
-                         icon:  "arrow.right.to.line",
-                         range: halfEngine.longRun,
-                         color: Color(hex: "30D158"))
-
-                paceCard(label: "Tempo",
-                         icon:  "flame",
-                         seconds: halfEngine.tempo,
-                         color: Color(hex: "FF9F0A"))
-
-                paceCard(label: "Threshold",
-                         icon:  "bolt",
-                         seconds: halfEngine.threshold,
-                         color: Color(hex: "FF9F0A"))
-
-                paceCard(label: "Intervals",
-                         icon:  "repeat",
-                         seconds: halfEngine.intervals,
-                         color: Color(hex: "FF453A"))
-
-                paceCard(label: "Recovery",
-                         icon:  "moon",
-                         seconds: halfEngine.recovery,
-                         color: Color(hex: "BF5AF2"))
+                paceCard(
+                    label:  "Easy Run",
+                    icon:   "figure.walk",
+                    range:  halfEngine.easy,
+                    color:  Color(hex: "30D158"),
+                    detail: "Conversational. Should feel effortlessly comfortable."
+                )
+                paceCard(
+                    label:  "Long Run",
+                    icon:   "arrow.right.to.line",
+                    range:  halfEngine.longRun,
+                    color:  Color(hex: "30D158"),
+                    detail: "45–75 sec/mi slower than HMP. Build your base."
+                )
+                paceCard(
+                    label:   "Tempo",
+                    icon:    "flame",
+                    seconds: halfEngine.tempo,
+                    color:   Color(hex: "FF9F0A"),
+                    detail:  "10 sec/mi faster than race pace. Sustained effort."
+                )
+                paceCard(
+                    label:   "Threshold",
+                    icon:    "bolt",
+                    seconds: halfEngine.threshold,
+                    color:   Color(hex: "FF9F0A"),
+                    detail:  "20 sec/mi faster than race pace. High-end aerobic."
+                )
+                paceCard(
+                    label:   "Intervals",
+                    icon:    "repeat",
+                    seconds: halfEngine.intervals,
+                    color:   Color(hex: "FF453A"),
+                    detail:  "~5K race effort. Sharpens speed and economy."
+                )
+                paceCard(
+                    label:   "Recovery",
+                    icon:    "moon",
+                    seconds: halfEngine.recovery,
+                    color:   Color(hex: "BF5AF2"),
+                    detail:  "Very easy. Promotes blood flow after hard sessions."
+                )
             }
         }
     }
@@ -485,8 +519,9 @@ struct PaceCalculatorView: View {
     // MARK: - Standard Pace Card (single)
 
     private func paceCard(label: String, icon: String,
-                           seconds: Int, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
+                           seconds: Int, color: Color,
+                           detail: String = "") -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack {
                 Image(systemName: icon)
                     .font(.system(size: 13, weight: .light))
@@ -502,8 +537,14 @@ struct PaceCalculatorView: View {
             Text(label)
                 .font(.caption())
                 .foregroundColor(.secondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+            if !detail.isEmpty {
+                Text(detail)
+                    .font(.system(size: 10))
+                    .foregroundColor(Color(.tertiaryLabel))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(2)
+            }
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -515,8 +556,9 @@ struct PaceCalculatorView: View {
 
     private func paceCard(label: String, icon: String,
                            range: (low: Int, high: Int),
-                           color: Color) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
+                           color: Color,
+                           detail: String = "") -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack {
                 Image(systemName: icon)
                     .font(.system(size: 13, weight: .light))
@@ -532,8 +574,14 @@ struct PaceCalculatorView: View {
             Text(label)
                 .font(.caption())
                 .foregroundColor(.secondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+            if !detail.isEmpty {
+                Text(detail)
+                    .font(.system(size: 10))
+                    .foregroundColor(Color(.tertiaryLabel))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(2)
+            }
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -545,12 +593,18 @@ struct PaceCalculatorView: View {
 
     private var treadmillSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("TREADMILL SPEEDS")
-                .font(.system(size: 10, weight: .semibold,
-                              design: .monospaced))
-                .foregroundColor(.secondary)
-                .kerning(1.5)
-                .padding(.horizontal, 4)
+            HStack(alignment: .bottom) {
+                Text("TREADMILL SPEEDS")
+                    .font(.system(size: 10, weight: .semibold,
+                                  design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .kerning(1.5)
+                Spacer()
+                Text("Set incline to 1%")
+                    .font(.system(size: 10))
+                    .foregroundColor(Color(.tertiaryLabel))
+            }
+            .padding(.horizontal, 4)
 
             VStack(spacing: 0) {
                 if mode == .marathon {
@@ -614,9 +668,83 @@ struct PaceCalculatorView: View {
                     .font(.system(size: 14, weight: .medium,
                                   design: .monospaced))
                     .foregroundColor(.primary)
-                Text(display + "/mi")
+                Text(display + (useKilometers ? "/km" : "/mi"))
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundColor(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    // MARK: - Zone Guide
+
+    private var zoneGuide: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("HOW TO RUN THESE ZONES")
+                .font(.system(size: 10, weight: .semibold,
+                              design: .monospaced))
+                .foregroundColor(.secondary)
+                .kerning(1.5)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 0) {
+                zoneRow(
+                    dot:   Color(hex: "30D158"),
+                    label: "Easy & Long Run",
+                    tip:   "Should feel genuinely comfortable — you can hold a full conversation. Most runners run easy days 30–45 seconds too fast. Slow down.",
+                    isLast: false
+                )
+                Divider().padding(.leading, 16)
+                zoneRow(
+                    dot:   Color(hex: "FF9F0A"),
+                    label: "Tempo & Threshold",
+                    tip:   "\"Comfortably hard.\" You can speak in short sentences but not comfortably. This is race-quality work — treat it that way.",
+                    isLast: false
+                )
+                zoneRow(
+                    dot:   Color(hex: "FF453A"),
+                    label: "Intervals",
+                    tip:   "Hard effort — roughly 5K race intensity. Full recovery between reps matters as much as the rep itself.",
+                    isLast: false
+                )
+                Divider().padding(.leading, 16)
+                zoneRow(
+                    dot:   Color(hex: "BF5AF2"),
+                    label: "Recovery",
+                    tip:   "Embarrassingly easy. If it feels easy, you have the right pace. This is not a workout — it is active recovery.",
+                    isLast: true
+                )
+            }
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(14)
+
+            Text("Paces are targets, not rules. Hot weather, hills, and fatigue are all valid reasons to slow down.")
+                .font(.system(size: 11))
+                .foregroundColor(Color(.tertiaryLabel))
+                .padding(.horizontal, 4)
+                .padding(.top, 2)
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 20)
+    }
+
+    private func zoneRow(dot: Color, label: String,
+                          tip: String, isLast: Bool) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Circle()
+                .fill(dot)
+                .frame(width: 8, height: 8)
+                .padding(.top, 4)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(label)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.primary)
+                Text(tip)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(2)
             }
         }
         .padding(.horizontal, 16)

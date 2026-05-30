@@ -938,6 +938,7 @@ struct SPVDayRow: View {
         Group {
             if let actual = day.actualMiles,
                day.completionStatus == .modified {
+                // Modified: actual vs. planned total
                 HStack(spacing: 4) {
                     Text(String(format: "%.1f", actual))
                         .foregroundColor(Color(hex: "30D158"))
@@ -945,6 +946,16 @@ struct SPVDayRow: View {
                     Text("/ \(String(format: "%.1f", day.miles)) mi")
                         .foregroundColor(.secondary)
                         .font(.system(size: 11))
+                }
+            } else if let quality = day.qualityMiles, day.miles > 0 {
+                // Structured workout: quality segment as primary, total as secondary
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(String(format: "%.1f mi", quality))
+                        .foregroundColor(.secondary)
+                        .font(.system(size: 13))
+                    Text(String(format: "%.1f total", day.miles))
+                        .foregroundColor(Color(.tertiaryLabel))
+                        .font(.system(size: 10))
                 }
             } else if day.miles > 0 {
                 Text(String(format: "%.1f mi", day.miles))

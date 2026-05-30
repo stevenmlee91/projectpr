@@ -371,20 +371,49 @@ struct HansonsMarathonGenerator {
     // Returns the prescribed MP *segment* miles only.
     // Warmup (1.5 mi) and cooldown (1.5 mi) are always additive — never carved
     // from the quality segment. Total workout = segment + 3.0 mi.
+    //
+    // ARCHITECTURE: Canonical week number is the PRIMARY driver — matching the
+    // fixed weekly progression in Luke Humphrey's Hansons Marathon Method (Advanced).
+    // Volume acts only as a SAFETY CAP for runners below full Hansons load.
+    // The old weekMiles * 0.14 formula was wrong: at 55 mpw peak, 55 × 0.14 = 7.7 mi —
+    // the runner never reaches 10 miles because the cap was below the ceiling.
+    //
+    // Hansons Thursday MP progression (canonical week → prescribed miles):
+    //   1–3 → 3 mi,  4–5 → 4 mi,  6–7 → 5 mi,  8 → 6 mi
+    //   9–10 → 7 mi, 11–12 → 8 mi, 13 → 9 mi, 14+ → 10 mi
+    //
+    // Volume safety cap at 20 % of weekly volume:
+    //   At 55 mpw (Hansons peak), 10/55 = 18.2 % → full prescription reached.
+    //   At 40 mpw, cap = 8 mi; at 30 mpw, cap = 6 mi.
     private static func tempoSegmentMiles(canonical: Int, weekMiles: Double,
                                            isTaper: Bool) -> Double {
-        if isTaper { return max(2.0, (weekMiles * 0.08)).rounded(toPlaces: 1) }
-        let canonicalMax: Double
-        switch canonical {
-        case ..<6:    canonicalMax = 5.0   // Speed phase: up to 5 mi at MP
-        case 6...8:   canonicalMax = 7.0   // Speed peak: up to 7 mi at MP
-        case 9...12:  canonicalMax = 9.0   // Early strength: up to 9 mi at MP
-        case 13...15: canonicalMax = 10.0  // Peak strength: up to 10 mi at MP
-        default:      canonicalMax = 7.0
+        // Taper: scale with volume (0.175 factor) so the session naturally tapers
+        // with the rest of the week. Floor at 3 mi, ceiling at 8 mi.
+        //   First taper  (~85 % peak = 46.75 mi): 46.75 × 0.175 = 8.2 → 8 mi ✓
+        //   Second taper (~72 % peak = 39.6 mi):  39.6  × 0.175 = 6.9 mi ✓
+        //   Third taper  (~45 % peak = 24.75 mi): 24.75 × 0.175 = 4.3 mi ✓
+        if isTaper {
+            return min(8.0, max(3.0, (weekMiles * 0.175).rounded(toPlaces: 1)))
         }
-        // Scale with weekly volume (14 %), floor at 3 miles so the session
-        // always provides meaningful marathon-pace work.
-        return min(canonicalMax, max(weekMiles * 0.14, 3.0)).rounded(toPlaces: 1)
+
+        // Canonical Hansons prescription — fixed per-week distances from the book.
+        let prescribed: Double
+        switch canonical {
+        case ..<4:    prescribed = 3.0   // Canonical 1–3 (early speed): establish MP rhythm
+        case 4...5:   prescribed = 4.0   // Canonical 4–5 (speed): build confidence at pace
+        case 6...7:   prescribed = 5.0   // Canonical 6–7 (late speed): 5 solid miles at MP
+        case 8:       prescribed = 6.0   // Canonical 8 (speed → strength bridge)
+        case 9...10:  prescribed = 7.0   // Canonical 9–10 (early strength)
+        case 11...12: prescribed = 8.0   // Canonical 11–12 (mid strength)
+        case 13:      prescribed = 9.0   // Canonical 13 (late strength)
+        default:      prescribed = 10.0  // Canonical 14+ (peak strength): full Hansons 10-mi MP
+        }
+
+        // Volume safety cap: max 20 % of weekly volume.
+        // Ensures low-volume runners are not overloaded; full-volume runners always
+        // reach the canonical prescription (10 / 55 = 18.2 %).
+        let volumeCap = max(3.0, weekMiles * 0.20)
+        return min(prescribed, volumeCap).rounded(toPlaces: 1)
     }
 
     private static func onboardingRunMiles(weekMiles: Double) -> Double {
@@ -570,10 +599,13 @@ The goal is repeatable, controlled 5K effort across every rep.
 
 \(depthNote)
 """
+        // qualityMiles = interval miles only (reps × rep distance, no warmup/cooldown/recovery)
+        let intervalMiles = (Double(scaledReps) * session.repDistMiles).rounded(toPlaces: 1)
         return TrainingDay(weekday: day, workoutType: .speedWork,
                            miles: totalMiles,
                            description: desc,
-                           paceNote: "~\(speedPace)/mi — 5K pace, controlled and repeatable")
+                           paceNote: "~\(speedPace)/mi — 5K pace, controlled and repeatable",
+                           qualityMiles: intervalMiles)
     }
 
     // MARK: - Strength Workout
@@ -636,10 +668,13 @@ the effort of the rep comes from the pace, not from grinding through exhaustion.
 
 \(depthNote)
 """
+        // qualityMiles = MP rep miles only (reps × scaledDist, no warmup/cooldown/recovery jogs)
+        let repMiles = (Double(scaledReps) * scaledDist).rounded(toPlaces: 1)
         return TrainingDay(weekday: day, workoutType: .strengthMP,
                            miles: totalMiles,
                            description: desc,
-                           paceNote: "\(targetPace)/mi — 10 sec/mi faster than MP (\(paceRange) acceptable)")
+                           paceNote: "\(targetPace)/mi — 10 sec/mi faster than MP (\(paceRange) acceptable)",
+                           qualityMiles: repMiles)
     }
 
     // MARK: - Tempo Run
@@ -649,9 +684,9 @@ the effort of the rep comes from the pace, not from grinding through exhaustion.
     // TrainingDay.miles = mpSegment + 3.0 — the runner's total workout distance.
     //
     // Verification (55-mile peak week, canonical 14):
-    //   mpSegment = 7.7 mi → total = 7.7 + 1.5 + 1.5 = 10.7 mi ✓
-    // Verification (35-mile mid-plan week, canonical 7):
-    //   mpSegment = 4.9 mi → total = 4.9 + 1.5 + 1.5 = 7.9 mi ✓
+    //   mpSegment = 10.0 mi → total = 10.0 + 1.5 + 1.5 = 13.0 mi ✓
+    // Verification (early speed week, canonical 5):
+    //   mpSegment = 4.0 mi → total = 4.0 + 1.5 + 1.5 = 7.0 mi ✓
 
     // mpSegment: the prescribed quality distance at marathon pace.
     // Warmup (1.5 mi) and cooldown (1.5 mi) are additive — total stored = mpSegment + 3.0.
@@ -673,9 +708,12 @@ the effort of the rep comes from the pace, not from grinding through exhaustion.
         let phaseContext: String
         switch canonical {
         case ..<strengthStart:
-            phaseContext = "Speed phase tempo. Q1 (Tuesday) builds running economy at 5K pace. This session develops marathon-pace fluency — making goal pace feel familiar and sustainable on weekly accumulated mileage."
+            phaseContext = "Speed phase tempo. Q1 (Tuesday) builds running economy at 5K pace. This session develops marathon-pace fluency — learning to hold goal pace on accumulated weekly fatigue before the distance reaches its peak."
+        case strengthStart..<13:
+            phaseContext = "Strength phase tempo. On Tuesday you ran 10 seconds per mile faster than MP (\(PaceEngine.format(paces.hansonsStrengthPace))/mi). Today locks in true marathon pace. The distance will increase each week until you are sustaining 10 miles at race pace — the closest simulation to the second half of a marathon the plan provides."
         default:
-            phaseContext = "Strength phase tempo. On Tuesday you ran 10 seconds per mile faster than MP (\(PaceEngine.format(paces.hansonsStrengthPace))/mi). Today locks in true marathon pace — the pace you will race at. Running it Thursday on a week's fatigue is exactly the preparation the second half of a marathon demands."
+            // canonical 13 = 9 mi; 14+ = 10 mi — the full Hansons peak prescription
+            phaseContext = "Peak Hansons tempo. This is the full prescription — \(String(format: "%.0f", mpSegment)) miles at marathon pace on accumulated training fatigue. There is no closer simulation of the second half of your race. Hold pace from mile one. If you go out under control, you finish under control."
         }
 
         let desc = """
@@ -693,7 +731,8 @@ Breathing is deliberate but not desperate.
 """
         return TrainingDay(weekday: day, workoutType: .tempoRun, miles: actualTotal,
                            description: desc,
-                           paceNote: "\(tempoPace)/mi — marathon pace, \(String(format: "%.0f", mpSegment)) mi sustained")
+                           paceNote: "\(tempoPace)/mi — marathon pace, \(String(format: "%.0f", mpSegment)) mi sustained",
+                           qualityMiles: mpSegment)
     }
 
     // MARK: - Onboarding Run
