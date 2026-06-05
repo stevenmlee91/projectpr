@@ -365,7 +365,7 @@ struct HigdonHalfNoviceGenerator {
         case .second:
             descs = [
                 "Easy run. Your second run of the week. Same effort as Tuesday — fully conversational and comfortable. These mid-week miles are building the aerobic foundation your long run depends on.",
-                "Easy run. Two easy runs per week plus the long run on the weekend — that rhythm is your training. Run comfortable and protect your legs for Saturday or Sunday.",
+                "Easy run. Two easy runs per week plus the long run — that rhythm is your training. Run comfortable and protect your legs for your long run day.",
                 "Easy run. Keep it easy. By the time you reach race day, these consistent mid-week runs will have quietly built more fitness than you realize.",
                 "Easy run. No pace targets, no pressure. Just easy movement that keeps your body in a running rhythm between long run days.",
                 "Easy run. Comfortable from start to finish. Walk hills if needed. Today is about building the habit and the aerobic base."

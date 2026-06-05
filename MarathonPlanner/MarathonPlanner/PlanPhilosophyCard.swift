@@ -128,7 +128,8 @@ struct PlanPhilosophyCard: View {
             return "High mileage, aerobic engine. Two quality days anchor a week that also includes a medium-long midweek run. No single workout carries the plan — the accumulation does. Expect some weeks to feel impossible. The volume is the adaptation."
 
         case .higdon:
-            return "Long run focused. Three easy days each week build toward the Sunday long run, which is the week's centerpiece. This plan teaches your body to run far before it asks it to run fast. Runners finish their first marathons on plans like this."
+            let lrDay = plan.settings.schedule.longRunDay.fullName
+            return "Long run focused. Three easy days each week build toward the \(lrDay) long run, which is the week's centerpiece. This plan teaches your body to run far before it asks it to run fast. Runners finish their first marathons on plans like this."
 
         case .higdonIntermediate:
             return "Long run plus tempo. A step up from novice — a midweek tempo run and a medium-long run add variety and speed development. Cross-training days keep the engine working without adding impact. Built for runners who've finished a marathon and want to run it better."

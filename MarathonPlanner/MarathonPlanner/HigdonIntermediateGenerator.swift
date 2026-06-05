@@ -77,6 +77,18 @@ struct HigdonIntermediateGenerator {
         // runner's week 1 total of ~20mi (75% long run). The 50% cap prevents this.
         let longRuns = longRunScheduleAdapted(n: n, weeklyMiles: mileage)
 
+        // Detect the pre-peak step-back week (see HigdonNoviceGenerator for rationale).
+        // Intermediate canonical18 has the same 14→20 and 16→22 valleys before its
+        // two peak long runs. Tag the last valley so makeLongRun can explain the drop.
+        let peakLR     = longRuns.max() ?? 0
+        let prePeakIdx = longRuns.indices.last { i in
+            i > 0
+                && longRuns[i] < longRuns[i - 1]
+                && i + 1 < longRuns.count
+                && longRuns[i + 1] == peakLR
+                && longRuns[i] > 0
+        }
+
         var weeks: [TrainingWeek] = []
         for i in 0..<n {
             let wk        = i + 1
@@ -88,6 +100,7 @@ struct HigdonIntermediateGenerator {
             let offset    = 18 - n
             let canonical = wk + offset
             let useTempo  = canonical >= 3 && !isTap && !isCut
+            let isPrePeak = prePeakIdx == i
 
             weeks.append(buildWeek(
                 weekNumber: wk,
@@ -100,6 +113,7 @@ struct HigdonIntermediateGenerator {
                 isCutback:  isCut,
                 isTaper:    isTap,
                 useTempo:   useTempo,
+                isPrePeak:  isPrePeak,
                 totalWeeks: n
             ))
         }
@@ -238,6 +252,7 @@ struct HigdonIntermediateGenerator {
         isCutback  : Bool,
         isTaper    : Bool,
         useTempo   : Bool,
+        isPrePeak  : Bool = false,
         totalWeeks : Int
     ) -> TrainingWeek {
         let lrDay = schedule.longRunDay
@@ -298,7 +313,8 @@ struct HigdonIntermediateGenerator {
                                  weekNumber: weekNumber,
                                  totalWeeks: totalWeeks,
                                  isTaper:    isTaper,
-                                 isCutback:  isCutback)
+                                 isCutback:  isCutback,
+                                 isPrePeak:  isPrePeak)
             } else if day == mwDay {
                 td = makeMidweekLong(day, miles: midM,
                                      weekNumber: weekNumber,
@@ -337,22 +353,26 @@ struct HigdonIntermediateGenerator {
                              weekNumber : Int,
                              totalWeeks : Int,
                              isTaper    : Bool,
-                             isCutback  : Bool) -> TrainingDay {
+                             isCutback  : Bool,
+                             isPrePeak  : Bool = false) -> TrainingDay {
         let weeksToRace = totalWeeks - weekNumber
 
         let desc: String
-        switch (isTaper, isCutback, weeksToRace) {
-        case (true, _, 0), (true, _, 1):
+        switch (isTaper, isPrePeak, isCutback, weeksToRace) {
+        case (true, _, _, 0), (true, _, _, 1):
             desc = "Final taper long run. Easy from start to finish. You are not building fitness — you are maintaining rhythm and arriving at the start line fresh."
-        case (true, _, _):
+        case (true, _, _, _):
             desc = "Taper long run. Shorter and comfortable. Your peak fitness is already built. Run relaxed and trust the work you have done."
-        case (false, true, _):
+        case (false, true, _, _):
+            // Deliberate step-back before the peak long run — same Higdon design as Novice.
+            desc = "A step-back long run — shorter by design. Higdon intentionally reduces the long run this week to freshen your legs before next week's peak run. Run easy, let your body absorb the recent training, and arrive at next week ready to run your furthest."
+        case (false, _, true, _):
             desc = "Shorter long run by design — this is a recovery week. Your body needs lighter load to absorb the previous training. Run easy and appreciate the rest."
-        case (false, false, _) where miles >= 20:
+        case (false, _, false, _) where miles >= 20:
             desc = "Your peak long run. This is the longest you will run before the marathon. Easy effort throughout — the distance is the achievement. Run the first half conservatively."
-        case (false, false, _) where miles >= 16:
+        case (false, _, false, _) where miles >= 16:
             desc = "A major long run. Settle into a comfortable rhythm early. The goal is to finish feeling strong, not to run fast. Every mile here is a deposit in your marathon bank."
-        case (false, false, _) where miles >= 12:
+        case (false, _, false, _) where miles >= 12:
             desc = "Long run day. Easy and steady. You are building the endurance foundation that will carry you through race day. Pace is irrelevant — effort is everything."
         default:
             desc = "Long run. Start easy, finish easy. Let your body find its natural rhythm."
