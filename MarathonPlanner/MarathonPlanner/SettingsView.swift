@@ -4,6 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject var appearanceManager   : AppearanceManager
     @EnvironmentObject var store               : PlanStore
     @EnvironmentObject var notificationManager : NotificationManager
+    @EnvironmentObject var stravaService       : StravaService
 
     @AppStorage("hasCompletedOnboarding")
     private var hasCompletedOnboarding: Bool = false
@@ -11,6 +12,11 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+
+                // MARK: Strava integration
+                StravaConnectSection()
+                    .environmentObject(stravaService)
+                    .environmentObject(store)
 
                 // MARK: Notifications
                 NotificationSettingsView(nm: notificationManager)

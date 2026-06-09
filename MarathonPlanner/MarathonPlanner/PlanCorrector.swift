@@ -308,7 +308,8 @@ private extension SavedDay {
             qualityMiles:     qualityMiles,
             completionStatus: completionStatus,
             actualMiles:      actualMiles,
-            completionNote:   completionNote
+            completionNote:   completionNote,
+            paceVerdict:      paceVerdict
         )
     }
 }

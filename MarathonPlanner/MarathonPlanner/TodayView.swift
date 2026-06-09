@@ -357,7 +357,8 @@ struct TodayWorkoutCard: View {
     let ctx        : TodayContext
     let onComplete : ((SavedDay) -> Void)?
 
-    @EnvironmentObject var store: PlanStore
+    @EnvironmentObject var store         : PlanStore
+    @EnvironmentObject var stravaService : StravaService
 
     @State private var showingActualMiles = false
     @State private var actualMilesInput   = ""
@@ -409,9 +410,21 @@ struct TodayWorkoutCard: View {
                     if !liveDay.paceNote.isEmpty && liveDay.paceNote != "—" {
                         paceNote
                     }
+                    // Strava activity match — shown when a run was found on
+                    // Strava for today and the workout hasn't been logged yet
+                    if let activity = stravaService.matches[liveDay.id],
+                       liveDay.completionStatus == .notStarted {
+                        stravaMatchBanner(activity)
+                    }
                     coachingCard
                     completionControls
                     if showingActualMiles { actualMilesRow }
+                    // Pace zone verdict — shown after logging from Strava
+                    if let verdict = liveDay.paceVerdict,
+                       liveDay.completionStatus != .notStarted {
+                        paceVerdictRow(verdict)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
                 .padding(20)
             }
@@ -917,6 +930,130 @@ struct TodayWorkoutCard: View {
         .transition(.move(edge: .top).combined(with: .opacity))
     }
     
+    // MARK: - Strava Match Banner
+
+    private func stravaMatchBanner(_ activity: StravaActivity) -> some View {
+        HStack(spacing: 10) {
+            // Strava orange dot
+            Circle()
+                .fill(Color(hex: "FC4C02"))
+                .frame(width: 7, height: 7)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(activity.name)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(String(format: "%.1f mi", activity.distanceMiles))
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundColor(.secondary)
+                    if let pace = activity.pacePerMile {
+                        Text("·")
+                            .foregroundColor(Color(.tertiaryLabel))
+                            .font(.system(size: 11))
+                        Text(pace)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            Spacer()
+
+            Button("Log") {
+                logFromStrava(activity)
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundColor(Color(hex: "FC4C02"))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color(hex: "FC4C02").opacity(0.1))
+            .cornerRadius(6)
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(Color(hex: "FC4C02").opacity(0.06))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color(hex: "FC4C02").opacity(0.18), lineWidth: 1)
+        )
+        .cornerRadius(8)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    private func logFromStrava(_ activity: StravaActivity) {
+        let actual  = activity.distanceMiles
+        let planned = liveDay.miles
+
+        // Within 15% of planned → completed; further off → modified
+        let status: CompletionStatus = planned > 0
+            && abs(actual - planned) / planned <= 0.15
+            ? .completed
+            : .modified
+
+        store.updateCompletion(
+            planID: ctx.plan.id,
+            weekID: ctx.week.id,
+            dayID:  liveDay.id,
+            status: status,
+            actual: actual
+        )
+
+        // Compute and persist pace zone verdict
+        if let avgSpeed = activity.averageSpeed, avgSpeed > 0 {
+            let secsPerMile = Int((1609.344 / avgSpeed).rounded())
+            if let verdict = PaceZoneValidator.evaluate(
+                workoutType:          liveDay.workoutType,
+                goalMinutes:          ctx.plan.settings.goalTimeMinutes,
+                actualSecondsPerMile: secsPerMile
+            ) {
+                store.savePaceVerdict(
+                    planID:  ctx.plan.id,
+                    weekID:  ctx.week.id,
+                    dayID:   liveDay.id,
+                    verdict: verdict
+                )
+            }
+        }
+
+        // Remove the Strava banner
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+            stravaService.clearMatch(for: liveDay.id)
+        }
+
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        onComplete?(liveDay)
+    }
+
+    // MARK: - Pace Verdict Row
+
+    private func paceVerdictRow(_ verdict: String) -> some View {
+        let isGood = verdict.hasPrefix("✓")
+        let color  = isGood ? Color(hex: "30D158") : Color(hex: "FF9F0A")
+
+        return HStack(alignment: .top, spacing: 8) {
+            Image(systemName: isGood ? "checkmark.circle.fill" : "info.circle.fill")
+                .font(.system(size: 12))
+                .foregroundColor(color)
+                .padding(.top, 1)
+            Text(verdict)
+                .font(.appBody(12))
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineSpacing(3)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(color.opacity(0.07))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(color.opacity(0.15), lineWidth: 1)
+        )
+        .cornerRadius(8)
+    }
+
     private var coachingCard: some View {
         Group {
             if let workoutType = WorkoutType(rawValue: liveDay.workoutType),

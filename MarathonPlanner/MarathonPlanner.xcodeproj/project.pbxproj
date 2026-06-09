@@ -59,6 +59,12 @@
 		B08F5A3E2FAFF72700BFFC53 /* HigdonIntermediateGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A3D2FAFF72700BFFC53 /* HigdonIntermediateGenerator.swift */; };
 		B08F5A442FB0492D00BFFC53 /* TrainingPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A432FB0492D00BFFC53 /* TrainingPhase.swift */; };
 		B08F5A462FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A452FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift */; };
+		CFAB105C0F9B4633A3489AF8 /* StravaConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DC2445C5CEB4A41B71BC71E /* StravaConfig.swift */; };
+		1F67833A1ADF45C8A688D4D0 /* PaceZoneValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBC34820F6DC4A77A5ACBC4B /* PaceZoneValidator.swift */; };
+		40E458FB87344575B66A3333 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1023E956F2134F7A82D14991 /* KeychainHelper.swift */; };
+		3807D7E48E8346DC96BE5C0F /* StravaModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E157052091304F4C9333DBD2 /* StravaModels.swift */; };
+		B6C00066B30E4EF2AD23F3DB /* StravaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FCD927DD9124562B740D39E /* StravaService.swift */; };
+		9382F0980EEA4970B7A2E9CB /* StravaConnectSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1F6FCB074CE4A7FA62D089E /* StravaConnectSection.swift */; };
 		B08F5A482FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A472FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift */; };
 		B08F5A4A2FB19B1A00BFFC53 /* HansonsMarathonGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A492FB19B1A00BFFC53 /* HansonsMarathonGenerator.swift */; };
 		B08F5A4C2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A4B2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift */; };
@@ -187,6 +193,12 @@
 		B08F5A432FB0492D00BFFC53 /* TrainingPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPhase.swift; sourceTree = "<group>"; };
 		B08F5A452FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCoachEngine.swift; sourceTree = "<group>"; };
 		B08F5A472FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCoachingCard.swift; sourceTree = "<group>"; };
+		1DC2445C5CEB4A41B71BC71E /* StravaConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaConfig.swift; sourceTree = "<group>"; };
+		EBC34820F6DC4A77A5ACBC4B /* PaceZoneValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaceZoneValidator.swift; sourceTree = "<group>"; };
+		1023E956F2134F7A82D14991 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
+		E157052091304F4C9333DBD2 /* StravaModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaModels.swift; sourceTree = "<group>"; };
+		8FCD927DD9124562B740D39E /* StravaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaService.swift; sourceTree = "<group>"; };
+		C1F6FCB074CE4A7FA62D089E /* StravaConnectSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaConnectSection.swift; sourceTree = "<group>"; };
 		B08F5A492FB19B1A00BFFC53 /* HansonsMarathonGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HansonsMarathonGenerator.swift; sourceTree = "<group>"; };
 		B08F5A4B2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PfitzMarathonGenerator.swift; sourceTree = "<group>"; };
 		B08F5A4D2FB21ECD00BFFC53 /* MethodologyReadinessEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MethodologyReadinessEngine.swift; sourceTree = "<group>"; };
@@ -333,6 +345,12 @@
 				B08F5A452FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift */,
 				B08F5A472FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift */,
 				E00B4342AA084ACDA129030F /* WeekCompletionSnapshot.swift */,
+				1DC2445C5CEB4A41B71BC71E /* StravaConfig.swift */,
+				EBC34820F6DC4A77A5ACBC4B /* PaceZoneValidator.swift */,
+				1023E956F2134F7A82D14991 /* KeychainHelper.swift */,
+				E157052091304F4C9333DBD2 /* StravaModels.swift */,
+				8FCD927DD9124562B740D39E /* StravaService.swift */,
+				C1F6FCB074CE4A7FA62D089E /* StravaConnectSection.swift */,
 				B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */,
 				B08F5A292FAB0B6200BFFC53 /* MilestoneDetector.swift */,
 				B08F5A3A2FB0000000BFFC53 /* PlanValidator.swift */,
@@ -558,6 +576,12 @@
 			files = (
 				B08F5A462FB0DC6E00BFFC53 /* WorkoutCoachEngine.swift in Sources */,
 				0591C76151F0445CBB06815E /* WeekCompletionSnapshot.swift in Sources */,
+				CFAB105C0F9B4633A3489AF8 /* StravaConfig.swift in Sources */,
+				1F67833A1ADF45C8A688D4D0 /* PaceZoneValidator.swift in Sources */,
+				40E458FB87344575B66A3333 /* KeychainHelper.swift in Sources */,
+				3807D7E48E8346DC96BE5C0F /* StravaModels.swift in Sources */,
+				B6C00066B30E4EF2AD23F3DB /* StravaService.swift in Sources */,
+				9382F0980EEA4970B7A2E9CB /* StravaConnectSection.swift in Sources */,
 				B08F5A242FAB067A00BFFC53 /* WeeklySummaryManager.swift in Sources */,
 				B08F59BE2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift in Sources */,
 				B0A62DA92F9862340093719D /* PlanGenerator.swift in Sources */,

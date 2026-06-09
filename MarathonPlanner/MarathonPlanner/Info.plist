@@ -8,5 +8,16 @@
     <string>Mile Zero uses your location to build running routes and show your position on the map.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>Mile Zero uses your location to build running routes and show your position on the map.</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.milezero.MarathonPlanner</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>milezero</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>

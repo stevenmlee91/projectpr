@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import AuthenticationServices
 
 // MARK: - Notification Delegate
 
@@ -46,8 +47,10 @@ struct MarathonTrainerApp: App {
     @StateObject private var appearanceManager   = AppearanceManager()
     @StateObject private var notificationManager = NotificationManager.shared
     @StateObject private var routeStore          = SavedRouteStore()
+    @StateObject private var stravaService       = StravaService()
     @State       private var selectedTab         : Int  = 0
     @State       private var showWeeklySummary   : Bool = false
+    @Environment(\.scenePhase) private var scenePhase
 
     @AppStorage("hasCompletedOnboarding")
     private var hasCompletedOnboarding: Bool = false
@@ -69,6 +72,7 @@ struct MarathonTrainerApp: App {
                 .environmentObject(appearanceManager)
                 .environmentObject(notificationManager)
                 .environmentObject(routeStore)
+                .environmentObject(stravaService)
                 .preferredColorScheme(
                     appearanceManager.appearance.colorScheme)
                 .onAppear {
@@ -92,6 +96,12 @@ struct MarathonTrainerApp: App {
                 }
                 .onOpenURL { url in
                     handleDeepLink(url)
+                }
+                // Sync Strava activities whenever the app returns to foreground
+                .onChange(of: scenePhase) { phase in
+                    if phase == .active {
+                        Task { await stravaService.sync(plans: store.plans) }
+                    }
                 }
                 // Listen for weekly summary deep link from notification tap
                 .onReceive(
