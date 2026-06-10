@@ -65,6 +65,7 @@
 		3807D7E48E8346DC96BE5C0F /* StravaModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E157052091304F4C9333DBD2 /* StravaModels.swift */; };
 		B6C00066B30E4EF2AD23F3DB /* StravaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FCD927DD9124562B740D39E /* StravaService.swift */; };
 		9382F0980EEA4970B7A2E9CB /* StravaConnectSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1F6FCB074CE4A7FA62D089E /* StravaConnectSection.swift */; };
+		A1B2C3D4E5F6A1B2C3D4E5F6 /* StravaActivityDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6E5D4C3B2A1F6E5D4C3B2A1 /* StravaActivityDetailSheet.swift */; };
 		B08F5A482FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A472FB0DC7C00BFFC53 /* WorkoutCoachingCard.swift */; };
 		B08F5A4A2FB19B1A00BFFC53 /* HansonsMarathonGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A492FB19B1A00BFFC53 /* HansonsMarathonGenerator.swift */; };
 		B08F5A4C2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08F5A4B2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift */; };
@@ -199,6 +200,7 @@
 		E157052091304F4C9333DBD2 /* StravaModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaModels.swift; sourceTree = "<group>"; };
 		8FCD927DD9124562B740D39E /* StravaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaService.swift; sourceTree = "<group>"; };
 		C1F6FCB074CE4A7FA62D089E /* StravaConnectSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaConnectSection.swift; sourceTree = "<group>"; };
+		F6E5D4C3B2A1F6E5D4C3B2A1 /* StravaActivityDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StravaActivityDetailSheet.swift; sourceTree = "<group>"; };
 		B08F5A492FB19B1A00BFFC53 /* HansonsMarathonGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HansonsMarathonGenerator.swift; sourceTree = "<group>"; };
 		B08F5A4B2FB19B2C00BFFC53 /* PfitzMarathonGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PfitzMarathonGenerator.swift; sourceTree = "<group>"; };
 		B08F5A4D2FB21ECD00BFFC53 /* MethodologyReadinessEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MethodologyReadinessEngine.swift; sourceTree = "<group>"; };
@@ -350,6 +352,7 @@
 				1023E956F2134F7A82D14991 /* KeychainHelper.swift */,
 				E157052091304F4C9333DBD2 /* StravaModels.swift */,
 				8FCD927DD9124562B740D39E /* StravaService.swift */,
+				F6E5D4C3B2A1F6E5D4C3B2A1 /* StravaActivityDetailSheet.swift */,
 				C1F6FCB074CE4A7FA62D089E /* StravaConnectSection.swift */,
 				B08F5A272FAB0B4F00BFFC53 /* MilestoneOverlayView.swift */,
 				B08F5A292FAB0B6200BFFC53 /* MilestoneDetector.swift */,
@@ -581,6 +584,7 @@
 				40E458FB87344575B66A3333 /* KeychainHelper.swift in Sources */,
 				3807D7E48E8346DC96BE5C0F /* StravaModels.swift in Sources */,
 				B6C00066B30E4EF2AD23F3DB /* StravaService.swift in Sources */,
+				A1B2C3D4E5F6A1B2C3D4E5F6 /* StravaActivityDetailSheet.swift in Sources */,
 				9382F0980EEA4970B7A2E9CB /* StravaConnectSection.swift in Sources */,
 				B08F5A242FAB067A00BFFC53 /* WeeklySummaryManager.swift in Sources */,
 				B08F59BE2FA1B9CD00BFFC53 /* NotificationsSettingsView.swift in Sources */,

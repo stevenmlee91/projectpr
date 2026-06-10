@@ -544,6 +544,17 @@ struct SPVWeekDetailView: View {
                                 liveWeek.totalMiles))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
+                    if liveWeek.actualTotalMiles > 0 {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color(hex: "30D158"))
+                                .frame(width: 4, height: 4)
+                            Text(String(format: "%.1f mi logged",
+                                        liveWeek.actualTotalMiles))
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(Color(hex: "30D158"))
+                        }
+                    }
                 }
                 Spacer()
                 ZStack {
@@ -596,6 +607,7 @@ struct SPVDayRow: View {
     @State private var actualMilesInput   = ""
     @State private var isEditingNote      = false
     @State private var noteInput          = ""
+    @State private var showStravaDetail   = false
     @FocusState private var noteFocused   : Bool
 
     init(day: SavedDay, planID: UUID, weekID: UUID,
@@ -712,6 +724,13 @@ struct SPVDayRow: View {
                             .foregroundColor(Color(hex: "0A84FF"))
                     }
 
+                    // Pace zone verdict — compact chip shown when a Strava
+                    // activity was logged and the validator has feedback.
+                    if let verdict = day.paceVerdict,
+                       day.completionStatus != .notStarted {
+                        paceVerdictChip(verdict)
+                    }
+
                     if !day.isRestDay
                         && (day.completionStatus == .completed
                             || day.completionStatus == .modified
@@ -777,22 +796,42 @@ struct SPVDayRow: View {
             if !day.isRestDay && day.miles > 0
                 && !showingActualMiles
                 && day.completionStatus != .skipped {
-                Button {
-                    actualMilesInput = day.actualMiles
-                        .map { String(format: "%.1f", $0) } ?? ""
-                    showingActualMiles.toggle()
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 10))
-                        Text("Log actual miles")
-                            .font(.system(size: 11, weight: .medium))
+                if day.actualMiles == nil {
+                    // No miles recorded yet — prompt to log
+                    Button {
+                        actualMilesInput = ""
+                        showingActualMiles = true
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 10))
+                            Text("Log actual miles")
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
                     }
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .buttonStyle(.plain)
+                } else {
+                    // Miles already recorded (Strava or manual) — quiet edit link
+                    Button {
+                        actualMilesInput = day.actualMiles
+                            .map { String(format: "%.1f", $0) } ?? ""
+                        showingActualMiles = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 9))
+                            Text("Edit miles")
+                                .font(.system(size: 10))
+                        }
+                        .foregroundColor(Color(.tertiaryLabel))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 5)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
         .background(rowBackground)
@@ -810,6 +849,14 @@ struct SPVDayRow: View {
         .id(day.id)
         .animation(.easeInOut(duration: 0.2),
                    value: day.completionStatus)
+        .sheet(isPresented: $showStravaDetail) {
+            if let activity = day.stravaActivity {
+                StravaActivityDetailSheet(
+                    activity: activity,
+                    verdict:  day.paceVerdict
+                )
+            }
+        }
     }
 
     // MARK: Note Section
@@ -937,15 +984,33 @@ struct SPVDayRow: View {
     private var milesView: some View {
         Group {
             if let actual = day.actualMiles,
-               day.completionStatus == .modified {
-                // Modified: actual vs. planned total
+               day.completionStatus == .completed
+                   || day.completionStatus == .modified {
+                // Actual miles recorded — show for both .completed (Strava)
+                // and .modified (manual edit or distance mismatch).
+                let fromStrava = day.paceVerdict != nil
                 HStack(spacing: 4) {
+                    if fromStrava {
+                        Circle()
+                            .fill(Color(hex: "FC4C02"))
+                            .frame(width: 4, height: 4)
+                    }
                     Text(String(format: "%.1f", actual))
-                        .foregroundColor(Color(hex: "30D158"))
+                        .foregroundColor(
+                            fromStrava
+                                ? Color(hex: "FC4C02").opacity(0.85)
+                                : Color(hex: "30D158")
+                        )
                         .font(.system(size: 13, weight: .semibold))
-                    Text("/ \(String(format: "%.1f", day.miles)) mi")
-                        .foregroundColor(.secondary)
-                        .font(.system(size: 11))
+                    if day.completionStatus == .modified {
+                        Text("/ \(String(format: "%.1f", day.miles)) mi")
+                            .foregroundColor(.secondary)
+                            .font(.system(size: 11))
+                    } else {
+                        Text("mi")
+                            .foregroundColor(.secondary)
+                            .font(.system(size: 11))
+                    }
                 }
             } else if let quality = day.qualityMiles, day.miles > 0 {
                 // Structured workout: quality segment as primary, total as secondary
@@ -1000,6 +1065,63 @@ struct SPVDayRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.bottom, 12)
+    }
+
+    // MARK: Pace Verdict Chip
+
+    /// Compact inline verdict shown in the week detail day row.
+    /// Full-sentence text is truncated to 2 lines — the runner sees
+    /// the key result at a glance without the row growing too tall.
+    private func paceVerdictChip(_ verdict: String) -> some View {
+        let isGood   = verdict.hasPrefix("✓")
+        let color    = isGood ? Color(hex: "30D158") : Color(hex: "FF9F0A")
+        let tappable = day.stravaActivity != nil
+        // Strip the leading "✓ " so the icon doesn't double-up
+        let text     = verdict.hasPrefix("✓ ")
+            ? String(verdict.dropFirst(2)) : verdict
+
+        return HStack(alignment: .top, spacing: 5) {
+            Image(systemName: isGood
+                  ? "checkmark.circle.fill"
+                  : "info.circle.fill")
+                .font(.system(size: 10))
+                .foregroundColor(color)
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(text)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                HStack(spacing: 3) {
+                    Circle()
+                        .fill(Color(hex: "FC4C02"))
+                        .frame(width: 4, height: 4)
+                    Text(tappable ? "tap for details" : "via Strava")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(Color(.tertiaryLabel))
+                }
+            }
+            if tappable {
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(color.opacity(0.45))
+                    .padding(.top, 2)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(color.opacity(0.07))
+        .overlay(
+            RoundedRectangle(cornerRadius: 7)
+                .stroke(color.opacity(0.18), lineWidth: 1)
+        )
+        .cornerRadius(7)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard tappable else { return }
+            showStravaDetail = true
+        }
     }
 
     // MARK: Styling

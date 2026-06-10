@@ -160,6 +160,11 @@ struct SavedDay: Identifiable, Codable {
     /// is logged. Begins with "✓ " for green display, no prefix for amber.
     /// Optional — existing plans decode as nil (backward compatible).
     var paceVerdict      : String?
+    /// The full Strava activity that was logged for this day.
+    /// Stored so the detail sheet can show activity metadata (name, HR, elevation)
+    /// without requiring a live Strava connection or a recent sync.
+    /// Optional — existing plans decode as nil (backward compatible).
+    var stravaActivity   : StravaActivity?
 
     init(id: UUID = UUID(), date: Date, weekday: String,
          workoutType: String, miles: Double, description: String,
@@ -168,7 +173,8 @@ struct SavedDay: Identifiable, Codable {
          completionStatus: CompletionStatus = .notStarted,
          actualMiles: Double? = nil,
          completionNote: String? = nil,
-         paceVerdict: String? = nil) {
+         paceVerdict: String? = nil,
+         stravaActivity: StravaActivity? = nil) {
         self.id               = id
         self.date             = date
         self.weekday          = weekday
@@ -181,6 +187,7 @@ struct SavedDay: Identifiable, Codable {
         self.actualMiles      = actualMiles
         self.completionNote   = completionNote
         self.paceVerdict      = paceVerdict
+        self.stravaActivity   = stravaActivity
     }
 
     var isRestDay:    Bool { workoutType == "Rest" }
@@ -392,7 +399,10 @@ class PlanStore: ObservableObject {
             plans[pi].weeks[wi].days[di].actualMiles = actual
         }
         if status == .notStarted {
-            plans[pi].weeks[wi].days[di].actualMiles = nil
+            plans[pi].weeks[wi].days[di].actualMiles    = nil
+            // Clear all Strava-sourced data when the runner unmarks a workout
+            plans[pi].weeks[wi].days[di].paceVerdict    = nil
+            plans[pi].weeks[wi].days[di].stravaActivity = nil
         }
 
         syncWidget()
@@ -437,6 +447,61 @@ class PlanStore: ObservableObject {
         else { return }
 
         plans[pi].weeks[wi].days[di].paceVerdict = verdict
+
+        let snapshot = plans
+        DispatchQueue.global(qos: .utility).async {
+            if let data = try? JSONEncoder().encode(snapshot) {
+                UserDefaults.standard.set(
+                    data, forKey: "saved_training_plans_v2")
+            }
+        }
+    }
+
+    // MARK: - Strava: Log Activity
+
+    /// Atomically logs a Strava activity for a planned day.
+    /// Sets completion status + actual miles + pace zone verdict in a single
+    /// write so the plan UI updates all at once rather than in two passes.
+    func logStravaActivity(
+        planID      : UUID,
+        weekID      : UUID,
+        dayID       : UUID,
+        activity    : StravaActivity,
+        goalMinutes : Int
+    ) {
+        guard
+            let pi = plans.firstIndex(where: { $0.id == planID }),
+            let wi = plans[pi].weeks.firstIndex(where: { $0.id == weekID }),
+            let di = plans[pi].weeks[wi].days.firstIndex(where: { $0.id == dayID })
+        else { return }
+
+        let day    = plans[pi].weeks[wi].days[di]
+        let actual = activity.distanceMiles
+
+        // Within 15% of planned → completed; further off → modified
+        let status: CompletionStatus = day.miles > 0
+            && abs(actual - day.miles) / day.miles <= 0.15
+            ? .completed : .modified
+
+        plans[pi].weeks[wi].days[di].completionStatus = status
+        plans[pi].weeks[wi].days[di].actualMiles      = actual
+        // Store the full activity so the detail sheet can show metadata
+        // (name, elevation, HR) without a live Strava connection.
+        plans[pi].weeks[wi].days[di].stravaActivity   = activity
+
+        // Pace zone verdict — only available when Strava reports average speed
+        if let avgSpeed = activity.averageSpeed, avgSpeed > 0 {
+            let secsPerMile = Int((1609.344 / avgSpeed).rounded())
+            if let verdict = PaceZoneValidator.evaluate(
+                workoutType:          day.workoutType,
+                goalMinutes:          goalMinutes,
+                actualSecondsPerMile: secsPerMile
+            ) {
+                plans[pi].weeks[wi].days[di].paceVerdict = verdict
+            }
+        }
+
+        syncWidget()
 
         let snapshot = plans
         DispatchQueue.global(qos: .utility).async {

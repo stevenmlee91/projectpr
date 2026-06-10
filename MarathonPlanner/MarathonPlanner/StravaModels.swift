@@ -8,7 +8,9 @@ struct StravaTokenResponse: Decodable {
     let accessToken  : String
     let refreshToken : String
     let expiresAt    : Int          // Unix timestamp when access token expires
-    let athlete      : StravaAthlete
+    /// Present in initial authorization-code exchange but absent in refresh
+    /// token responses. Must be Optional so both response shapes decode cleanly.
+    let athlete      : StravaAthlete?
 
     enum CodingKeys: String, CodingKey {
         case accessToken  = "access_token"
@@ -30,15 +32,18 @@ struct StravaAthlete: Decodable {
 
 // MARK: Activity
 
-struct StravaActivity: Decodable, Identifiable {
-    let id               : Int
-    let name             : String
-    let distance         : Double   // meters
-    let movingTime       : Int      // seconds
-    let startDate        : Date     // UTC — used for calendar-day matching
-    let type             : String   // "Run", "VirtualRun", "TrailRun", etc.
-    let averageSpeed     : Double?  // m/s
-    let totalElevationGain: Double? // meters
+struct StravaActivity: Codable, Identifiable, Equatable {
+    let id                 : Int
+    let name               : String
+    let distance           : Double   // meters
+    let movingTime         : Int      // seconds
+    let startDate          : Date     // UTC — used for calendar-day matching
+    let type               : String   // "Run", "VirtualRun", "TrailRun", etc.
+    let averageSpeed       : Double?  // m/s
+    let totalElevationGain : Double?  // meters
+    /// Available when the runner wore a heart-rate monitor.
+    let averageHeartrate   : Double?  // bpm
+    let maxHeartrate       : Double?  // bpm
 
     enum CodingKeys: String, CodingKey {
         case id, name, distance, type
@@ -46,6 +51,8 @@ struct StravaActivity: Decodable, Identifiable {
         case startDate          = "start_date"
         case averageSpeed       = "average_speed"
         case totalElevationGain = "total_elevation_gain"
+        case averageHeartrate   = "average_heartrate"
+        case maxHeartrate       = "max_heartrate"
     }
 
     // MARK: - Computed helpers

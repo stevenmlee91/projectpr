@@ -27,6 +27,10 @@ final class StravaService: NSObject, ObservableObject {
     /// Only contains days that are not yet completed.
     @Published var matches          : [UUID: StravaActivity] = [:]
 
+    /// Strong-confidence matches (activity distance within 15% of planned miles).
+    /// These are auto-logged silently — no banner required.
+    @Published var autoMatches      : [UUID: StravaActivity] = [:]
+
     // MARK: - Persisted state (non-sensitive)
 
     var lastSyncDate: Date? {
@@ -119,6 +123,7 @@ final class StravaService: NSObject, ObservableObject {
         athleteName      = ""
         recentActivities = []
         matches          = [:]
+        autoMatches      = [:]
         syncError        = nil
     }
 
@@ -151,10 +156,16 @@ final class StravaService: NSObject, ObservableObject {
         isSyncing = false
     }
 
-    // MARK: - Remove a match after the runner logs it
+    // MARK: - Remove matches after logging
 
+    /// Remove a banner match once the runner manually logs it.
     func clearMatch(for dayID: UUID) {
         matches.removeValue(forKey: dayID)
+    }
+
+    /// Remove an auto-match after it has been processed by the app.
+    func clearAutoMatch(for dayID: UUID) {
+        autoMatches.removeValue(forKey: dayID)
     }
 
     // MARK: - Token management
@@ -233,16 +244,24 @@ final class StravaService: NSObject, ObservableObject {
     }
 
     private func persistTokens(_ response: StravaTokenResponse) {
+        // Always update all three token values. KeychainHelper.save()
+        // deletes the old entry before writing, so this is safe to call
+        // on both initial auth exchange and every subsequent refresh.
         KeychainHelper.save(response.accessToken,       for: StravaKeys.accessToken)
         KeychainHelper.save(response.refreshToken,      for: StravaKeys.refreshToken)
         KeychainHelper.save(String(response.expiresAt), for: StravaKeys.expiresAt)
 
-        let name = response.athlete.displayName
-        UserDefaults.standard.set(name,                    forKey: UDKeys.athleteName)
-        UserDefaults.standard.set(response.athlete.id,     forKey: UDKeys.athleteID)
+        // Athlete info is only present in the initial authorization-code
+        // exchange, not in refresh responses — skip the update when absent
+        // so the stored name persists across token refreshes.
+        if let athlete = response.athlete {
+            let name = athlete.displayName
+            UserDefaults.standard.set(name,       forKey: UDKeys.athleteName)
+            UserDefaults.standard.set(athlete.id, forKey: UDKeys.athleteID)
+            athleteName = name
+        }
 
         isConnected = true
-        athleteName = name
     }
 
     // MARK: - Activity fetch
@@ -278,7 +297,13 @@ final class StravaService: NSObject, ObservableObject {
                                  plans: [SavedPlan]) {
         let cal  = Calendar.current
         let runs = activities.filter { $0.isRun }
-        var result: [UUID: StravaActivity] = [:]
+
+        // Strong match  — distance within 15% of planned miles.
+        //   Auto-logged silently; no banner shown.
+        // Partial match — same day but distance diverges more than 15%.
+        //   Banner shown so the runner can confirm before logging.
+        var pending: [UUID: StravaActivity] = [:]
+        var auto:    [UUID: StravaActivity] = [:]
 
         for plan in plans {
             for week in plan.weeks {
@@ -288,17 +313,26 @@ final class StravaService: NSObject, ObservableObject {
                           day.completionStatus == .notStarted
                     else { continue }
 
-                    // Find runs on the same calendar day
+                    // Find a run on the same calendar day
                     guard let match = runs.first(where: {
                         cal.isDate($0.startDate, inSameDayAs: day.date)
                     }) else { continue }
 
-                    result[day.id] = match
+                    // Classify by distance proximity
+                    let isStrong = day.miles > 0
+                        && abs(match.distanceMiles - day.miles) / day.miles <= 0.15
+
+                    if isStrong {
+                        auto[day.id] = match
+                    } else {
+                        pending[day.id] = match
+                    }
                 }
             }
         }
 
-        matches = result
+        autoMatches = auto
+        matches     = pending
     }
 }
 

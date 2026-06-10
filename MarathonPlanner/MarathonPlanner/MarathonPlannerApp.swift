@@ -103,6 +103,32 @@ struct MarathonTrainerApp: App {
                         Task { await stravaService.sync(plans: store.plans) }
                     }
                 }
+                // Auto-log strong Strava matches (distance within 15% of planned).
+                // These require no user confirmation — they land silently so the
+                // plan reflects the completed workout the moment the app opens.
+                .onChange(of: stravaService.autoMatches) { newMatches in
+                    guard !newMatches.isEmpty else { return }
+                    for (dayID, activity) in newMatches {
+                        // Locate the plan/week for this day
+                        outer: for plan in store.plans {
+                            for week in plan.weeks {
+                                guard week.days.contains(where: {
+                                    $0.id == dayID
+                                        && $0.completionStatus == .notStarted
+                                }) else { continue }
+                                store.logStravaActivity(
+                                    planID:      plan.id,
+                                    weekID:      week.id,
+                                    dayID:       dayID,
+                                    activity:    activity,
+                                    goalMinutes: plan.settings.goalTimeMinutes
+                                )
+                                stravaService.clearAutoMatch(for: dayID)
+                                break outer
+                            }
+                        }
+                    }
+                }
                 // Listen for weekly summary deep link from notification tap
                 .onReceive(
                     NotificationCenter.default.publisher(

@@ -364,6 +364,7 @@ struct TodayWorkoutCard: View {
     @State private var actualMilesInput   = ""
     @State private var isEditingNote      = false
     @State private var noteInput          = ""
+    @State private var showStravaDetail   = false
     @FocusState private var noteFocused   : Bool
 
     init(ctx: TodayContext,
@@ -406,25 +407,39 @@ struct TodayWorkoutCard: View {
                 workoutTypeBar
                 VStack(alignment: .leading, spacing: 16) {
                     milesAndPace
+
+                    // Pace verdict — promoted to top of card once a Strava
+                    // activity is logged. Appears right below the miles hero
+                    // so the runner sees their pace feedback immediately.
+                    if let verdict = liveDay.paceVerdict,
+                       liveDay.completionStatus != .notStarted {
+                        paceVerdictRow(verdict)
+                            .transition(.opacity
+                                .combined(with: .scale(scale: 0.97,
+                                                        anchor: .top)))
+                            .animation(
+                                .spring(response: 0.45,
+                                         dampingFraction: 0.78),
+                                value: liveDay.paceVerdict)
+                    }
+
                     descriptionText
                     if !liveDay.paceNote.isEmpty && liveDay.paceNote != "—" {
                         paceNote
                     }
-                    // Strava activity match — shown when a run was found on
-                    // Strava for today and the workout hasn't been logged yet
+                    // Strava activity match — only shown for partial matches
+                    // (strong matches are auto-logged without a banner)
                     if let activity = stravaService.matches[liveDay.id],
                        liveDay.completionStatus == .notStarted {
                         stravaMatchBanner(activity)
                     }
-                    coachingCard
+                    // Coaching card shown before the run; yields to pace verdict
+                    // after the run so the runner sees real feedback, not advice
+                    if liveDay.paceVerdict == nil {
+                        coachingCard
+                    }
                     completionControls
                     if showingActualMiles { actualMilesRow }
-                    // Pace zone verdict — shown after logging from Strava
-                    if let verdict = liveDay.paceVerdict,
-                       liveDay.completionStatus != .notStarted {
-                        paceVerdictRow(verdict)
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                    }
                 }
                 .padding(20)
             }
@@ -436,6 +451,14 @@ struct TodayWorkoutCard: View {
                 .stroke(Color(.separator).opacity(0.3), lineWidth: 1)
         )
         .animation(.easeInOut(duration: 0.2), value: status)
+        .sheet(isPresented: $showStravaDetail) {
+            if let activity = liveDay.stravaActivity {
+                StravaActivityDetailSheet(
+                    activity: activity,
+                    verdict:  liveDay.paceVerdict
+                )
+            }
+        }
     }
 
     // MARK: Type Bar
@@ -558,16 +581,32 @@ struct TodayWorkoutCard: View {
                 }
             }
             Spacer()
+            // Show actual miles whenever they are recorded — this covers both
+            // Strava-logged runs (.completed within 15%) and manually-adjusted
+            // runs (.modified). "from strava" label when source is Strava,
+            // "actual" for manual entries.
             if let actual = liveDay.actualMiles,
-               status == .modified {
+               status == .completed || status == .modified {
+                let fromStrava = liveDay.paceVerdict != nil
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(String(format: "%.1f", actual))
                         .font(.system(size: 28, weight: .thin,
                                       design: .monospaced))
-                        .foregroundColor(Color(hex: "0A84FF"))
-                    Text("actual")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(
+                            fromStrava
+                                ? Color(hex: "FC4C02").opacity(0.85)
+                                : Color(hex: "0A84FF")
+                        )
+                    HStack(spacing: 3) {
+                        if fromStrava {
+                            Circle()
+                                .fill(Color(hex: "FC4C02"))
+                                .frame(width: 4, height: 4)
+                        }
+                        Text(fromStrava ? "strava" : "actual")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .transition(.move(edge: .trailing)
                     .combined(with: .opacity))
@@ -984,41 +1023,15 @@ struct TodayWorkoutCard: View {
     }
 
     private func logFromStrava(_ activity: StravaActivity) {
-        let actual  = activity.distanceMiles
-        let planned = liveDay.miles
-
-        // Within 15% of planned → completed; further off → modified
-        let status: CompletionStatus = planned > 0
-            && abs(actual - planned) / planned <= 0.15
-            ? .completed
-            : .modified
-
-        store.updateCompletion(
-            planID: ctx.plan.id,
-            weekID: ctx.week.id,
-            dayID:  liveDay.id,
-            status: status,
-            actual: actual
+        // Single atomic write: completion status + actual miles + pace verdict
+        store.logStravaActivity(
+            planID:      ctx.plan.id,
+            weekID:      ctx.week.id,
+            dayID:       liveDay.id,
+            activity:    activity,
+            goalMinutes: ctx.plan.settings.goalTimeMinutes
         )
 
-        // Compute and persist pace zone verdict
-        if let avgSpeed = activity.averageSpeed, avgSpeed > 0 {
-            let secsPerMile = Int((1609.344 / avgSpeed).rounded())
-            if let verdict = PaceZoneValidator.evaluate(
-                workoutType:          liveDay.workoutType,
-                goalMinutes:          ctx.plan.settings.goalTimeMinutes,
-                actualSecondsPerMile: secsPerMile
-            ) {
-                store.savePaceVerdict(
-                    planID:  ctx.plan.id,
-                    weekID:  ctx.week.id,
-                    dayID:   liveDay.id,
-                    verdict: verdict
-                )
-            }
-        }
-
-        // Remove the Strava banner
         withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
             stravaService.clearMatch(for: liveDay.id)
         }
@@ -1030,28 +1043,59 @@ struct TodayWorkoutCard: View {
     // MARK: - Pace Verdict Row
 
     private func paceVerdictRow(_ verdict: String) -> some View {
-        let isGood = verdict.hasPrefix("✓")
-        let color  = isGood ? Color(hex: "30D158") : Color(hex: "FF9F0A")
+        let isGood    = verdict.hasPrefix("✓")
+        let color     = isGood ? Color(hex: "30D158") : Color(hex: "FF9F0A")
+        let tappable  = liveDay.stravaActivity != nil
 
-        return HStack(alignment: .top, spacing: 8) {
-            Image(systemName: isGood ? "checkmark.circle.fill" : "info.circle.fill")
-                .font(.system(size: 12))
-                .foregroundColor(color)
-                .padding(.top, 1)
-            Text(verdict)
-                .font(.appBody(12))
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .lineSpacing(3)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: isGood
+                      ? "checkmark.circle.fill"
+                      : "info.circle.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(color)
+                    .padding(.top, 1)
+                Text(verdict)
+                    .font(.appBody(13))
+                    .foregroundColor(isGood ? .primary : .secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(4)
+                Spacer(minLength: 0)
+                // Disclosure chevron — only when an activity is stored
+                if tappable {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(color.opacity(0.5))
+                        .padding(.top, 2)
+                }
+            }
+
+            // Attribution / tap hint
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(Color(hex: "FC4C02"))
+                    .frame(width: 5, height: 5)
+                Text(tappable
+                     ? "Tap for activity details"
+                     : "Pace analysis via Strava")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundColor(Color(.tertiaryLabel))
+            }
+            .padding(.leading, 21)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
-        .background(color.opacity(0.07))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .background(color.opacity(0.08))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(color.opacity(0.15), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(color.opacity(0.2), lineWidth: 1)
         )
-        .cornerRadius(8)
+        .cornerRadius(10)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard tappable else { return }
+            showStravaDetail = true
+        }
     }
 
     private var coachingCard: some View {
